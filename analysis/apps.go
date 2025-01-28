@@ -2,6 +2,7 @@ package analysis
 
 import (
 	"context"
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -17,13 +18,14 @@ type Apps struct {
 
 var _ what.Analyzer = (*Apps)(nil)
 
-func (*Apps) Name() string {
+func (*Apps) GetName() string {
 	return "apps"
 }
 
-func (a *Apps) Analyze(_ context.Context, fsys fs.FS, root string) (results []what.Result, err error) {
+func (a *Apps) Analyze(_ context.Context, fsys fs.FS, root string) (what.Result, error) {
 	var seenApps = make(map[string]struct{})
-	err = fs.WalkDir(fsys, root, func(path string, d fs.DirEntry, err error) error {
+	var appList = &AppList{}
+	err := fs.WalkDir(fsys, root, func(path string, d fs.DirEntry, err error) error {
 		depth := strings.Count(path, string(os.PathSeparator))
 		if depth > a.MaxDepth {
 			return filepath.SkipDir
@@ -32,7 +34,8 @@ func (a *Apps) Analyze(_ context.Context, fsys fs.FS, root string) (results []wh
 			dirname := filepath.Dir(path)
 			if _, ok := seenApps[dirname]; !ok {
 				seenApps[dirname] = struct{}{}
-				results = append(results, what.Result{Payload: dirname, Reason: d.Name()})
+				// TODO where do we want to expose the reason behind each path?
+				appList.Paths = append(appList.Paths, dirname)
 			}
 			if a.SkipNested {
 				return filepath.SkipDir
@@ -50,7 +53,11 @@ func (a *Apps) Analyze(_ context.Context, fsys fs.FS, root string) (results []wh
 		}
 		return nil
 	})
-	return
+	if err != nil {
+		return nil, err
+	}
+
+	return appList, err
 }
 
 var maybeAppRootFiles = map[string]struct{}{
@@ -75,4 +82,24 @@ func isMaybeAppRootFile(f fs.DirEntry) bool {
 		}
 	}
 	return true
+}
+
+type AppList struct {
+	Paths []string
+}
+
+func (a *AppList) GetSummary() string {
+	var s string
+	switch len(a.Paths) {
+	case 0:
+		return "No probable app directories detected"
+	case 1:
+		s += "1 probable app directory detected:"
+	default:
+		s += fmt.Sprintf("%d probable app directories detected:", len(a.Paths))
+	}
+	for _, path := range a.Paths {
+		s += "\n  " + path
+	}
+	return s
 }

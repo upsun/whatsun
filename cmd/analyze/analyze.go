@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io/fs"
 	"log"
@@ -38,16 +37,14 @@ func main() {
 	}
 
 	for c := range resultChan {
-		log.Printf(`received result from analyzer "%s"`, c.Analyzer.Name())
-		for _, r := range c.results {
-			fmt.Printf("payload: %s, reason: %s\n", r.Payload, r.Reason)
-		}
+		log.Printf(`received result from analyzer "%s":`, c.Analyzer.GetName())
+		fmt.Println(c.Result.GetSummary())
 	}
 }
 
 type resultContext struct {
 	what.Analyzer
-	results []what.Result
+	what.Result
 }
 
 func analyze(ctx context.Context, fsys fs.FS, root string, resultChan chan<- resultContext) error {
@@ -65,14 +62,11 @@ func analyze(ctx context.Context, fsys fs.FS, root string, resultChan chan<- res
 			eg.Go(func() error {
 				result, err := a.Analyze(ctx, fsys, root)
 				if err != nil {
-					if errors.Is(err, what.ErrNotApplicable) {
-						return nil
-					}
 					return err
 				}
 				resultChan <- resultContext{
 					Analyzer: a,
-					results:  result,
+					Result:   result,
 				}
 				return nil
 			})

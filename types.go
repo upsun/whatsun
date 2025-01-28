@@ -7,15 +7,12 @@ import (
 )
 
 type Analyzer interface {
-	Name() string
-	Analyze(context.Context, fs.FS, string) ([]Result, error)
+	GetName() string
+	Analyze(context.Context, fs.FS, string) (Result, error)
 }
 
-var (
-	ErrNotApplicable = errors.New("not applicable")
-)
+var ErrNotApplicable = errors.New("not applicable")
 
-type Result struct {
-	Payload any
-	Reason  any
+type Result interface {
+	GetSummary() string
 }
