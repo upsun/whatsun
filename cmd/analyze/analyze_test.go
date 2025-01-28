@@ -27,8 +27,8 @@ func TestAnalyze(t *testing.T) {
 	assert.NoError(t, err)
 
 	r := <-resultChan
-	assert.Equal(t, r.Analyzer.GetName(), "apps")
-	assert.IsType(t, &analysis.AppList{}, r.Result)
-	paths := r.Result.(*analysis.AppList).Paths
+	assert.Equal(t, r.Analyzer.GetName(), "project")
+	assert.IsType(t, &analysis.Project{}, r.Result)
+	paths := r.Result.(*analysis.Project).AppList.Paths
 	assert.EqualValues(t, []string{"another-app", "."}, paths)
 }

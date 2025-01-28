@@ -11,22 +11,26 @@ import (
 	"what"
 )
 
-type Apps struct {
+type AppAnalyzer struct {
 	SkipNested bool
 	MaxDepth   int
 }
 
-var _ what.Analyzer = (*Apps)(nil)
+var _ what.Analyzer = (*AppAnalyzer)(nil)
 
-func (*Apps) GetName() string {
+func (*AppAnalyzer) GetName() string {
 	return "apps"
 }
 
-func (a *Apps) Analyze(_ context.Context, fsys fs.FS, root string) (what.Result, error) {
+func (a *AppAnalyzer) Analyze(_ context.Context, fsys fs.FS, root string) (what.Result, error) {
 	var seenApps = make(map[string]struct{})
 	var appList = &AppList{}
+	var initialDepth = strings.Count(root, string(os.PathSeparator))
 	err := fs.WalkDir(fsys, root, func(path string, d fs.DirEntry, err error) error {
-		depth := strings.Count(path, string(os.PathSeparator))
+		if err != nil {
+			return err
+		}
+		depth := strings.Count(path, string(os.PathSeparator)) - initialDepth
 		if depth > a.MaxDepth {
 			return filepath.SkipDir
 		}

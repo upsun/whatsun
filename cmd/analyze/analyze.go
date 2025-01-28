@@ -49,7 +49,7 @@ type resultContext struct {
 
 func analyze(ctx context.Context, fsys fs.FS, root string, resultChan chan<- resultContext) error {
 	analyzers := []what.Analyzer{
-		&analysis.Apps{MaxDepth: 3},
+		&analysis.ProjectAnalyzer{},
 	}
 
 	var err error
