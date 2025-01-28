@@ -18,6 +18,7 @@ func TestAnalyze(t *testing.T) {
 		".ignored/file":     &fstest.MapFile{},
 		"vendor":            &fstest.MapFile{Mode: fs.ModeDir},
 		"vendor/symfony":    &fstest.MapFile{Mode: fs.ModeDir},
+		"some/very/deep/path/containing/a/composer.lock": &fstest.MapFile{Data: []byte("{}")},
 	}
 
 	resultChan := make(chan resultContext)

@@ -3,13 +3,16 @@ package analysis
 import (
 	"context"
 	"io/fs"
+	"os"
 	"path/filepath"
+	"strings"
 
 	"what"
 )
 
 type Apps struct {
 	SkipNested bool
+	MaxDepth   int
 }
 
 var _ what.Analyzer = (*Apps)(nil)
@@ -21,6 +24,10 @@ func (*Apps) Name() string {
 func (a *Apps) Analyze(_ context.Context, fsys fs.FS, root string) (results []what.Result, err error) {
 	var seenApps = make(map[string]struct{})
 	err = fs.WalkDir(fsys, root, func(path string, d fs.DirEntry, err error) error {
+		depth := strings.Count(path, string(os.PathSeparator))
+		if depth > a.MaxDepth {
+			return filepath.SkipDir
+		}
 		if isMaybeAppRootFile(d) {
 			dirname := filepath.Dir(path)
 			if _, ok := seenApps[dirname]; !ok {
