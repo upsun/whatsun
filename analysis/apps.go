@@ -51,7 +51,8 @@ func (a *AppAnalyzer) Analyze(_ context.Context, fsys fs.FS, root string) (what.
 			if len(n) > 1 && n[0] == '.' {
 				return filepath.SkipDir
 			}
-			if n == "vendor" {
+			switch n {
+			case "vendor", "node_modules", "packages", "pkg", "tests", "logs", "doc", "docs", "bin", "dist":
 				return filepath.SkipDir
 			}
 		}
@@ -72,6 +73,8 @@ var maybeAppRootFiles = map[string]struct{}{
 	"pubspec.lock":      {},
 	"Podfile.lock":      {},
 	"pnpm-lock.yaml":    {},
+
+	".platform.app.yaml": {},
 }
 
 func isMaybeAppRootFile(f fs.DirEntry) bool {
