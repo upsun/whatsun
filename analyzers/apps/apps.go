@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"what"
@@ -13,8 +14,8 @@ import (
 )
 
 type Analyzer struct {
-	SkipNested bool
-	MaxDepth   int
+	AllowNested bool
+	MaxDepth    int
 }
 
 func New() what.Analyzer {
@@ -38,14 +39,25 @@ func (a *Analyzer) Analyze(_ context.Context, fsys fs.FS) (what.Result, error) {
 		if d.Name() == ".platform.app.yaml" {
 			dirname := filepath.Dir(path)
 			if _, ok := seenApps[dirname]; !ok {
-				// TODO where do we want to expose the reason behind each path?
-				seenApps[dirname] = App{Dir: dirname, DetectedVia: d.Name()}
+				seenApps[dirname] = App{Dir: dirname}
 			}
-			if a.SkipNested {
+			// Skip nested apps below the top level.
+			if !a.AllowNested && depth > 0 {
 				return filepath.SkipDir
 			}
 		}
 		if d.IsDir() {
+			n := d.Name()
+			// TODO implement actual gitignore
+			if len(n) > 1 && n[0] == '.' {
+				return filepath.SkipDir
+			}
+			switch n {
+			case "vendor", "node_modules", "packages", "pkg", "tests", "logs", "doc", "docs", "bin", "dist",
+				"__pycache__", "venv", "virtualenv", "target", "out", "build", "obj", "elm-stuff":
+				return filepath.SkipDir
+			}
+
 			subFS, err := fs.Sub(fsys, path)
 			if err != nil {
 				return err
@@ -56,22 +68,14 @@ func (a *Analyzer) Analyze(_ context.Context, fsys fs.FS) (what.Result, error) {
 				return err
 			}
 			if len(pms) > 0 {
-				if _, ok := seenApps[path]; !ok {
-					seenApps[path] = App{Dir: path, PackageManagers: pms, DetectedVia: "package_manager"}
+				if seen, ok := seenApps[path]; ok {
+					seen.PackageManagers = pms
+				} else {
+					seenApps[path] = App{Dir: path, PackageManagers: pms}
 				}
-				if a.SkipNested {
+				if !a.AllowNested && path != "." {
 					return filepath.SkipDir
 				}
-			}
-
-			n := d.Name()
-			// TODO implement actual gitignore
-			if len(n) > 1 && n[0] == '.' {
-				return filepath.SkipDir
-			}
-			switch n {
-			case "vendor", "node_modules", "packages", "pkg", "tests", "logs", "doc", "docs", "bin", "dist":
-				return filepath.SkipDir
 			}
 		}
 		return nil
@@ -87,13 +91,16 @@ func (a *Analyzer) Analyze(_ context.Context, fsys fs.FS) (what.Result, error) {
 		i++
 	}
 
+	slices.SortFunc(list, func(a, b App) int {
+		return strings.Compare(a.Dir, b.Dir)
+	})
+
 	return list, err
 }
 
 type App struct {
 	Dir             string
 	PackageManagers pm.List
-	DetectedVia     string
 }
 
 type List []App
