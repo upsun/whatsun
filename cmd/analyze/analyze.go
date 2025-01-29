@@ -13,7 +13,7 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"what"
-	"what/analysis"
+	"what/analyzers/apps"
 )
 
 func main() {
@@ -31,13 +31,8 @@ func main() {
 	}
 	defer f.Close()
 
-	analyzers := []what.Analyzer{
-		&analysis.ProjectAnalyzer{},
-		&analysis.AppAnalyzer{MaxDepth: 3},
-	}
-
 	resultChan := make(chan resultContext)
-	analyze(context.TODO(), analyzers, os.DirFS(absPath), ".", resultChan)
+	analyze(context.TODO(), []what.Analyzer{apps.New()}, os.DirFS(absPath), resultChan)
 
 	errOut := bufio.NewWriter(os.Stderr)
 	defer errOut.Flush()
@@ -59,7 +54,7 @@ type resultContext struct {
 }
 
 // analyze runs a list of analyzers and sends results.
-func analyze(ctx context.Context, analyzers []what.Analyzer, fsys fs.FS, root string, resultChan chan<- resultContext) {
+func analyze(ctx context.Context, analyzers []what.Analyzer, fsys fs.FS, resultChan chan<- resultContext) {
 	go func() {
 		eg := errgroup.Group{}
 		eg.SetLimit(runtime.GOMAXPROCS(0))
@@ -67,7 +62,7 @@ func analyze(ctx context.Context, analyzers []what.Analyzer, fsys fs.FS, root st
 		for _, a := range analyzers {
 			a := a
 			eg.Go(func() error {
-				result, err := a.Analyze(ctx, fsys, root)
+				result, err := a.Analyze(ctx, fsys)
 				if err != nil {
 					return err
 				}

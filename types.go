@@ -8,7 +8,7 @@ import (
 
 type Analyzer interface {
 	GetName() string
-	Analyze(context.Context, fs.FS, string) (Result, error)
+	Analyze(context.Context, fs.FS) (Result, error)
 }
 
 var ErrNotApplicable = errors.New("not applicable")
