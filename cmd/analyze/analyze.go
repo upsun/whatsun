@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"io/fs"
@@ -30,29 +31,35 @@ func main() {
 	}
 	defer f.Close()
 
-	resultChan := make(chan resultContext)
-	err = analyze(context.TODO(), os.DirFS(path), ".", resultChan)
-	if err != nil {
-		log.Fatal(err)
+	analyzers := []what.Analyzer{
+		&analysis.ProjectAnalyzer{},
+		&analysis.AppAnalyzer{MaxDepth: 3},
 	}
 
-	for c := range resultChan {
-		log.Printf(`received result from analyzer "%s":`, c.Analyzer.GetName())
-		fmt.Println(c.Result.GetSummary())
+	resultChan := make(chan resultContext)
+	analyze(context.TODO(), analyzers, os.DirFS(absPath), ".", resultChan)
+
+	errOut := bufio.NewWriter(os.Stderr)
+	defer errOut.Flush()
+
+	for r := range resultChan {
+		if r.err != nil {
+			log.Fatal(r.err)
+		}
+		fmt.Fprintf(errOut, "Received result from analyzer \"%s\":\n", r.Analyzer.GetName())
+		fmt.Fprintln(errOut, r.Result.GetSummary())
+		errOut.Flush()
 	}
 }
 
 type resultContext struct {
+	err error
 	what.Analyzer
 	what.Result
 }
 
-func analyze(ctx context.Context, fsys fs.FS, root string, resultChan chan<- resultContext) error {
-	analyzers := []what.Analyzer{
-		&analysis.ProjectAnalyzer{},
-	}
-
-	var err error
+// analyze runs a list of analyzers and sends results.
+func analyze(ctx context.Context, analyzers []what.Analyzer, fsys fs.FS, root string, resultChan chan<- resultContext) {
 	go func() {
 		eg := errgroup.Group{}
 		eg.SetLimit(runtime.GOMAXPROCS(0))
@@ -71,8 +78,9 @@ func analyze(ctx context.Context, fsys fs.FS, root string, resultChan chan<- res
 				return nil
 			})
 		}
-		err = eg.Wait()
+		err := eg.Wait()
+		if err != nil {
+			resultChan <- resultContext{err: err}
+		}
 	}()
-
-	return err
 }

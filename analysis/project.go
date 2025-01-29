@@ -32,5 +32,5 @@ type Project struct {
 }
 
 func (a *Project) GetSummary() string {
-	return fmt.Sprintf("Project summary:\n Root: %s\n Apps: %s", a.Root, a.AppList.GetSummary())
+	return fmt.Sprintf("Project summary:\n Root: %s\n Apps: %d", a.Root, len(a.AppList.Paths))
 }

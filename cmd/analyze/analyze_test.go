@@ -5,9 +5,11 @@ import (
 	"io/fs"
 	"testing"
 	"testing/fstest"
-	"what/analysis"
 
 	"github.com/stretchr/testify/assert"
+
+	"what"
+	"what/analysis"
 )
 
 func TestAnalyze(t *testing.T) {
@@ -23,10 +25,10 @@ func TestAnalyze(t *testing.T) {
 	}
 
 	resultChan := make(chan resultContext)
-	err := analyze(context.TODO(), testFs, ".", resultChan)
-	assert.NoError(t, err)
+	analyze(context.TODO(), []what.Analyzer{&analysis.ProjectAnalyzer{}}, testFs, ".", resultChan)
 
 	r := <-resultChan
+	assert.NoError(t, r.err)
 	assert.Equal(t, r.Analyzer.GetName(), "project")
 	assert.IsType(t, &analysis.Project{}, r.Result)
 	paths := r.Result.(*analysis.Project).AppList.Paths
