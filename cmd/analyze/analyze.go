@@ -9,11 +9,11 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"what/analyzers/apps"
 
 	"golang.org/x/sync/errgroup"
 
 	"what"
-	"what/analyzers/apps"
 )
 
 func main() {
@@ -32,7 +32,7 @@ func main() {
 	defer f.Close()
 
 	resultChan := make(chan resultContext)
-	analyze(context.TODO(), []what.Analyzer{apps.New()}, os.DirFS(absPath), resultChan)
+	analyze(context.TODO(), []what.Analyzer{&apps.Analyzer{}}, os.DirFS(absPath), resultChan)
 
 	errOut := bufio.NewWriter(os.Stderr)
 	defer errOut.Flush()

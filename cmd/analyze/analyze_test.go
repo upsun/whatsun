@@ -28,7 +28,9 @@ func TestAnalyze(t *testing.T) {
 	}
 
 	resultChan := make(chan resultContext)
-	analyze(context.TODO(), []what.Analyzer{apps.New()}, testFs, resultChan)
+	analyze(context.TODO(), []what.Analyzer{&apps.Analyzer{
+		MaxDepth: 2,
+	}}, testFs, resultChan)
 
 	r := <-resultChan
 	assert.NoError(t, r.err)

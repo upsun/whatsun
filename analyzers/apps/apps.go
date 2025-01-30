@@ -18,10 +18,6 @@ type Analyzer struct {
 	MaxDepth    int
 }
 
-func New() what.Analyzer {
-	return &Analyzer{MaxDepth: 3}
-}
-
 func (*Analyzer) GetName() string {
 	return "apps"
 }
@@ -32,20 +28,26 @@ func (a *Analyzer) Analyze(_ context.Context, fsys fs.FS) (what.Result, error) {
 		if err != nil {
 			return err
 		}
-		depth := strings.Count(path, string(os.PathSeparator))
-		if depth > a.MaxDepth {
-			return filepath.SkipDir
+
+		// Calculate depth.
+		// In a structure ./a/b/c then files in the root are level 0, in "a" are in level 1, in "b" are level 2, etc.
+		var depth int
+		if path != "." {
+			depth = strings.Count(path, string(os.PathSeparator))
+			if d.IsDir() {
+				depth++
+			}
 		}
+
+		var (
+			foundAppPath         string
+			foundPackageManagers pm.List
+		)
+
 		if d.Name() == ".platform.app.yaml" {
-			dirname := filepath.Dir(path)
-			if _, ok := seenApps[dirname]; !ok {
-				seenApps[dirname] = App{Dir: dirname}
-			}
-			// Skip nested apps below the top level.
-			if !a.AllowNested && depth > 0 {
-				return filepath.SkipDir
-			}
+			foundAppPath = filepath.Dir(path)
 		}
+
 		if d.IsDir() {
 			n := d.Name()
 			// TODO implement actual gitignore
@@ -68,15 +70,27 @@ func (a *Analyzer) Analyze(_ context.Context, fsys fs.FS) (what.Result, error) {
 				return err
 			}
 			if len(pms) > 0 {
-				if seen, ok := seenApps[path]; ok {
-					seen.PackageManagers = pms
-				} else {
-					seenApps[path] = App{Dir: path, PackageManagers: pms}
-				}
-				if !a.AllowNested && path != "." {
-					return filepath.SkipDir
-				}
+				foundAppPath = path
+				foundPackageManagers = pms
 			}
+		}
+
+		if foundAppPath != "" {
+			if seen, ok := seenApps[foundAppPath]; ok {
+				if foundPackageManagers != nil {
+					seen.PackageManagers = foundPackageManagers
+					seenApps[foundAppPath] = seen
+				}
+			} else {
+				seenApps[foundAppPath] = App{Dir: foundAppPath, PackageManagers: foundPackageManagers}
+			}
+			if !a.AllowNested && depth > 0 {
+				return filepath.SkipDir
+			}
+		}
+
+		if depth > a.MaxDepth {
+			return filepath.SkipDir
 		}
 		return nil
 	})
