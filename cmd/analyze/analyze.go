@@ -32,7 +32,7 @@ func main() {
 	}
 	defer f.Close()
 
-	analyzers := []what.Analyzer{&apps.Analyzer{}}
+	analyzers := []what.Analyzer{&apps.Analyzer{MaxDepth: 3}}
 
 	fmt.Fprintf(os.Stderr, "Running analyzers: %v\n", analyzers)
 

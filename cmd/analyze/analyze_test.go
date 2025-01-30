@@ -23,13 +23,13 @@ func TestAnalyze(t *testing.T) {
 		"vendor/symfony":                   &fstest.MapFile{Mode: fs.ModeDir},
 		"another-app/package-lock.json":    &fstest.MapFile{},
 		"another-app/nested/composer.lock": &fstest.MapFile{},
-		"some/very/deep/path/containing/a/composer.lock": &fstest.MapFile{},
-		"configured-app/.platform.app.yaml":              &fstest.MapFile{},
+		"some/deep/path/containing/a/composer.json": &fstest.MapFile{},
+		"configured-app/.platform.app.yaml":         &fstest.MapFile{},
 	}
 
 	resultChan := make(chan resultContext)
 	analyze(context.TODO(), []what.Analyzer{&apps.Analyzer{
-		MaxDepth: 2,
+		MaxDepth: 10,
 	}}, testFs, resultChan)
 
 	r := <-resultChan

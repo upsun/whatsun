@@ -59,7 +59,11 @@ func (a *Analyzer) Analyze(_ context.Context, fsys fs.FS) (what.Result, error) {
 				"__pycache__", "venv", "virtualenv", "target", "out", "build", "obj", "elm-stuff":
 				return filepath.SkipDir
 			}
+		}
 
+		// Look for directories that have identifiable package managers.
+		// Only do this at the top two levels to avoid false positives.
+		if depth <= 1 && d.IsDir() {
 			subFS, err := fs.Sub(fsys, path)
 			if err != nil {
 				return err
@@ -75,6 +79,7 @@ func (a *Analyzer) Analyze(_ context.Context, fsys fs.FS) (what.Result, error) {
 			}
 		}
 
+		// Add found apps to the list.
 		if foundAppPath != "" {
 			if seen, ok := seenApps[foundAppPath]; ok {
 				if foundPackageManagers != nil {
