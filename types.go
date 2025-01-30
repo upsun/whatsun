@@ -7,12 +7,12 @@ import (
 )
 
 type Analyzer interface {
-	GetName() string
+	String() string // Return the name of the analyzer
 	Analyze(context.Context, fs.FS) (Result, error)
 }
 
 var ErrNotApplicable = errors.New("not applicable")
 
 type Result interface {
-	GetSummary() string
+	String() string
 }

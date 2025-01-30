@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"time"
 	"what/analyzers/apps"
 
 	"golang.org/x/sync/errgroup"
@@ -31,19 +32,24 @@ func main() {
 	}
 	defer f.Close()
 
-	resultChan := make(chan resultContext)
-	analyze(context.TODO(), []what.Analyzer{&apps.Analyzer{}}, os.DirFS(absPath), resultChan)
+	analyzers := []what.Analyzer{&apps.Analyzer{}}
 
-	errOut := bufio.NewWriter(os.Stderr)
-	defer errOut.Flush()
+	fmt.Fprintf(os.Stderr, "Running analyzers: %v\n", analyzers)
+
+	resultChan := make(chan resultContext)
+	start := time.Now()
+	analyze(context.TODO(), analyzers, os.DirFS(absPath), resultChan)
+
+	stdErrBuf := bufio.NewWriter(os.Stderr)
+	defer stdErrBuf.Flush()
 
 	for r := range resultChan {
 		if r.err != nil {
 			log.Fatal(r.err)
 		}
-		fmt.Fprintf(errOut, "Received result from analyzer \"%s\":\n", r.Analyzer.GetName())
-		fmt.Fprintln(errOut, r.Result.GetSummary())
-		errOut.Flush()
+		fmt.Fprintf(stdErrBuf, "Received result in %s from analyzer \"%s\":\n", time.Since(start), r.Analyzer.String())
+		fmt.Fprintln(stdErrBuf, r.Result)
+		stdErrBuf.Flush()
 	}
 }
 

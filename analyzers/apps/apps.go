@@ -18,7 +18,7 @@ type Analyzer struct {
 	MaxDepth    int
 }
 
-func (*Analyzer) GetName() string {
+func (*Analyzer) String() string {
 	return "apps"
 }
 
@@ -119,7 +119,7 @@ type App struct {
 
 type List []App
 
-func (l List) GetSummary() string {
+func (l List) String() string {
 	var s string
 	switch len(l) {
 	case 0:

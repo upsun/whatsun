@@ -2,7 +2,6 @@
 package pm
 
 import (
-	"fmt"
 	"io/fs"
 )
 
@@ -12,10 +11,6 @@ type DetectedPM struct {
 }
 
 type List []DetectedPM
-
-func (l List) GetSummary() string {
-	return fmt.Sprintf("%v", l)
-}
 
 // Detect looks for evidence of package managers in a directory.
 func Detect(fsys fs.FS) (List, error) {

@@ -6,7 +6,7 @@ help:
 
 .PHONY: build
 build:
-	go build -o ./analyze cmd/analyze/analyze.go
+	go build -o ./what cmd/analyze/analyze.go
 
 .PHONY: govulncheck
 govulncheck: ## Check dependencies for vulnerabilities.

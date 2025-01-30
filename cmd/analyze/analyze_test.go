@@ -34,7 +34,7 @@ func TestAnalyze(t *testing.T) {
 
 	r := <-resultChan
 	assert.NoError(t, r.err)
-	assert.Equal(t, r.Analyzer.GetName(), "apps")
+	assert.Equal(t, r.Analyzer.String(), "apps")
 
 	assert.EqualValues(t, apps.List{
 		{Dir: ".", PackageManagers: pm.List{{PM: pm.Composer, Sources: []string{"composer.json", "composer.lock"}}}},
