@@ -88,5 +88,5 @@ var filePatterns = map[string][]*PackageManager{
 
 	"quicklisp/.": {Quicklisp},
 
-	"vendor/.": {Composer, Bundler},
+	"vendor/.": {Composer, Bundler, Cargo},
 }
