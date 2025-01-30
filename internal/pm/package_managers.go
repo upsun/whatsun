@@ -9,15 +9,13 @@ import (
 //go:embed package_managers.yml
 var configData []byte
 
-type configSchema struct {
+var packageManagers = map[string]*PackageManager{}
+
+var config *struct {
 	Categories      map[string]string   `yaml:"categories"`
 	PackageManagers map[string][]string `yaml:"package_managers"`
 	FilePatterns    map[string][]string `yaml:"file_patterns"`
 }
-
-var packageManagers = map[string]*PackageManager{}
-
-var config *configSchema
 
 func init() {
 	if err := yaml.Unmarshal(configData, &config); err != nil {
