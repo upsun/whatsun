@@ -12,6 +12,10 @@ type DetectedPM struct {
 	Sources  []string
 }
 
+func (d *DetectedPM) String() string {
+	return fmt.Sprintf("%s/%s (via: %s)", d.Category, d.Name, d.Sources)
+}
+
 type List []DetectedPM
 
 // Detect looks for evidence of package managers in a directory.
@@ -26,7 +30,7 @@ func Detect(fsys fs.FS) (List, error) {
 			continue
 		}
 		for _, name := range candidates {
-			pm, ok := packageManagers[name]
+			pm, ok := allPMs[name]
 			if !ok {
 				return nil, fmt.Errorf("no package manager found for: %s", name)
 			}

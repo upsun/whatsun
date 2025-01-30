@@ -1,17 +1,4 @@
----
-# Categories (languages or frameworks) keyed by machine name.
-categories:
-  java: Java
-  dotnet: .NET
-  js: JS/TS
-  go: Go
-  lisp: LISP
-  php: PHP
-  python: Python
-  ruby: Ruby
-  rust: Rust
-
-# Package manager lists keyed by category.
+# Package manager lists keyed by category (e.g. language or framework).
 package_managers:
   java: [maven, gradle]
   dotnet: [nuget]

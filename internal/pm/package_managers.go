@@ -9,10 +9,14 @@ import (
 //go:embed package_managers.yml
 var configData []byte
 
-var packageManagers = map[string]*PackageManager{}
+var allPMs = map[string]*packageManager{}
+
+type packageManager struct {
+	name     string
+	category string
+}
 
 var config *struct {
-	Categories      map[string]string   `yaml:"categories"`
 	PackageManagers map[string][]string `yaml:"package_managers"`
 	FilePatterns    map[string][]string `yaml:"file_patterns"`
 }
@@ -23,18 +27,7 @@ func init() {
 	}
 	for cat, names := range config.PackageManagers {
 		for _, name := range names {
-			packageManagers[name] = &PackageManager{Name: name, Category: cat}
+			allPMs[name] = &packageManager{name: name, category: cat}
 		}
 	}
-}
-
-type PackageManager struct {
-	Name string
-
-	// Category is usually a Language* or Framework* constant.
-	Category string
-}
-
-func (pm *PackageManager) String() string {
-	return pm.Category + "/" + pm.Name
 }

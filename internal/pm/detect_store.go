@@ -9,7 +9,7 @@ import (
 )
 
 type detectionStore struct {
-	byCategory map[string]map[*PackageManager]detectedAttributes
+	byCategory map[string]map[*packageManager]detectedAttributes
 	mutex      sync.RWMutex
 }
 
@@ -24,7 +24,7 @@ func (s *detectionStore) list() []DetectedPM {
 	if s.byCategory == nil {
 		return nil
 	}
-	uniq := make(map[*PackageManager][]string)
+	uniq := make(map[*packageManager][]string)
 	for _, pmAttrs := range s.byCategory {
 		for pm, attrs := range pmAttrs {
 			if _, ok := uniq[pm]; ok {
@@ -38,7 +38,7 @@ func (s *detectionStore) list() []DetectedPM {
 	i := 0
 	for pm, sources := range uniq {
 		sort.StringSlice(sources).Sort()
-		pms[i] = DetectedPM{Name: pm.Name, Category: pm.Category, Sources: sources}
+		pms[i] = DetectedPM{Name: pm.name, Category: pm.category, Sources: sources}
 		i++
 	}
 
@@ -49,18 +49,18 @@ func (s *detectionStore) list() []DetectedPM {
 	return pms
 }
 
-func (s *detectionStore) add(pm *PackageManager, src string, certain bool) error {
+func (s *detectionStore) add(pm *packageManager, src string, certain bool) error {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 	if s.byCategory == nil {
-		s.byCategory = make(map[string]map[*PackageManager]detectedAttributes)
+		s.byCategory = make(map[string]map[*packageManager]detectedAttributes)
 	}
 
 	// Nothing is found in this category yet.
-	inCategory, found := s.byCategory[pm.Category]
+	inCategory, found := s.byCategory[pm.category]
 	if !found {
-		s.byCategory[pm.Category] = make(map[*PackageManager]detectedAttributes)
-		s.byCategory[pm.Category][pm] = detectedAttributes{
+		s.byCategory[pm.category] = make(map[*packageManager]detectedAttributes)
+		s.byCategory[pm.category][pm] = detectedAttributes{
 			sources: []string{src},
 			certain: certain,
 		}
@@ -73,7 +73,7 @@ func (s *detectionStore) add(pm *PackageManager, src string, certain bool) error
 		if certain {
 			existing.certain = certain
 		}
-		s.byCategory[pm.Category][pm] = existing
+		s.byCategory[pm.category][pm] = existing
 		return nil
 	}
 
@@ -82,7 +82,7 @@ func (s *detectionStore) add(pm *PackageManager, src string, certain bool) error
 			if attr.certain {
 				return fmt.Errorf(
 					"conflicting PMs found for source %s, category %s (%s vs %s)",
-					src, pm.Category, pm, k)
+					src, pm.category, pm, k)
 			}
 			delete(inCategory, k)
 		} else if k == pm {
