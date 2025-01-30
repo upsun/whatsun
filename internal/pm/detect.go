@@ -20,7 +20,7 @@ type List []DetectedPM
 
 // Detect looks for evidence of package managers in a directory.
 func Detect(fsys fs.FS) (List, error) {
-	var s detectionStore
+	var s store
 	for fp, candidates := range config.FilePatterns {
 		matches, err := fs.Glob(fsys, fp)
 		if err != nil {
@@ -30,11 +30,7 @@ func Detect(fsys fs.FS) (List, error) {
 			continue
 		}
 		for _, name := range candidates {
-			pm, ok := allPMs[name]
-			if !ok {
-				return nil, fmt.Errorf("no package manager found for: %s", name)
-			}
-			if err := s.add(pm, fp, len(candidates) == 1); err != nil {
+			if err := s.add(name, fp, len(candidates) == 1); err != nil {
 				return nil, err
 			}
 		}
