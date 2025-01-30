@@ -37,8 +37,8 @@ func TestAnalyze(t *testing.T) {
 	assert.Equal(t, r.Analyzer.String(), "apps")
 
 	assert.EqualValues(t, apps.List{
-		{Dir: ".", PackageManagers: pm.List{{PM: pm.Composer, Sources: []string{"composer.json", "composer.lock"}}}},
-		{Dir: "another-app", PackageManagers: pm.List{{PM: pm.NPM, Sources: []string{"package-lock.json"}}}},
+		{Dir: ".", PackageManagers: pm.List{{Name: "composer", Category: "php", Sources: []string{"composer.json", "composer.lock"}}}},
+		{Dir: "another-app", PackageManagers: pm.List{{Name: "npm", Category: "js", Sources: []string{"package-lock.json"}}}},
 		{Dir: "configured-app"},
 	}, r.Result.(apps.List))
 }

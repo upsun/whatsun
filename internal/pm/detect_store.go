@@ -38,12 +38,12 @@ func (s *detectionStore) list() []DetectedPM {
 	i := 0
 	for pm, sources := range uniq {
 		sort.StringSlice(sources).Sort()
-		pms[i] = DetectedPM{PM: pm, Sources: sources}
+		pms[i] = DetectedPM{Name: pm.Name, Category: pm.Category, Sources: sources}
 		i++
 	}
 
 	slices.SortFunc(pms, func(a, b DetectedPM) int {
-		return strings.Compare(a.PM.Name, b.PM.Name)
+		return strings.Compare(a.Name, b.Name)
 	})
 
 	return pms

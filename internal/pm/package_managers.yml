@@ -1,0 +1,72 @@
+---
+# Categories (languages or frameworks) keyed by machine name.
+categories:
+  java: Java
+  dotnet: .NET
+  js: JS/TS
+  go: Go
+  lisp: LISP
+  php: PHP
+  python: Python
+  ruby: Ruby
+  rust: Rust
+
+# Package manager lists keyed by category.
+package_managers:
+  java: [maven, gradle]
+  dotnet: [nuget]
+  js: [npm, yarn, pnpm, bun]
+  go: [gomod]
+  lisp: [quicklisp]
+  php: [composer]
+  python: [pip, pipenv, poetry]
+  ruby: [bundler]
+  rust: [cargo]
+
+# Package manager lists keyed by a glob file pattern.
+#
+# Listing just one package manager implies certainty, as in, that it should be
+# the only one identified in that category. For example, pnpm-lock.yaml in a
+# repository is considered to indicate the use of "pnpm", and not "bun".
+file_patterns:
+  package-lock.json: [npm]
+  yarn.lock: [yarn]
+  pnpm-lock.yaml: [pnpm]
+  bun.lock: [bun]
+  package.json: [npm, pnpm, yarn, bun]
+  node_modules/.: [npm, pnpm, yarn, bun]
+
+  composer.json: [composer]
+  composer.lock: [composer]
+
+  requirements.txt: [pip]
+  pipfile: [pipenv]
+  pipfile.lock: [pipenv]
+  pyproject.toml: [poetry, pip]
+  poetry.lock: [poetry]
+
+  gemfile: [bundler]
+  gemfile.lock: [bundler]
+
+  go.mod: [gomod]
+  go.sum: [gomod]
+
+  cargo.toml: [cargo]
+  cargo.lock: [cargo]
+
+  pom.xml: [maven]
+  build.gradle: [gradle]
+  build.gradle.kts: [gradle]
+  settings.gradle: [gradle]
+  gradle.properties: [gradle]
+  gradlew: [gradle]
+  gradlew.bat: [gradle]
+
+  packages.lock.json: [nuget]
+
+  mix.exs: [mix]
+  mix.lock: [mix]
+
+  quicklisp/.: [quicklisp]
+
+  vendor/.: [composer, bundler, cargo]
