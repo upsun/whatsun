@@ -18,39 +18,40 @@ type attr struct {
 	certain bool
 }
 
-func (s *store) list() []DetectedPM {
+func (s *store) list() ([]DetectedPM, error) {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 	if s.byCategory == nil {
-		return nil
+		return nil, nil
 	}
 
-	// Flatten the list and merge sources.
-	uniq := make(map[*packageManager][]string)
-	for _, v := range s.byCategory {
+	// Validate and flatten the list.
+	// For consistent output, sort each sources list, and then sort the whole list.
+	var pms []DetectedPM
+	for cat, v := range s.byCategory {
+		var certain *packageManager
 		for pm, a := range v {
-			if _, ok := uniq[pm]; ok {
-				uniq[pm] = append(uniq[pm], a.sources...)
-			} else {
-				uniq[pm] = a.sources
+			if a.certain && certain == nil {
+				certain = pm
 			}
+		}
+		for pm, a := range v {
+			if certain != nil && certain != pm {
+				if a.certain {
+					return nil, fmt.Errorf("conflicting package managers found for category %s", cat)
+				}
+				continue
+			}
+			sort.StringSlice(a.sources).Sort()
+			pms = append(pms, DetectedPM{Name: pm.name, Category: pm.category, Sources: a.sources})
 		}
 	}
 
-	// Convert the list to the public type.
-	// For consistent output, sort each sources list, and then sort the whole list.
-	var pms = make([]DetectedPM, len(uniq))
-	i := 0
-	for pm, sources := range uniq {
-		sort.StringSlice(sources).Sort()
-		pms[i] = DetectedPM{Name: pm.name, Category: pm.category, Sources: sources}
-		i++
-	}
 	slices.SortFunc(pms, func(a, b DetectedPM) int {
 		return strings.Compare(a.Name, b.Name)
 	})
 
-	return pms
+	return pms, nil
 }
 
 func (s *store) add(name string, src string, certain bool) error {
@@ -66,36 +67,23 @@ func (s *store) add(name string, src string, certain bool) error {
 	}
 
 	// Nothing is found in this category yet: simply add this one.
-	inCategory, found := s.byCategory[pm.category]
-	if !found {
+	if _, found := s.byCategory[pm.category]; !found {
 		s.byCategory[pm.category] = map[*packageManager]attr{
 			pm: {sources: []string{src}, certain: certain},
 		}
 		return nil
 	}
 
-	// The same package manager has been found: merge the attributes.
-	if existing, ok := inCategory[pm]; ok {
-		existing.sources = append(existing.sources, src)
-		if certain {
-			existing.certain = true
+	// If the same package manager is found, merge the attributes.
+	if existing, ok := s.byCategory[pm.category][pm]; ok {
+		s.byCategory[pm.category][pm] = attr{
+			sources: append(existing.sources, src),
+			certain: certain || existing.certain,
 		}
-		s.byCategory[pm.category][pm] = existing
 		return nil
 	}
 
-	// If this one is 'certain', then check if a different package manager is in the
-	// same category, and error if it is also 'certain', or remove it.
-	if certain {
-		for k, a := range inCategory {
-			if a.certain {
-				return fmt.Errorf(
-					"conflicting PMs found for source %s, category %s (%s vs %s)",
-					src, pm.category, pm, k)
-			}
-			delete(inCategory, k)
-		}
-	}
+	s.byCategory[pm.category][pm] = attr{sources: []string{src}, certain: certain}
 
 	return nil
 }

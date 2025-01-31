@@ -36,5 +36,5 @@ func Detect(fsys fs.FS) (List, error) {
 		}
 	}
 
-	return s.list(), nil
+	return s.list()
 }
