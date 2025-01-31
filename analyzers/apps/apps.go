@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"what"
+	"what/internal/heuristic"
 	"what/internal/pm"
 )
 
@@ -41,7 +42,7 @@ func (a *Analyzer) Analyze(_ context.Context, fsys fs.FS) (what.Result, error) {
 
 		var (
 			foundAppPath         string
-			foundPackageManagers pm.List
+			foundPackageManagers []heuristic.Finding
 		)
 
 		if d.Name() == ".platform.app.yaml" {
@@ -119,7 +120,7 @@ func (a *Analyzer) Analyze(_ context.Context, fsys fs.FS) (what.Result, error) {
 
 type App struct {
 	Dir             string
-	PackageManagers pm.List
+	PackageManagers []heuristic.Finding
 }
 
 type List []App
