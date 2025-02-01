@@ -1,59 +1,76 @@
-# Package manager file patterns.
+# Package manager file rules.
 #
-# The key is a glob pattern, and the value can be a simple string (implying
-# "is"), or an object which allows specifying the keys "is" (string), "not"
-# (list) and/or "maybe" (list).
-file_patterns:
-  package-lock.json:
-    is: npm
+# The "when" condition is matched as a "glob" against the files in a directory.
+#
+# NB: these are not exclusive; more than one package manager can be found for one directory.
+package_managers:
+  rules:
+  - when: package-lock.json
+    then: npm
     not: [bun, pnpm, yarn]
-  yarn.lock:
-    is: yarn
+  - when: yarn.lock
+    then: yarn
     not: [bun, npm, pnpm]
-  pnpm-lock.yaml:
-    is: pnpm
+  - when: pnpm-lock.yaml
+    then: pnpm
     not: [bun, npm, yarn]
-  bun.lock:
-    is: bun
+  - when: bun.lock
+    then: bun
     not: [npm, pnpm, yarn]
-  package.json:
-    maybe: [npm, pnpm, yarn, bun]
-  node_modules/.:
+  - when: package.json
     maybe: [npm, pnpm, yarn, bun]
 
-  composer.json: composer
-  composer.lock: composer
+  - when: composer.json
+    then: composer
+  - when: composer.lock
+    then: composer
 
-  requirements.txt: pip
-  pipfile: pipenv
-  pipfile.lock: pipenv
-  pyproject.toml:
+  - when: requirements.txt
+    then: pip
+  - when: Pipfile
+    then: pipenv
+  - when: Pipfile.lock
+    then: pipenv
+  - when: pyproject.toml
     maybe: [poetry, pip]
-  poetry.lock: poetry
+  - when: poetry.lock
+    then: poetry
 
-  gemfile: bundler
-  gemfile.lock: bundler
+  - when: gemfile*
+    then: bundler
 
-  go.mod: gomod
-  go.sum: gomod
+  - when: go.mod
+    then: gomod
+  - when: go.sum
+    then: gomod
 
-  cargo.toml: cargo
-  cargo.lock: cargo
+  - when: cargo.toml
+    then: cargo
+  - when: cargo.lock
+    then: cargo
 
-  pom.xml: maven
-  build.gradle: gradle
-  build.gradle.kts: gradle
-  settings.gradle: gradle
-  gradle.properties: gradle
-  gradlew: gradle
-  gradlew.bat: gradle
+  - when: pom.xml
+    then: maven
+  - when: build.gradle
+    then: gradle
+  - when: build.gradle.kts
+    then: gradle
+  - when: settings.gradle
+    then: gradle
+  - when: gradle.properties
+    then: gradle
+  - when: gradlew
+    then: gradle
+  - when: gradlew.bat
+    then: gradle
 
-  packages.lock.json: nuget
+  - when: packages.lock.json
+    then: nuget
 
-  mix.exs: mix
-  mix.lock: mix
+  - when: mix.exs
+    then: mix
+  - when: mix.lock
+    then: mix
 
-  quicklisp/.: quicklisp
-
-  vendor/.:
-    maybe: [composer, bundler, cargo]
+  - when: quicklisp/.
+    then: quicklisp

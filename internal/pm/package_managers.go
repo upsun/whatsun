@@ -5,14 +5,16 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"what/internal/heuristic"
+	"what/internal/match"
 )
 
 //go:embed package_managers.yml
 var configData []byte
 
 var config *struct {
-	FilePatterns map[string]*heuristic.Definition `yaml:"file_patterns"`
+	PackageManagers struct {
+		Rules []match.Rule `yaml:"rules"`
+	} `yaml:"package_managers"`
 }
 
 func init() {

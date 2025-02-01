@@ -5,12 +5,12 @@ import (
 	"io/fs"
 	"testing"
 	"testing/fstest"
+	"what/internal/match"
 
 	"github.com/stretchr/testify/assert"
 
 	"what"
 	"what/analyzers/apps"
-	"what/internal/heuristic"
 )
 
 func TestAnalyze(t *testing.T) {
@@ -51,14 +51,14 @@ func TestAnalyze(t *testing.T) {
 	assert.Equal(t, r.Analyzer.String(), "apps")
 
 	assert.EqualValues(t, apps.List{
-		{Dir: ".", PackageManagers: []heuristic.Finding{{Name: "composer", Sources: []string{"composer.json", "composer.lock"}}}},
-		{Dir: "ambiguous", PackageManagers: []heuristic.Finding{
-			{Name: "bun", Sources: []string{"package.json"}},
-			{Name: "npm", Sources: []string{"package.json"}},
-			{Name: "pnpm", Sources: []string{"package.json"}},
-			{Name: "yarn", Sources: []string{"package.json"}},
+		{Dir: ".", PackageManagers: []match.Match{{Result: "composer", Report: []string{"composer.json", "composer.lock"}}}},
+		{Dir: "ambiguous", PackageManagers: []match.Match{
+			{Result: "bun", Report: []string{"package.json"}},
+			{Result: "npm", Report: []string{"package.json"}},
+			{Result: "pnpm", Report: []string{"package.json"}},
+			{Result: "yarn", Report: []string{"package.json"}},
 		}},
-		{Dir: "another-app", PackageManagers: []heuristic.Finding{{Name: "npm", Sources: []string{"package-lock.json"}}}},
+		{Dir: "another-app", PackageManagers: []match.Match{{Result: "npm", Report: []string{"package-lock.json"}}}},
 		{Dir: "configured-app"},
 	}, r.Result.(apps.List))
 }
