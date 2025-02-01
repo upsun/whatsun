@@ -11,7 +11,7 @@ import (
 type Store struct {
 	is    map[string]sourceList
 	maybe map[string]sourceList
-	not   map[string]sourceList
+	not   map[string]struct{}
 	mutex sync.RWMutex
 }
 
@@ -26,7 +26,7 @@ func (s *Store) List() ([]Finding, error) {
 
 	// Validate and combine the lists.
 	// For consistent output, sort each sources list, and then sort the whole list.
-	var pms = make([]Finding, 0, len(s.is)+len(s.maybe))
+	var findings = make([]Finding, 0, len(s.is)+len(s.maybe))
 
 	// Add the "is" values, checking for conflicts with "not", and merging
 	// sources with matching "maybe" values.
@@ -38,7 +38,7 @@ func (s *Store) List() ([]Finding, error) {
 			srcs = append(srcs, m...)
 		}
 		sort.Strings(srcs)
-		pms = append(pms, Finding{Name: name, Sources: srcs})
+		findings = append(findings, Finding{Name: name, Sources: srcs})
 	}
 
 	// Add the remaining "maybe" values.
@@ -50,14 +50,14 @@ func (s *Store) List() ([]Finding, error) {
 			continue
 		}
 		sort.Strings(srcs)
-		pms = append(pms, Finding{Name: name, Sources: srcs})
+		findings = append(findings, Finding{Name: name, Sources: srcs})
 	}
 
-	slices.SortFunc(pms, func(a, b Finding) int {
+	slices.SortFunc(findings, func(a, b Finding) int {
 		return strings.Compare(a.Name, b.Name)
 	})
 
-	return pms, nil
+	return findings, nil
 }
 
 func (s *Store) Add(def *Definition, sources ...string) {
@@ -65,18 +65,18 @@ func (s *Store) Add(def *Definition, sources ...string) {
 	defer s.mutex.Unlock()
 
 	if len(def.Not) > 0 {
-		s.not = make(map[string]sourceList)
+		if s.not == nil {
+			s.not = make(map[string]struct{})
+		}
 		for _, v := range def.Not {
-			if _, ok := s.not[v]; ok {
-				s.not[v] = append(s.not[v], sources...)
-			} else {
-				s.not[v] = sources
-			}
+			s.not[v] = struct{}{}
 		}
 	}
 
 	if len(def.Maybe) > 0 {
-		s.maybe = make(map[string]sourceList)
+		if s.maybe == nil {
+			s.maybe = make(map[string]sourceList)
+		}
 		for _, v := range def.Maybe {
 			if _, ok := s.maybe[v]; ok {
 				s.maybe[v] = append(s.maybe[v], sources...)
