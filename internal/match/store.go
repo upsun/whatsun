@@ -80,11 +80,7 @@ func (s *store) Add(rule *Rule) {
 			s.maybe = make(map[string][]*Rule)
 		}
 		for _, v := range rule.Maybe {
-			if _, ok := s.maybe[v]; ok {
-				s.maybe[v] = append(s.maybe[v], rule)
-			} else {
-				s.maybe[v] = []*Rule{rule}
-			}
+			s.maybe[v] = append(s.maybe[v], rule)
 		}
 	}
 
@@ -92,10 +88,6 @@ func (s *store) Add(rule *Rule) {
 		if s.is == nil {
 			s.is = make(map[string][]*Rule)
 		}
-		if _, ok := s.is[rule.Then]; ok {
-			s.is[rule.Then] = append(s.is[rule.Then], rule)
-		} else {
-			s.is[rule.Then] = []*Rule{rule}
-		}
+		s.is[rule.Then] = append(s.is[rule.Then], rule)
 	}
 }
