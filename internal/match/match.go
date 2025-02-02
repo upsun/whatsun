@@ -2,9 +2,8 @@
 package match
 
 import (
-	"bytes"
 	"fmt"
-	"reflect"
+	"slices"
 	"sort"
 )
 
@@ -17,31 +16,19 @@ import (
 // the set of rules that matched into a useful summary (which can be nil).
 type Matcher struct {
 	Rules  []Rule
-	Eval   func(data any, condition any) (bool, error)
+	Eval   func(data any, condition string) (bool, error)
 	Report func([]*Rule) any
-}
-
-func DefaultEvalFunc(data any, condition any) (bool, error) {
-	return isEqual(data, condition), nil
-}
-
-func DefaultReportFunc(rules []*Rule) any {
-	report := make([]string, 0, len(rules))
-	for _, rule := range rules {
-		if rule.When != "" {
-			report = append(report, rule.When)
-		}
-	}
-	sort.Strings(report)
-	return report
 }
 
 func (f *Matcher) Match(data any) ([]Match, error) {
 	if f.Eval == nil {
 		f.Eval = DefaultEvalFunc
 	}
+	if f.Report == nil {
+		f.Report = DefaultReportFunc
+	}
 
-	s := store{report: f.Report}
+	var s store
 	for _, rule := range f.Rules {
 		match, err := f.Eval(data, rule.When)
 		if err != nil {
@@ -52,7 +39,7 @@ func (f *Matcher) Match(data any) ([]Match, error) {
 		}
 	}
 
-	return s.List()
+	return s.List(f.Report)
 }
 
 type Match struct {
@@ -71,22 +58,31 @@ type Rule struct {
 	Maybe []string `yaml:"maybe"`
 }
 
-func isEqual(a, b any) bool {
-	if a == nil || b == nil {
-		return a == b
+func DefaultEvalFunc(data any, condition string) (bool, error) {
+	switch data.(type) {
+	case string:
+		return data == condition, nil
+	case []string:
+		return slices.Contains(data.([]string), condition), nil
+	case []any:
+		for _, v := range data.([]any) {
+			if v == condition {
+				return true, nil
+			}
+		}
+		return false, nil
 	}
 
-	aB, ok := a.([]byte)
-	if !ok {
-		return reflect.DeepEqual(a, b)
-	}
+	return false, nil
+}
 
-	bB, ok := b.([]byte)
-	if !ok {
-		return false
+func DefaultReportFunc(rules []*Rule) any {
+	report := make([]string, 0, len(rules))
+	for _, rule := range rules {
+		if rule.When != "" {
+			report = append(report, rule.When)
+		}
 	}
-	if aB == nil || bB == nil {
-		return aB == nil && bB == nil
-	}
-	return bytes.Equal(aB, bB)
+	sort.Strings(report)
+	return report
 }

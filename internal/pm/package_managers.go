@@ -17,8 +17,12 @@ var config *struct {
 	} `yaml:"package_managers"`
 }
 
-func init() {
-	if err := yaml.Unmarshal(configData, &config); err != nil {
-		panic(err)
+func rules() ([]match.Rule, error) {
+	if config == nil {
+		if err := yaml.Unmarshal(configData, &config); err != nil {
+			return nil, err
+		}
 	}
+
+	return config.PackageManagers.Rules, nil
 }

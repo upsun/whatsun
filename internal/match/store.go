@@ -8,8 +8,6 @@ import (
 )
 
 type store struct {
-	report func([]*Rule) any
-
 	is    map[string][]*Rule
 	maybe map[string][]*Rule
 	not   map[string]struct{}
@@ -17,15 +15,11 @@ type store struct {
 	mutex sync.RWMutex
 }
 
-func (s *store) List() ([]Match, error) {
+func (s *store) List(report func(rules []*Rule) any) ([]Match, error) {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 	if len(s.is) == 0 && len(s.maybe) == 0 {
 		return nil, nil
-	}
-
-	if s.report == nil {
-		s.report = DefaultReportFunc
 	}
 
 	// Validate and combine the lists.
@@ -40,7 +34,7 @@ func (s *store) List() ([]Match, error) {
 		if m, ok := s.maybe[result]; ok {
 			rules = append(rules, m...)
 		}
-		matches = append(matches, Match{Result: result, Report: s.report(rules)})
+		matches = append(matches, Match{Result: result, Report: report(rules)})
 	}
 
 	// Add the remaining "maybe" values.
@@ -51,7 +45,7 @@ func (s *store) List() ([]Match, error) {
 		if _, conflicting := s.not[result]; conflicting {
 			continue
 		}
-		matches = append(matches, Match{Result: result, Report: s.report(rules)})
+		matches = append(matches, Match{Result: result, Report: report(rules)})
 	}
 
 	// Sort the list for consistent output.

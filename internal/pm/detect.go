@@ -3,45 +3,27 @@ package pm
 
 import (
 	"io/fs"
-	"os"
-	"path/filepath"
 
 	"what/internal/match"
 )
 
 // Detect looks for evidence of package managers in a directory.
 func Detect(fsys fs.FS) ([]match.Match, error) {
-	entries, err := fs.ReadDir(fsys, ".")
+	r, err := rules()
 	if err != nil {
 		return nil, err
 	}
 
-	var filenames = make([]any, 0, len(entries))
-	for _, entry := range entries {
-		n := entry.Name()
-		if entry.IsDir() {
-			n += string(os.PathSeparator) + "."
-		}
-		filenames = append(filenames, n)
-	}
-
-	m := &match.Matcher{
-		Rules: config.PackageManagers.Rules,
+	return (&match.Matcher{
+		Rules: r,
 		Eval:  evalFiles,
-	}
-
-	return m.Match(filenames)
+	}).Match(fsys)
 }
 
-func evalFiles(data any, condition any) (bool, error) {
-	for _, filename := range data.([]any) {
-		m, err := filepath.Match(condition.(string), filename.(string))
-		if err != nil {
-			return false, err
-		}
-		if m {
-			return true, nil
-		}
+func evalFiles(data any, condition string) (bool, error) {
+	g, err := fs.Glob(data.(fs.FS), condition)
+	if err != nil {
+		return false, err
 	}
-	return false, nil
+	return len(g) > 0, nil
 }
