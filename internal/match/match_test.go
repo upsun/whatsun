@@ -1,6 +1,7 @@
 package match_test
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -55,7 +56,9 @@ func TestMatch(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			matches, err := m.Match(c.data)
+			matches, err := m.Match(func(condition string) (bool, error) {
+				return slices.Contains(c.data, condition), nil
+			})
 			if c.expectError {
 				assert.Error(t, err)
 			} else {

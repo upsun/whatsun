@@ -3,40 +3,48 @@ package match
 
 import (
 	"fmt"
-	"slices"
+	"runtime"
 	"sort"
+
+	"golang.org/x/sync/errgroup"
 )
 
 // Matcher is the matching engine.
 //
 // Given a set of Rule objects (perhaps defined in YAML), then the Matcher.Match
-// method will apply each Rule to given data using the Eval function.
+// method will evaluate the Rule.When condition of each, and combine the
+// matched rules into a list of Match results.
 //
-// It will produce a list of Match results, using the Report function to convert
-// the set of rules that matched into a useful summary (which can be nil).
+// For each Match, it can use the Report function to convert the set of matching
+// rules into a useful summary (this defaults to a list of conditions, via
+// DefaultReportFunc).
 type Matcher struct {
 	Rules  []Rule
-	Eval   func(data any, condition string) (bool, error)
 	Report func([]*Rule) any
 }
 
-func (f *Matcher) Match(data any) ([]Match, error) {
-	if f.Eval == nil {
-		f.Eval = DefaultEvalFunc
-	}
+func (f *Matcher) Match(eval func(condition string) (bool, error)) ([]Match, error) {
 	if f.Report == nil {
 		f.Report = DefaultReportFunc
 	}
 
+	eg := errgroup.Group{}
+	eg.SetLimit(4 * runtime.GOMAXPROCS(0))
 	var s store
 	for _, rule := range f.Rules {
-		match, err := f.Eval(data, rule.When)
-		if err != nil {
-			return nil, err
-		}
-		if match {
-			s.Add(&rule)
-		}
+		eg.Go(func() error {
+			match, err := eval(rule.When)
+			if err != nil {
+				return err
+			}
+			if match {
+				s.Add(&rule)
+			}
+			return nil
+		})
+	}
+	if err := eg.Wait(); err != nil {
+		return nil, err
 	}
 
 	return s.List(f.Report)
@@ -56,24 +64,6 @@ type Rule struct {
 	Then  string   `yaml:"then"`
 	Not   []string `yaml:"not"`
 	Maybe []string `yaml:"maybe"`
-}
-
-func DefaultEvalFunc(data any, condition string) (bool, error) {
-	switch data.(type) {
-	case string:
-		return data == condition, nil
-	case []string:
-		return slices.Contains(data.([]string), condition), nil
-	case []any:
-		for _, v := range data.([]any) {
-			if v == condition {
-				return true, nil
-			}
-		}
-		return false, nil
-	}
-
-	return false, nil
 }
 
 func DefaultReportFunc(rules []*Rule) any {

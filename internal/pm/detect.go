@@ -14,16 +14,11 @@ func Detect(fsys fs.FS) ([]match.Match, error) {
 		return nil, err
 	}
 
-	return (&match.Matcher{
-		Rules: r,
-		Eval:  evalFiles,
-	}).Match(fsys)
-}
-
-func evalFiles(data any, condition string) (bool, error) {
-	g, err := fs.Glob(data.(fs.FS), condition)
-	if err != nil {
-		return false, err
-	}
-	return len(g) > 0, nil
+	return (&match.Matcher{Rules: r}).Match(func(condition string) (bool, error) {
+		g, err := fs.Glob(fsys, condition)
+		if err != nil {
+			return false, err
+		}
+		return len(g) > 0, nil
+	})
 }
