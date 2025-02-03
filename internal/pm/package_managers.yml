@@ -1,76 +1,69 @@
 # Package manager file rules.
 #
-# The "when" condition is matched as a "glob" against the files in a directory.
+# The "when" condition is evaluated using Common Expression Language (CEL), and
+# some utility functions from the "eval" package.
 #
 # NB: these are not exclusive; more than one package manager can be found for one directory.
 package_managers:
   rules:
-  - when: package-lock.json
+  - when: file.exists("package-lock.json")
     then: npm
     not: [bun, pnpm, yarn]
-  - when: yarn.lock
+  - when: file.exists("yarn.lock")
     then: yarn
     not: [bun, npm, pnpm]
-  - when: pnpm-lock.yaml
+  - when: file.exists("pnpm-lock.yaml")
     then: pnpm
     not: [bun, npm, yarn]
-  - when: bun.lock
+  - when: file.exists("bun.lock")
     then: bun
     not: [npm, pnpm, yarn]
-  - when: package.json
+  - when: file.exists("package.json")
     maybe: [npm, pnpm, yarn, bun]
 
-  - when: composer.json
-    then: composer
-  - when: composer.lock
+  - when: file.exists("composer.json") || file.exists("composer.lock")
     then: composer
 
-  - when: requirements.txt
+  - when: file.exists("requirements.txt")
     then: pip
-  - when: Pipfile
+  - when: file.exists("Pipfile")
     then: pipenv
-  - when: Pipfile.lock
+  - when: file.exists("Pipfile.lock")
     then: pipenv
-  - when: pyproject.toml
+  - when: file.exists("pyproject.toml")
     maybe: [poetry, pip]
-  - when: poetry.lock
+  - when: file.exists("poetry.lock")
     then: poetry
 
-  - when: gemfile*
+  - when: file.exists("gemfile*")
     then: bundler
 
-  - when: go.mod
-    then: gomod
-  - when: go.sum
+  - when: file.exists("go.mod") || file.exists("go.mod")
     then: gomod
 
-  - when: cargo.toml
-    then: cargo
-  - when: cargo.lock
+  - when: file.exists("cargo.toml") || file.exists("cargo.lock")
     then: cargo
 
-  - when: pom.xml
+  - when: file.exists("pom.xml")
     then: maven
-  - when: build.gradle
+  - when: file.exists("build.gradle")
     then: gradle
-  - when: build.gradle.kts
+  - when: file.exists("build.gradle.kts")
     then: gradle
-  - when: settings.gradle
+  - when: file.exists("settings.gradle")
     then: gradle
-  - when: gradle.properties
+  - when: file.exists("gradle.properties")
     then: gradle
-  - when: gradlew
+  - when: file.exists("gradlew")
     then: gradle
-  - when: gradlew.bat
+  - when: file.exists("gradlew.bat")
     then: gradle
 
-  - when: packages.lock.json
+  - when: file.exists("packages.lock.json")
     then: nuget
 
-  - when: mix.exs
-    then: mix
-  - when: mix.lock
+  - when: file.exists("mix.exs") || file.exists("mix.lock")
     then: mix
 
-  - when: quicklisp/.
+  - when: file.isDir("quicklisp")
     then: quicklisp

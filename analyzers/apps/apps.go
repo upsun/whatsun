@@ -2,6 +2,7 @@ package apps
 
 import (
 	"context"
+	_ "embed"
 	"fmt"
 	"io/fs"
 	"os"
@@ -9,10 +10,17 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/google/cel-go/cel"
+
 	"what"
+	"what/internal/eval"
+	"what/internal/eval/celfuncs"
 	"what/internal/match"
 	"what/internal/pm"
 )
+
+//go:embed expr.cache
+var exprCache []byte
 
 type Analyzer struct {
 	AllowNested bool
@@ -24,8 +32,31 @@ func (*Analyzer) String() string {
 }
 
 func (a *Analyzer) Analyze(_ context.Context, fsys fs.FS) (what.Result, error) {
+	cache, err := eval.NewFileCacheWithContent(exprCache, "")
+	if err != nil {
+		return nil, err
+	}
+	dot := "."
+	evRoot := &dot
+	var celOptions []cel.EnvOption
+	celOptions = append(celOptions, celfuncs.AllFileFunctions(&fsys, evRoot)...)
+	celOptions = append(celOptions, celfuncs.AllComposerFunctions(&fsys, evRoot)...)
+	celOptions = append(
+		celOptions,
+		celfuncs.JSONQueryStringCELFunction(),
+		celfuncs.VersionParse(),
+	)
+
+	ev, err := eval.NewEvaluator(&eval.Config{
+		Cache:      cache,
+		EnvOptions: append(celOptions, celfuncs.AllComposerFunctions(&fsys, evRoot)...),
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	var seenApps = make(map[string]App)
-	err := fs.WalkDir(fsys, ".", func(path string, d fs.DirEntry, err error) error {
+	err = fs.WalkDir(fsys, ".", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -65,12 +96,8 @@ func (a *Analyzer) Analyze(_ context.Context, fsys fs.FS) (what.Result, error) {
 		// Look for directories that have identifiable package managers.
 		// Only do this at the top two levels to avoid false positives.
 		if depth <= 1 && d.IsDir() {
-			subFS, err := fs.Sub(fsys, path)
-			if err != nil {
-				return err
-			}
-
-			pms, err := pm.Detect(subFS)
+			*evRoot = path
+			pms, err := pm.Detect(ev)
 			if err != nil {
 				return err
 			}

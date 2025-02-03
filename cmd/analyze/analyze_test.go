@@ -8,6 +8,7 @@ import (
 	"what/internal/match"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"what"
 	"what/analyzers/apps"
@@ -16,8 +17,8 @@ import (
 func TestAnalyze(t *testing.T) {
 	testFs := fstest.MapFS{
 		// Definitely Composer.
-		"composer.json": &fstest.MapFile{},
-		"composer.lock": &fstest.MapFile{},
+		`composer.json`: &fstest.MapFile{},
+		`composer.lock`: &fstest.MapFile{},
 
 		// Ignored due to being a directory with the dot prefix.
 		".ignored":      &fstest.MapFile{Mode: fs.ModeDir},
@@ -47,18 +48,24 @@ func TestAnalyze(t *testing.T) {
 	}}, testFs, resultChan)
 
 	r := <-resultChan
-	assert.NoError(t, r.err)
+	require.NoError(t, r.err)
 	assert.Equal(t, r.Analyzer.String(), "apps")
 
 	assert.EqualValues(t, apps.List{
-		{Dir: ".", PackageManagers: []match.Match{{Result: "composer", Report: []string{"composer.json", "composer.lock"}}}},
+		{Dir: ".", PackageManagers: []match.Match{{
+			Result: "composer",
+			Report: []string{`file.exists("composer.json") || file.exists("composer.lock")`},
+		}}},
 		{Dir: "ambiguous", PackageManagers: []match.Match{
-			{Result: "bun", Report: []string{"package.json"}},
-			{Result: "npm", Report: []string{"package.json"}},
-			{Result: "pnpm", Report: []string{"package.json"}},
-			{Result: "yarn", Report: []string{"package.json"}},
+			{Result: "bun", Report: []string{`file.exists("package.json")`}},
+			{Result: "npm", Report: []string{`file.exists("package.json")`}},
+			{Result: "pnpm", Report: []string{`file.exists("package.json")`}},
+			{Result: "yarn", Report: []string{`file.exists("package.json")`}},
 		}},
-		{Dir: "another-app", PackageManagers: []match.Match{{Result: "npm", Report: []string{"package-lock.json"}}}},
+		{Dir: "another-app", PackageManagers: []match.Match{{
+			Result: "npm",
+			Report: []string{`file.exists("package-lock.json")`},
+		}}},
 		{Dir: "configured-app"},
 	}, r.Result.(apps.List))
 }

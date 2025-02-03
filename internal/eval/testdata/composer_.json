@@ -1,0 +1,6 @@
+{
+    "name": "test/test",
+    "require": {
+        "symfony/framework-bundle": "^7.2"
+    }
+}

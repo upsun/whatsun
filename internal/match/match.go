@@ -29,7 +29,7 @@ func (f *Matcher) Match(eval func(condition string) (bool, error)) ([]Match, err
 	}
 
 	eg := errgroup.Group{}
-	eg.SetLimit(4 * runtime.GOMAXPROCS(0))
+	eg.SetLimit(runtime.GOMAXPROCS(0))
 	var s store
 	for _, rule := range f.Rules {
 		eg.Go(func() error {

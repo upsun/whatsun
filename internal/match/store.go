@@ -28,8 +28,8 @@ func (s *store) List(report func(rules []*Rule) any) ([]Match, error) {
 	// Add the "is" values, checking for conflicts with "not", and merging
 	// rules with matching "maybe" values.
 	for result, rules := range s.is {
-		if c, conflicting := s.not[result]; conflicting {
-			return nil, fmt.Errorf("conflict found: %s vs %s", result, c)
+		if _, conflicting := s.not[result]; conflicting {
+			return nil, fmt.Errorf("conflict found: %s", result)
 		}
 		if m, ok := s.maybe[result]; ok {
 			rules = append(rules, m...)
