@@ -59,13 +59,6 @@ func (m *Match) String() string {
 	return fmt.Sprintf("%s (report: %v)", m.Result, m.Report)
 }
 
-type Rule struct {
-	When  string   `yaml:"when"`
-	Then  string   `yaml:"then"`
-	Not   []string `yaml:"not"`
-	Maybe []string `yaml:"maybe"`
-}
-
 func DefaultReportFunc(rules []*Rule) any {
 	report := make([]string, 0, len(rules))
 	for _, rule := range rules {
