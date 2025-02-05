@@ -20,9 +20,9 @@ type Rule struct {
 	Maybe []string `yaml:"maybe"`
 }
 
-func ParseConfig(r io.Reader) (*Config, error) {
-	c := &Config{}
-	if err := yaml.NewDecoder(r).Decode(c); err != nil {
+func ParseConfig(r io.Reader) (Config, error) {
+	c := Config{}
+	if err := yaml.NewDecoder(r).Decode(&c); err != nil {
 		return nil, err
 	}
 	return c, nil

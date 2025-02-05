@@ -1,9 +1,8 @@
-# Package manager file rules.
-#
-# The "when" condition is evaluated using Common Expression Language (CEL), and
-# some utility functions from the "eval" package.
-#
-# NB: these are not exclusive; more than one package manager can be found for one directory.
+# File analysis rules.
+# The "when" conditions are evaluated using Common Expression Language (CEL).
+# TODO generate CEL function docs
+
+# Analyze package managers.
 package_managers:
   rules:
   - when: file.exists("package-lock.json")

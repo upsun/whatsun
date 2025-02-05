@@ -5,13 +5,13 @@ import (
 	"io/fs"
 	"testing"
 	"testing/fstest"
-	"what/internal/match"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"what"
-	"what/analyzers/apps"
+	"what/analyzers/rules"
+	"what/internal/match"
 )
 
 func TestAnalyze(t *testing.T) {
@@ -43,29 +43,34 @@ func TestAnalyze(t *testing.T) {
 	}
 
 	resultChan := make(chan resultContext)
-	analyze(context.TODO(), []what.Analyzer{&apps.Analyzer{
-		MaxDepth: 10,
-	}}, testFs, resultChan)
+
+	rulesAnalyzer, err := rules.NewAnalyzer()
+	require.NoError(t, err)
+
+	analyze(context.TODO(), []what.Analyzer{rulesAnalyzer}, testFs, resultChan)
 
 	r := <-resultChan
 	require.NoError(t, r.err)
-	assert.Equal(t, r.Analyzer.String(), "apps")
+	assert.Equal(t, r.Analyzer.String(), "rules")
 
-	assert.EqualValues(t, apps.List{
-		{Dir: ".", PackageManagers: []match.Match{{
-			Result: "composer",
-			Report: []string{`file.exists("composer.json") || file.exists("composer.lock")`},
-		}}},
-		{Dir: "ambiguous", PackageManagers: []match.Match{
-			{Result: "bun", Report: []string{`file.exists("package.json")`}},
-			{Result: "npm", Report: []string{`file.exists("package.json")`}},
-			{Result: "pnpm", Report: []string{`file.exists("package.json")`}},
-			{Result: "yarn", Report: []string{`file.exists("package.json")`}},
-		}},
-		{Dir: "another-app", PackageManagers: []match.Match{{
-			Result: "npm",
-			Report: []string{`file.exists("package-lock.json")`},
-		}}},
-		{Dir: "configured-app"},
-	}, r.Result.(apps.List))
+	assert.EqualValues(t, rules.Results{
+		"package_managers": {
+			Directories: map[string][]match.Match{
+				".": {{
+					Result: "composer",
+					Report: []string{`file.exists("composer.json") || file.exists("composer.lock")`},
+				}},
+				"ambiguous": {
+					{Result: "bun", Report: []string{`file.exists("package.json")`}},
+					{Result: "npm", Report: []string{`file.exists("package.json")`}},
+					{Result: "pnpm", Report: []string{`file.exists("package.json")`}},
+					{Result: "yarn", Report: []string{`file.exists("package.json")`}},
+				},
+				"another-app": {{
+					Result: "npm",
+					Report: []string{`file.exists("package-lock.json")`},
+				}},
+			},
+		},
+	}, r.Result.(rules.Results))
 }

@@ -10,11 +10,11 @@ import (
 	"path/filepath"
 	"runtime"
 	"time"
-	"what/analyzers/apps"
 
 	"golang.org/x/sync/errgroup"
 
 	"what"
+	"what/analyzers/rules"
 )
 
 func main() {
@@ -32,7 +32,11 @@ func main() {
 	}
 	defer f.Close()
 
-	analyzers := []what.Analyzer{&apps.Analyzer{MaxDepth: 3}}
+	rulesAnalyzer, err := rules.NewAnalyzer()
+	if err != nil {
+		log.Fatal(err)
+	}
+	analyzers := []what.Analyzer{rulesAnalyzer}
 
 	fmt.Fprintf(os.Stderr, "Running analyzers: %v\n", analyzers)
 
