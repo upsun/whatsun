@@ -4,6 +4,7 @@ import (
 	"errors"
 	"io/fs"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/google/cel-go/cel"
@@ -18,6 +19,7 @@ func AllFileFunctions(fsys *fs.FS, root *string) []cel.EnvOption {
 	return []cel.EnvOption{
 		FileContains(fsys, root),
 		FileExists(fsys, root),
+		FileExistsRegex(fsys, root),
 		FileIsDir(fsys, root),
 		FileRead(fsys, root),
 	}
@@ -49,6 +51,26 @@ func FileExists(fsys *fs.FS, root *string) cel.EnvOption {
 			return false, ignoreNotExists(err)
 		}
 		return true, nil
+	})
+}
+
+// FileExistsRegex defines a CEL function `file.existsRegex(path) -> bool`.
+func FileExistsRegex(fsys *fs.FS, root *string) cel.EnvOption {
+	return stringReturnsBoolErr("file.existsRegex", func(pattern string) (bool, error) {
+		entries, err := fs.ReadDir(*fsys, *root)
+		if err != nil {
+			return false, err
+		}
+		rx, err := regexp.Compile(pattern)
+		if err != nil {
+			return false, err
+		}
+		for _, e := range entries {
+			if rx.MatchString(e.Name()) {
+				return true, nil
+			}
+		}
+		return false, nil
 	})
 }
 

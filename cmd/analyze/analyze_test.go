@@ -57,7 +57,7 @@ func TestAnalyze(t *testing.T) {
 			Directories: map[string][]match.Match{
 				".": {{
 					Result: "composer",
-					Report: []string{`file.exists("composer.json") || file.exists("composer.lock")`},
+					Report: []string{`file.exists("composer.json")`},
 					Sure:   true,
 				}},
 				"ambiguous": {

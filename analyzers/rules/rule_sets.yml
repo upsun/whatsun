@@ -20,27 +20,25 @@ package_managers:
   - when: file.exists("package.json")
     maybe: [npm, pnpm, yarn, bun]
 
-  - when: file.exists("composer.json") || file.exists("composer.lock")
+  - when: file.exists("composer.json")
     then: composer
 
   - when: file.exists("requirements.txt")
     then: pip
   - when: file.exists("Pipfile")
     then: pipenv
-  - when: file.exists("Pipfile.lock")
-    then: pipenv
   - when: file.exists("pyproject.toml")
     maybe: [poetry, pip]
   - when: file.exists("poetry.lock")
     then: poetry
 
-  - when: file.exists("gemfile*")
+  - when: file.exists("Gemfile") || file.existsRegex("Gemfile.+")
     then: bundler
 
   - when: file.exists("go.mod") || file.exists("go.mod")
     then: gomod
 
-  - when: file.exists("cargo.toml") || file.exists("cargo.lock")
+  - when: file.exists("cargo.toml")
     then: cargo
 
   - when: file.exists("pom.xml")
@@ -61,7 +59,7 @@ package_managers:
   - when: file.exists("packages.lock.json")
     then: nuget
 
-  - when: file.exists("mix.exs") || file.exists("mix.lock")
+  - when: file.exists("mix.exs")
     then: mix
 
   - when: file.isDir("quicklisp")
@@ -111,10 +109,10 @@ frameworks:
       then: express
       group: js # but maybe these shouldn't be exclusive
 
-    - when: npm.depends("gatsby")
+    - when: file.exists("gatsby-config.js") || npm.depends("gatsby")
       then: gatsby
       group: js
 
-    - when: npm.depends("@strapi/strapi")
+    - when: file.exists("strapi-config.json") || npm.depends("@strapi/strapi")
       then: strapi
       group: js
