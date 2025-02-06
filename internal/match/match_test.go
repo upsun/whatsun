@@ -27,7 +27,7 @@ func TestMatch(t *testing.T) {
 			name: "is_direct",
 			data: []string{"a", "x", "y"},
 			expect: []match.Match{
-				{"a", []string{"a"}},
+				{Result: "a", Sure: true, Report: []string{"a"}},
 			},
 		},
 		{
@@ -38,16 +38,16 @@ func TestMatch(t *testing.T) {
 			name: "combine_is_maybe",
 			data: []string{"a", "ab", "bc"},
 			expect: []match.Match{
-				{"a", []string{"a", "ab"}},
-				{"b", []string{"ab", "bc"}},
-				{"c", []string{"bc"}},
+				{Result: "a", Sure: true, Report: []string{"a", "ab"}},
+				{Result: "b", Sure: false, Report: []string{"ab", "bc"}},
+				{Result: "c", Sure: false, Report: []string{"bc"}},
 			},
 		},
 		{
 			name: "combine_is_not_maybe",
 			data: []string{"aaa", "bc"},
 			expect: []match.Match{
-				{"a", []string{"aaa"}},
+				{Result: "a", Sure: true, Report: []string{"aaa"}},
 			},
 		},
 	}

@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io/fs"
 	"path/filepath"
+	"regexp"
+	"strings"
 
 	"github.com/google/cel-go/cel"
 )
@@ -24,6 +26,7 @@ func AllComposerFunctions(fsys *fs.FS, root *string) []cel.EnvOption {
 
 // ComposerRequires defines a CEL function `composer.requires(dep string) -> bool`
 // It returns false (without an error) if composer.json does not exist.
+// The dependency argument can contain "*" as a wildcard.
 func ComposerRequires(fsys *fs.FS, root *string) cel.EnvOption {
 	return stringReturnsBoolErr("composer.requires", func(dep string) (bool, error) {
 		f, err := (*fsys).Open(filepath.Join(*root, "composer.json"))
@@ -42,8 +45,19 @@ func ComposerRequires(fsys *fs.FS, root *string) cel.EnvOption {
 		if contents.Require == nil {
 			return false, nil
 		}
-		_, ok := contents.Require[dep]
-		return ok, nil
+		if _, ok := contents.Require[dep]; ok {
+			return true, nil
+		}
+		patt, err := regexp.Compile(wildCardToRegexp(dep))
+		if err != nil {
+			return false, err
+		}
+		for required, _ := range contents.Require {
+			if patt.MatchString(required) {
+				return true, nil
+			}
+		}
+		return false, nil
 	})
 }
 
@@ -74,4 +88,20 @@ func ComposerLockedVersion(fsys *fs.FS, root *string) cel.EnvOption {
 		}
 		return "", nil
 	})
+}
+
+// wildCardToRegexp converts a wildcard pattern to a regular expression pattern.
+func wildCardToRegexp(pattern string) string {
+	var result strings.Builder
+	for i, literal := range strings.Split(pattern, "*") {
+		// Replace * with .*
+		if i > 0 {
+			result.WriteString(".*")
+		}
+
+		// Quote any regular expression meta characters in the
+		// literal text.
+		result.WriteString(regexp.QuoteMeta(literal))
+	}
+	return result.String()
 }

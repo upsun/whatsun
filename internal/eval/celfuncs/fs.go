@@ -26,7 +26,7 @@ func AllFileFunctions(fsys *fs.FS, root *string) []cel.EnvOption {
 // FileContains defines a CEL function `file.contains(path, substr) -> bool`.
 func FileContains(fsys *fs.FS, root *string) cel.EnvOption {
 	return stringStringReturnsBoolErr("file.contains", func(path, substr string) (bool, error) {
-		b, err := fs.ReadFile(*fsys, filepath.Join(*root, filepath.Join(*root, path)))
+		b, err := fs.ReadFile(*fsys, filepath.Join(*root, path))
 		if err != nil {
 			return false, err
 		}
@@ -37,7 +37,7 @@ func FileContains(fsys *fs.FS, root *string) cel.EnvOption {
 // FileRead defines a CEL function `file.read(path) -> bytes`.
 func FileRead(fsys *fs.FS, root *string) cel.EnvOption {
 	return stringReturnsBytesErr("file.read", func(path string) ([]byte, error) {
-		return fs.ReadFile(*fsys, filepath.Join(*root, filepath.Join(*root, path)))
+		return fs.ReadFile(*fsys, filepath.Join(*root, path))
 	})
 }
 

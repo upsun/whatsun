@@ -66,3 +66,37 @@ package_managers:
 
   - when: file.isDir("quicklisp")
     then: quicklisp
+
+# Analyze frameworks. Note, these are just examples.
+# TODO complete these rules
+frameworks:
+  rules:
+    - when: composer.requires("drupal/core") || composer.requires("drupal/core-recommended")
+      then: drupal
+      # The "with" could supply extra data to the analysis output.
+      # TODO implement this.
+      with:
+        major_version: version.parse(composer.lockedVersion("drupal/core")).major
+      # TODO implement this.
+      group: php
+
+    # The drupal/drupal package represents Drupal 7.
+    - when: composer.requires("drupal/drupal")
+      then: drupal
+      with:
+        major_version: version.parse(composer.lockedVersion("drupal/drupal")).major
+      group: php
+
+    - when: composer.requires("symfony/*")
+      maybe: [symfony]
+      group: php
+
+    - when: composer.requires("symfony/framework-bundle")
+      then: symfony
+      with:
+        major_version: version.parse(composer.lockedVersion("symfony/framework-bundle")).major
+      group: php
+
+    - when: file.exists("package.json") && file.contains("package.json", "expressjs/express")
+      then: express
+      group: js

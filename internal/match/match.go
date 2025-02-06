@@ -35,7 +35,7 @@ func (f *Matcher) Match(eval func(condition string) (bool, error)) ([]Match, err
 		eg.Go(func() error {
 			match, err := eval(rule.When)
 			if err != nil {
-				return err
+				return fmt.Errorf("when evaluating condition `%s`: %w", rule.When, err)
 			}
 			if match {
 				s.Add(&rule)
@@ -52,6 +52,7 @@ func (f *Matcher) Match(eval func(condition string) (bool, error)) ([]Match, err
 
 type Match struct {
 	Result string
+	Sure   bool
 	Report any
 }
 

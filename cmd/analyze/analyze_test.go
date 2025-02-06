@@ -17,8 +17,7 @@ import (
 func TestAnalyze(t *testing.T) {
 	testFs := fstest.MapFS{
 		// Definitely Composer.
-		`composer.json`: &fstest.MapFile{},
-		`composer.lock`: &fstest.MapFile{},
+		`composer.json`: &fstest.MapFile{Data: []byte(`{"require": {"symfony/framework-bundle": "^7"}}`)},
 
 		// Ignored due to being a directory with the dot prefix.
 		".ignored":      &fstest.MapFile{Mode: fs.ModeDir},
@@ -59,6 +58,7 @@ func TestAnalyze(t *testing.T) {
 				".": {{
 					Result: "composer",
 					Report: []string{`file.exists("composer.json") || file.exists("composer.lock")`},
+					Sure:   true,
 				}},
 				"ambiguous": {
 					{Result: "bun", Report: []string{`file.exists("package.json")`}},
@@ -69,6 +69,19 @@ func TestAnalyze(t *testing.T) {
 				"another-app": {{
 					Result: "npm",
 					Report: []string{`file.exists("package-lock.json")`},
+					Sure:   true,
+				}},
+			},
+		},
+		"frameworks": {
+			Directories: map[string][]match.Match{
+				".": {{
+					Result: "symfony",
+					Report: []string{
+						`composer.requires("symfony/*")`,
+						`composer.requires("symfony/framework-bundle")`,
+					},
+					Sure: true,
 				}},
 			},
 		},

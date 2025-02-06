@@ -34,7 +34,7 @@ func (s *store) List(report func(rules []*Rule) any) ([]Match, error) {
 		if m, ok := s.maybe[result]; ok {
 			rules = append(rules, m...)
 		}
-		matches = append(matches, Match{Result: result, Report: report(rules)})
+		matches = append(matches, Match{Result: result, Report: report(rules), Sure: true})
 	}
 
 	// Add the remaining "maybe" values.

@@ -104,6 +104,7 @@ func TestEval(t *testing.T) {
 	t.Run("composer", func(t *testing.T) {
 		assert.Equal(t, types.Bool(false), ev(e, `composer.requires("drupal/core")`))
 		assert.Equal(t, types.Bool(true), ev(e, `composer.requires("symfony/framework-bundle")`))
+		assert.Equal(t, types.Bool(true), ev(e, `composer.requires("symfony/*")`))
 		assert.Equal(t, types.String("3.0.0"), ev(e, `composer.lockedVersion("psr/cache")`))
 		assert.Equal(t, types.String(""), ev(e, `composer.lockedVersion("drupal/core")`))
 	})

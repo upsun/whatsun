@@ -99,7 +99,7 @@ func (r Results) String() string {
 		}
 		s += "\n\nPath\tMatches\n"
 		for dir, matches := range rs.Directories {
-			s += fmt.Sprintf("%s\t%s\n", dir, matches)
+			s += fmt.Sprintf("%s\t%+v\n", dir, matches)
 		}
 		s += "\n"
 	}
@@ -146,7 +146,7 @@ func (a *Analyzer) applyRuleset(rs *match.RuleSet, fsys fs.FS, ev *eval.Evaluato
 			*evRoot = path
 			m, err := matcher.Match(evFunc)
 			if err != nil {
-				return err
+				return fmt.Errorf("in directory %s: %w", path, err)
 			}
 			if len(m) > 0 {
 				result.Directories[path] = append(result.Directories[path], m...)
