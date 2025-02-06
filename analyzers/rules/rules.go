@@ -9,6 +9,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"what"
 
@@ -90,19 +91,31 @@ func (r Results) String() string {
 	if r == nil {
 		return "[no results]"
 	}
+
+	names := make([]string, 0, len(r))
+	for name := range r {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+
 	s := ""
-	for name, rs := range r {
+	for _, name := range names {
 		s += fmt.Sprintf("\nRuleset: %s", name)
-		if len(rs.Directories) == 0 {
-			s += name + ": [no results]\n"
+		res := r[name]
+		if len(res.Directories) == 0 {
+			s += "\n[No results]\n"
 			continue
 		}
-		s += "\n\nPath\tMatches\n"
-		for dir, matches := range rs.Directories {
-			s += fmt.Sprintf("%s\t%+v\n", dir, matches)
+		s += "\nPath\tMatches\n"
+		lines := make([]string, 0, len(res.Directories))
+		for dir, matches := range res.Directories {
+			lines = append(lines, fmt.Sprintf("%s\t%+v", dir, matches))
 		}
+		sort.Strings(lines)
+		s += strings.Join(lines, "\n")
 		s += "\n"
 	}
+
 	return strings.TrimRight(s, "\n")
 }
 
