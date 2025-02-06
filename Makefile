@@ -8,6 +8,10 @@ help:
 build:
 	go build -o ./what cmd/analyze/analyze.go
 
+.PHONY: warm_cache
+warm_cache: ## Warms the expression cache (run this when expressions change).
+	go run cmd/warm_cache/main.go analyzers/rules/expr.cache
+
 .PHONY: govulncheck
 govulncheck: ## Check dependencies for vulnerabilities.
 	@command -v govulncheck > /dev/null || go install golang.org/x/vuln/cmd/govulncheck@latest

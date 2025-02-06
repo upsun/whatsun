@@ -9,6 +9,7 @@ import (
 	"io"
 	"io/fs"
 	"os"
+	"slices"
 	"strings"
 
 	"github.com/google/cel-go/cel"
@@ -72,16 +73,20 @@ func (c *FileCache) Save() error {
 	if c.memoryCache.cache == nil {
 		c.memoryCache.cache = make(map[string]*cel.Ast)
 	}
+	lines := make([]string, len(c.memoryCache.cache))
+	i := 0
 	for k, v := range c.memoryCache.cache {
 		m, err := marshalAST(v)
 		if err != nil {
 			return err
 		}
-		if _, err := fmt.Fprintf(f, "%s\t%s\n", k, m); err != nil {
-			return err
-		}
+		lines[i] = k + "\t" + m
+		i++
 	}
-	return nil
+	// Sort the result as the cache may be saved to Git.
+	slices.Sort(lines)
+	_, err = fmt.Fprint(f, strings.Join(lines, "\n"))
+	return err
 }
 
 func cleanExpr(expr string) string {
@@ -124,7 +129,7 @@ func (c *FileCache) Set(expr string, ast *cel.Ast) error {
 }
 
 func marshalAST(ast *cel.Ast) (string, error) {
-	parsedExpr, err := cel.AstToParsedExpr(ast)
+	parsedExpr, err := cel.AstToCheckedExpr(ast)
 	if err != nil {
 		return "", err
 	}
@@ -140,10 +145,10 @@ func unmarshalAST(str string) (*cel.Ast, error) {
 	if err != nil {
 		return nil, err
 	}
-	var m = &exprpb.ParsedExpr{}
+	var m = &exprpb.CheckedExpr{}
 	if err := proto.Unmarshal(b, m); err != nil {
 		return nil, err
 	}
 
-	return cel.ParsedExprToAst(m), nil
+	return cel.CheckedExprToAst(m), nil
 }

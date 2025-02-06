@@ -46,6 +46,18 @@ func (*Analyzer) String() string {
 	return "rules"
 }
 
+func defaultEnvOptions(fsys fs.FS, root *string) []cel.EnvOption {
+	var celOptions []cel.EnvOption
+	celOptions = append(celOptions, celfuncs.AllFileFunctions(&fsys, root)...)
+	celOptions = append(celOptions, celfuncs.AllComposerFunctions(&fsys, root)...)
+
+	return append(
+		celOptions,
+		celfuncs.JSONQueryStringCELFunction(),
+		celfuncs.VersionParse(),
+	)
+}
+
 func (a *Analyzer) Analyze(_ context.Context, fsys fs.FS) (what.Result, error) {
 	cache, err := eval.NewFileCacheWithContent(exprCache, "")
 	if err != nil {
@@ -53,19 +65,9 @@ func (a *Analyzer) Analyze(_ context.Context, fsys fs.FS) (what.Result, error) {
 	}
 	dot := "."
 	evRoot := &dot
-	var celOptions []cel.EnvOption
-	celOptions = append(celOptions, celfuncs.AllFileFunctions(&fsys, evRoot)...)
-	celOptions = append(celOptions, celfuncs.AllComposerFunctions(&fsys, evRoot)...)
-	celOptions = append(
-		celOptions,
-		celfuncs.JSONQueryStringCELFunction(),
-		celfuncs.VersionParse(),
-	)
+	celOptions := defaultEnvOptions(fsys, evRoot)
 
-	ev, err := eval.NewEvaluator(&eval.Config{
-		Cache:      cache,
-		EnvOptions: append(celOptions, celfuncs.AllComposerFunctions(&fsys, evRoot)...),
-	})
+	ev, err := eval.NewEvaluator(&eval.Config{Cache: cache, EnvOptions: celOptions})
 	if err != nil {
 		return nil, err
 	}

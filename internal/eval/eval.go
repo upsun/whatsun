@@ -42,17 +42,27 @@ func (e *Evaluator) Eval(expr string) (ref.Val, error) {
 		}
 	}
 	if ast == nil {
-		a, iss := e.celEnv.Compile(expr)
-		if iss.Err() != nil {
-			return nil, iss.Err()
+		a, err := e.CompileAndCache(expr)
+		if err != nil {
+			return nil, err
 		}
 		ast = a
-		if e.cache != nil {
-			e.cache.Set(expr, ast)
-		}
 	}
 
 	return e.eval(ast)
+}
+
+func (e *Evaluator) CompileAndCache(expr string) (*cel.Ast, error) {
+	a, iss := e.celEnv.Compile(expr)
+	if iss.Err() != nil {
+		return nil, iss.Err()
+	}
+	if e.cache != nil {
+		if err := e.cache.Set(expr, a); err != nil {
+			return nil, err
+		}
+	}
+	return a, nil
 }
 
 func (e *Evaluator) eval(ast *cel.Ast) (ref.Val, error) {
