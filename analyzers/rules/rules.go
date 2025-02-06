@@ -50,7 +50,7 @@ func (*Analyzer) String() string {
 func defaultEnvOptions(fsys fs.FS, root *string) []cel.EnvOption {
 	var celOptions []cel.EnvOption
 	celOptions = append(celOptions, celfuncs.AllFileFunctions(&fsys, root)...)
-	celOptions = append(celOptions, celfuncs.AllComposerFunctions(&fsys, root)...)
+	celOptions = append(celOptions, celfuncs.AllPackageManagerFunctions(&fsys, root)...)
 
 	return append(
 		celOptions,

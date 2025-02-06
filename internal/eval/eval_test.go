@@ -42,7 +42,7 @@ func TestEval(t *testing.T) {
 	evFS := &fsys
 	var options []cel.EnvOption
 	options = append(options, celfuncs.AllFileFunctions(evFS, nil)...)
-	options = append(options, celfuncs.AllComposerFunctions(evFS, nil)...)
+	options = append(options, celfuncs.AllPackageManagerFunctions(evFS, nil)...)
 	options = append(
 		options,
 		celfuncs.JSONQueryStringCELFunction(),
@@ -101,12 +101,13 @@ func TestEval(t *testing.T) {
 			ev(e, `json.queryString(file.read("package.json"), ".dependencies.express")`))
 	})
 
-	t.Run("composer", func(t *testing.T) {
+	t.Run("package_managers", func(t *testing.T) {
 		assert.Equal(t, types.Bool(false), ev(e, `composer.requires("drupal/core")`))
 		assert.Equal(t, types.Bool(true), ev(e, `composer.requires("symfony/framework-bundle")`))
 		assert.Equal(t, types.Bool(true), ev(e, `composer.requires("symfony/*")`))
 		assert.Equal(t, types.String("3.0.0"), ev(e, `composer.lockedVersion("psr/cache")`))
 		assert.Equal(t, types.String(""), ev(e, `composer.lockedVersion("drupal/core")`))
+		assert.Equal(t, types.Bool(true), ev(e, `npm.depends("express")`))
 	})
 
 	t.Run("version.parse", func(t *testing.T) {

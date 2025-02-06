@@ -38,7 +38,7 @@ func TestAnalyze(t *testing.T) {
 		"configured-app/.platform.app.yaml": &fstest.MapFile{},
 
 		// Ambiguous: Bun, NPM, PNPM, or Yarn.
-		"ambiguous/package.json": &fstest.MapFile{},
+		"ambiguous/package.json": &fstest.MapFile{Data: []byte("{}")},
 	}
 
 	resultChan := make(chan resultContext)
@@ -78,7 +78,6 @@ func TestAnalyze(t *testing.T) {
 				".": {{
 					Result: "symfony",
 					Report: []string{
-						`composer.requires("symfony/*")`,
 						`composer.requires("symfony/framework-bundle")`,
 					},
 					Sure: true,

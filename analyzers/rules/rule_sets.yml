@@ -87,7 +87,11 @@ frameworks:
         major_version: version.parse(composer.lockedVersion("drupal/drupal")).major
       group: php
 
-    - when: composer.requires("symfony/*")
+    - when: file.exists("index.php") && file.contains("index.php", "drupal_bootstrap(DRUPAL_BOOTSTRAP_FULL);")
+      then: drupal
+      group: php
+
+    - when: composer.requires("symfony/*") && json.queryString(file.read("composer.json"), ".type") == "project"
       maybe: [symfony]
       group: php
 
@@ -97,6 +101,20 @@ frameworks:
         major_version: version.parse(composer.lockedVersion("symfony/framework-bundle")).major
       group: php
 
-    - when: file.exists("package.json") && file.contains("package.json", "expressjs/express")
+    - when: composer.requires("laravel/framework")
+      then: laravel
+      with:
+        major_version: version.parse(composer.lockedVersion("laravel/framework")).major
+      group: php
+
+    - when: npm.depends("express")
       then: express
+      group: js # but maybe these shouldn't be exclusive
+
+    - when: npm.depends("gatsby")
+      then: gatsby
+      group: js
+
+    - when: npm.depends("@strapi/strapi")
+      then: strapi
       group: js

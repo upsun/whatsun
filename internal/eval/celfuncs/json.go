@@ -40,7 +40,7 @@ func jq(b []byte, expr string) (string, error) {
 
 		}
 		if v == nil {
-			return "", errors.New("empty result")
+			return "", nil
 		}
 		return fmt.Sprint(v), nil
 	}

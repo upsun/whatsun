@@ -12,8 +12,8 @@ import (
 	"github.com/google/cel-go/cel"
 )
 
-// AllComposerFunctions returns CEL functions for reading Composer dependencies in an fs.FS filesystem.
-func AllComposerFunctions(fsys *fs.FS, root *string) []cel.EnvOption {
+// AllPackageManagerFunctions returns CEL functions for reading package manager dependencies in an fs.FS filesystem.
+func AllPackageManagerFunctions(fsys *fs.FS, root *string) []cel.EnvOption {
 	if root == nil {
 		dot := "."
 		root = &dot
@@ -21,7 +21,34 @@ func AllComposerFunctions(fsys *fs.FS, root *string) []cel.EnvOption {
 	return []cel.EnvOption{
 		ComposerRequires(fsys, root),
 		ComposerLockedVersion(fsys, root),
+		NPMDepends(fsys, root),
 	}
+}
+
+// NPMDepends defines a CEL function `npm.depends(dep string) -> bool`
+// It returns false (without an error) if package.json does not exist.
+// The dependency argument can contain "*" as a wildcard.
+func NPMDepends(fsys *fs.FS, root *string) cel.EnvOption {
+	return stringReturnsBoolErr("npm.depends", func(dep string) (bool, error) {
+		f, err := (*fsys).Open(filepath.Join(*root, "package.json"))
+		if err != nil {
+			if errors.Is(err, fs.ErrNotExist) {
+				return false, nil
+			}
+			return false, err
+		}
+		var contents = struct {
+			Dependencies map[string]string `json:"dependencies"`
+		}{}
+		if err := json.NewDecoder(f).Decode(&contents); err != nil {
+			return false, err
+		}
+		v, err := matchDependencyKey(contents.Dependencies, dep)
+		if err != nil {
+			return false, err
+		}
+		return v != "", nil
+	})
 }
 
 // ComposerRequires defines a CEL function `composer.requires(dep string) -> bool`
@@ -37,27 +64,16 @@ func ComposerRequires(fsys *fs.FS, root *string) cel.EnvOption {
 			return false, err
 		}
 		var contents = struct {
-			Require map[string]any `json:"require"`
+			Require map[string]string `json:"require"`
 		}{}
 		if err := json.NewDecoder(f).Decode(&contents); err != nil {
 			return false, err
 		}
-		if contents.Require == nil {
-			return false, nil
-		}
-		if _, ok := contents.Require[dep]; ok {
-			return true, nil
-		}
-		patt, err := regexp.Compile(wildCardToRegexp(dep))
+		v, err := matchDependencyKey(contents.Require, dep)
 		if err != nil {
 			return false, err
 		}
-		for required, _ := range contents.Require {
-			if patt.MatchString(required) {
-				return true, nil
-			}
-		}
-		return false, nil
+		return v != "", nil
 	})
 }
 
@@ -88,6 +104,27 @@ func ComposerLockedVersion(fsys *fs.FS, root *string) cel.EnvOption {
 		}
 		return "", nil
 	})
+}
+
+// matchDependencyKey returns a value if a key is found in a map, or an empty string.
+// The key can contain "*" as a wildcard.
+func matchDependencyKey(m map[string]string, key string) (string, error) {
+	if m == nil {
+		return "", nil
+	}
+	if value, ok := m[key]; ok {
+		return value, nil
+	}
+	patt, err := regexp.Compile(wildCardToRegexp(key))
+	if err != nil {
+		return "", err
+	}
+	for k, v := range m {
+		if patt.MatchString(k) {
+			return v, nil
+		}
+	}
+	return "", nil
 }
 
 // wildCardToRegexp converts a wildcard pattern to a regular expression pattern.
