@@ -18,6 +18,9 @@ type Rule struct {
 	Then  string   `yaml:"then"`
 	Not   []string `yaml:"not"`
 	Maybe []string `yaml:"maybe"`
+
+	Group     string `yaml:"group"`
+	Exclusive bool   `yaml:"exclusive"`
 }
 
 func ParseConfig(r io.Reader) (Config, error) {

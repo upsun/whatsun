@@ -12,7 +12,7 @@ import (
 func TestMatch(t *testing.T) {
 	rules := []match.Rule{
 		{When: "a", Then: "a"},
-		{When: "aaa", Then: "a", Not: []string{"b", "c"}},
+		{When: "aaa", Then: "a", Exclusive: true},
 		{When: "ab", Maybe: []string{"a", "b"}},
 		{When: "bc", Maybe: []string{"b", "c"}},
 	}

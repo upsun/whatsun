@@ -7,18 +7,23 @@ package_managers:
   rules:
   - when: file.exists("package-lock.json")
     then: npm
-    not: [bun, pnpm, yarn]
+    group: js
+    exclusive: true
   - when: file.exists("yarn.lock")
     then: yarn
-    not: [bun, npm, pnpm]
+    group: js
+    exclusive: true
   - when: file.exists("pnpm-lock.yaml")
     then: pnpm
-    not: [bun, npm, yarn]
+    group: js
+    exclusive: true
   - when: file.exists("bun.lock")
     then: bun
-    not: [npm, pnpm, yarn]
+    group: js
+    exclusive: true
   - when: file.exists("package.json")
     maybe: [npm, pnpm, yarn, bun]
+    group: js
 
   - when: file.exists("composer.json")
     then: composer
@@ -75,7 +80,7 @@ frameworks:
       # TODO implement this.
       with:
         major_version: version.parse(composer.lockedVersion("drupal/core")).major
-      # TODO implement this.
+      exclusive: true
       group: php
 
     # The drupal/drupal package represents Drupal 7.
@@ -83,6 +88,7 @@ frameworks:
       then: drupal
       with:
         major_version: version.parse(composer.lockedVersion("drupal/drupal")).major
+      exclusive: true
       group: php
 
     - when: file.exists("index.php") && file.contains("index.php", "drupal_bootstrap(DRUPAL_BOOTSTRAP_FULL);")
@@ -98,21 +104,25 @@ frameworks:
       with:
         major_version: version.parse(composer.lockedVersion("symfony/framework-bundle")).major
       group: php
+      exclusive: true
 
     - when: composer.requires("laravel/framework")
       then: laravel
       with:
         major_version: version.parse(composer.lockedVersion("laravel/framework")).major
       group: php
+      exclusive: true
 
     - when: npm.depends("express")
       then: express
-      group: js # but maybe these shouldn't be exclusive
+      group: js
 
     - when: file.exists("gatsby-config.js") || npm.depends("gatsby")
       then: gatsby
       group: js
+      exclusive: true
 
     - when: file.exists("strapi-config.json") || npm.depends("@strapi/strapi")
       then: strapi
       group: js
+      exclusive: true

@@ -12,6 +12,8 @@ type store struct {
 	maybe map[string][]*Rule
 	not   map[string]struct{}
 
+	exclusiveByGroup map[string]string
+
 	mutex sync.RWMutex
 }
 
@@ -31,6 +33,16 @@ func (s *store) List(report func(rules []*Rule) any) ([]Match, error) {
 		if _, conflicting := s.not[result]; conflicting {
 			return nil, fmt.Errorf("conflict found: %s", result)
 		}
+		for _, r := range rules {
+			if r.Exclusive {
+				if conflict, conflicting := s.exclusiveByGroup[r.Group]; conflicting && conflict != result {
+					if r.Group != "" {
+						return nil, fmt.Errorf("conflict found in group '%s': %s vs %s", r.Group, result, conflict)
+					}
+					return nil, fmt.Errorf("conflict found: %s", result)
+				}
+			}
+		}
 		if m, ok := s.maybe[result]; ok {
 			rules = append(rules, m...)
 		}
@@ -45,7 +57,16 @@ func (s *store) List(report func(rules []*Rule) any) ([]Match, error) {
 		if _, conflicting := s.not[result]; conflicting {
 			continue
 		}
-		matches = append(matches, Match{Result: result, Report: report(rules)})
+		var hasConflict bool
+		for _, r := range rules {
+			if conflict, conflicting := s.exclusiveByGroup[r.Group]; conflicting && conflict != result {
+				hasConflict = true
+				break
+			}
+		}
+		if !hasConflict {
+			matches = append(matches, Match{Result: result, Report: report(rules)})
+		}
 	}
 
 	// Sort the list for consistent output.
@@ -81,6 +102,12 @@ func (s *store) Add(rule *Rule) {
 	if rule.Then != "" {
 		if s.is == nil {
 			s.is = make(map[string][]*Rule)
+		}
+		if rule.Exclusive {
+			if s.exclusiveByGroup == nil {
+				s.exclusiveByGroup = make(map[string]string)
+			}
+			s.exclusiveByGroup[rule.Group] = rule.Then
 		}
 		s.is[rule.Then] = append(s.is[rule.Then], rule)
 	}
