@@ -63,8 +63,10 @@ func (m *Match) String() string {
 func DefaultReportFunc(rules []*what.Rule) any {
 	report := make([]string, 0, len(rules))
 	for _, rule := range rules {
-		if rule.When != "" {
-			report = append(report, rule.When)
+		if rule.Name != "" {
+			report = append(report, rule.Name)
+		} else if rule.When != "" {
+			report = append(report, "when: "+rule.When)
 		}
 	}
 	sort.Strings(report)

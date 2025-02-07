@@ -2,7 +2,8 @@
 # TODO complete these rules
 frameworks:
   rules:
-    - when: composer.requires("drupal/core") || composer.requires("drupal/core-recommended")
+    - name: drupal
+      when: composer.requires("drupal/core") || composer.requires("drupal/core-recommended")
       then: drupal
       with:
         major_version: version.parse(composer.lockedVersion("drupal/core")).major
@@ -10,45 +11,53 @@ frameworks:
       group: php
 
     # The drupal/drupal package represents Drupal 7.
-    - when: composer.requires("drupal/drupal")
+    - name: drupal7-composer
+      when: composer.requires("drupal/drupal")
       then: drupal
       with:
         major_version: version.parse(composer.lockedVersion("drupal/drupal")).major
       exclusive: true
       group: php
 
-    - when: file.exists("index.php") && file.contains("index.php", "drupal_bootstrap(DRUPAL_BOOTSTRAP_FULL);")
+    - name: drupal-direct
+      when: file.exists("index.php") && file.contains("index.php", "drupal_bootstrap(DRUPAL_BOOTSTRAP_FULL);")
       then: drupal
       group: php
 
-    - when: composer.requires("symfony/*") && json.queryString(file.read("composer.json"), ".type") == "project"
+    - name: symfony-project
+      when: composer.requires("symfony/*") && json.queryString(file.read("composer.json"), ".type") == "project"
       maybe: [symfony]
       group: php
 
-    - when: composer.requires("symfony/framework-bundle")
+    - name: symfony-framework
+      when: composer.requires("symfony/framework-bundle")
       then: symfony
       with:
         major_version: version.parse(composer.lockedVersion("symfony/framework-bundle")).major
       group: php
       exclusive: true
 
-    - when: composer.requires("laravel/framework")
+    - name: laravel-framework
+      when: composer.requires("laravel/framework")
       then: laravel
       with:
         major_version: version.parse(composer.lockedVersion("laravel/framework")).major
       group: php
       exclusive: true
 
-    - when: npm.depends("express")
+    - name: express
+      when: npm.depends("express")
       then: express
       group: js
 
-    - when: file.exists("gatsby-config.js") || npm.depends("gatsby")
+    - name: gatsby
+      when: file.exists("gatsby-config.js") || npm.depends("gatsby")
       then: gatsby
       group: js
       exclusive: true
 
-    - when: file.exists("strapi-config.json") || npm.depends("@strapi/strapi")
+    - name: gatsby
+      when: file.exists("strapi-config.json") || npm.depends("@strapi/strapi")
       then: strapi
       group: js
       exclusive: true

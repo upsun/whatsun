@@ -4,19 +4,22 @@ This directory contains YAML files that define analysis rules.
 
 ## Rule format
 
-A named **ruleset** contains a list of rules and some other metadata.
+A named **ruleset** contains a list of `rules` and some other metadata.
+
+[//]: # (TODO document metadata)
 
 Then each rule contains the keys:
 
-* `when` (string): the condition (all CEL expressions, for now)
-* `then` (string): a known result (if any)
-* `maybe` (list): possible results
-* `not` (list): specific results to exclude
-* `with` (map): a map of strings with any extra data to include in the report (all values are CEL expressions, for now)
-* `group`: put this rule into a group for exclusions
-* `exclusive` (bool): exclude all other results in this group
-
-[//]: # (TODO document metadata)
+| Key       | Type            | Required? | Description                                      |
+|-----------|-----------------|:---------:|--------------------------------------------------|
+| name      | string          |           | A name for the rule                              |
+| when      | string          |    yes    | The condition (always a CEL expression, for now) |
+| then      | string          |           | A known result (if any)                          |
+| maybe     | list of strings |           | Possible results                                 |
+| not       | list of strings |           | Specific results to exclude                      |
+| with      | map of strings  |           | Extra data to include in the report              |
+| group     | string          |           | A group in which to apply exclusions             |
+| exclusive | bool            |           | Exclude all other results in this group          |
 
 ## Expressions
 

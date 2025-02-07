@@ -1,23 +1,28 @@
 # Analyze package managers.
 package_managers:
   rules:
-  - when: file.exists("package-lock.json")
+  - name: npm-lockfile
+    when: file.exists("package-lock.json")
     then: npm
     group: js
     exclusive: true
-  - when: file.exists("yarn.lock")
+  - name: yarn-lockfile
+    when: file.exists("yarn.lock")
     then: yarn
     group: js
     exclusive: true
-  - when: file.exists("pnpm-lock.yaml")
+  - name: pnpm-lockfile
+    when: file.exists("pnpm-lock.yaml")
     then: pnpm
     group: js
     exclusive: true
-  - when: file.exists("bun.lock")
+  - name: bun-lockfile
+    when: file.exists("bun.lock")
     then: bun
     group: js
     exclusive: true
-  - when: file.exists("package.json")
+  - name: js-packages
+    when: file.exists("package.json")
     maybe: [npm, pnpm, yarn, bun]
     group: js
 

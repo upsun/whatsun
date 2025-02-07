@@ -22,6 +22,8 @@ type Ruleset struct {
 }
 
 type Rule struct {
+	Name string `yaml:"name"`
+
 	When  string   `yaml:"when"`
 	Then  string   `yaml:"then"`
 	Not   []string `yaml:"not"`

@@ -172,7 +172,7 @@ func (a *Analyzer) applyRuleset(rs *what.Ruleset, fsys fs.FS, ev *eval.Evaluator
 }
 
 type Report struct {
-	When string
+	Rule string
 	With map[string]string
 }
 
@@ -180,7 +180,10 @@ func reportFunc(ev *eval.Evaluator) func(rules []*what.Rule) any {
 	return func(rules []*what.Rule) any {
 		var reports []Report
 		for _, rule := range rules {
-			rep := Report{When: rule.When}
+			rep := Report{Rule: rule.Name}
+			if rep.Rule == "" && rule.When != "" {
+				rep.Rule = "when: " + rule.When
+			}
 			if len(rule.With) == 0 {
 				reports = append(reports, rep)
 				continue
@@ -197,7 +200,7 @@ func reportFunc(ev *eval.Evaluator) func(rules []*what.Rule) any {
 			reports = append(reports, rep)
 		}
 		slices.SortFunc(reports, func(a, b Report) int {
-			return strings.Compare(a.When, b.When)
+			return strings.Compare(a.Rule, b.Rule)
 		})
 		return reports
 	}

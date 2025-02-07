@@ -58,18 +58,18 @@ func TestAnalyze(t *testing.T) {
 			Directories: map[string][]match.Match{
 				".": {{
 					Result: "composer",
-					Report: []rules.Report{{When: `file.exists("composer.json")`}},
+					Report: []rules.Report{{Rule: `when: file.exists("composer.json")`}},
 					Sure:   true,
 				}},
 				"ambiguous": {
-					{Result: "bun", Report: []rules.Report{{When: `file.exists("package.json")`}}},
-					{Result: "npm", Report: []rules.Report{{When: `file.exists("package.json")`}}},
-					{Result: "pnpm", Report: []rules.Report{{When: `file.exists("package.json")`}}},
-					{Result: "yarn", Report: []rules.Report{{When: `file.exists("package.json")`}}},
+					{Result: "bun", Report: []rules.Report{{Rule: `js-packages`}}},
+					{Result: "npm", Report: []rules.Report{{Rule: `js-packages`}}},
+					{Result: "pnpm", Report: []rules.Report{{Rule: `js-packages`}}},
+					{Result: "yarn", Report: []rules.Report{{Rule: `js-packages`}}},
 				},
 				"another-app": {{
 					Result: "npm",
-					Report: []rules.Report{{When: `file.exists("package-lock.json")`}},
+					Report: []rules.Report{{Rule: `npm-lockfile`}},
 					Sure:   true,
 				}},
 			},
@@ -79,7 +79,7 @@ func TestAnalyze(t *testing.T) {
 				".": {{
 					Result: "symfony",
 					Report: []rules.Report{{
-						When: `composer.requires("symfony/framework-bundle")`,
+						Rule: `symfony-framework`,
 						With: map[string]string{"major_version": "7"},
 					}},
 					Sure: true,
