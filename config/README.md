@@ -22,9 +22,7 @@ Then each rule contains the keys:
 
 Currently, all of the `when` and `with` values are expressions, evaluated using Common Expression Language (CEL).
 
-See [internal/eval/celfuncs](../internal/eval/celfuncs) files for a list of the functions.
-
-[//]: # (TODO document CEL functions)
+See [../docs/functions.md](../docs/functions.md) files for a list of all the possible CEL functions.
 
 The expressions are compiled and then cached for better performance. The cache can be generated using the command `make warm_cache`.
 

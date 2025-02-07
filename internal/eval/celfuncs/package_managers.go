@@ -29,6 +29,8 @@ func AllPackageManagerFunctions(fsys *fs.FS, root *string) []cel.EnvOption {
 // It returns false (without an error) if package.json does not exist.
 // The dependency argument can contain "*" as a wildcard.
 func NPMDepends(fsys *fs.FS, root *string) cel.EnvOption {
+	FuncComments["npm.depends"] = "Check if a project has an NPM dependency (accepts * as a wildcard)"
+
 	return stringReturnsBoolErr("npm.depends", func(dep string) (bool, error) {
 		f, err := (*fsys).Open(filepath.Join(*root, "package.json"))
 		if err != nil {
@@ -55,6 +57,8 @@ func NPMDepends(fsys *fs.FS, root *string) cel.EnvOption {
 // It returns false (without an error) if composer.json does not exist.
 // The dependency argument can contain "*" as a wildcard.
 func ComposerRequires(fsys *fs.FS, root *string) cel.EnvOption {
+	FuncComments["composer.requires"] = "Check if a project has a Composer dependency (accepts * as a wildcard)"
+
 	return stringReturnsBoolErr("composer.requires", func(dep string) (bool, error) {
 		f, err := (*fsys).Open(filepath.Join(*root, "composer.json"))
 		if err != nil {
@@ -80,6 +84,8 @@ func ComposerRequires(fsys *fs.FS, root *string) cel.EnvOption {
 // ComposerLockedVersion defines a CEL function `composer.lockedVersion(dep string) -> string`
 // It returns an empty string if composer.lock or the dependency do not exist.
 func ComposerLockedVersion(fsys *fs.FS, root *string) cel.EnvOption {
+	FuncComments["composer.lockedVersion"] = "Find the version of a dependency in composer.lock"
+
 	return stringReturnsStringErr("composer.lockedVersion", func(dep string) (string, error) {
 		f, err := (*fsys).Open(filepath.Join(*root, "composer.lock"))
 		if err != nil {

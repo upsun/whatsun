@@ -8,6 +8,10 @@ help:
 build:
 	go build -o ./what cmd/analyze/analyze.go
 
+.PHONY: gen_docs
+gen_docs: ## Generates CEL function documentation
+	go run cmd/gen_docs/main.go docs/functions.md
+
 .PHONY: warm_cache
 warm_cache: ## Warms the expression cache (run this when expressions change).
 	go run cmd/warm_cache/main.go internal/rules/expr.cache
