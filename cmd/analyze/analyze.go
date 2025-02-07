@@ -10,11 +10,11 @@ import (
 	"path/filepath"
 	"runtime"
 	"time"
+	"what/internal/rules"
 
 	"golang.org/x/sync/errgroup"
 
 	"what"
-	"what/internal/analyzers/rules"
 )
 
 func main() {

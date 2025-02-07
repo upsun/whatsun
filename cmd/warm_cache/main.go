@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
-	"what/internal/analyzers/rules"
+	"what/internal/rules"
 )
 
 func main() {

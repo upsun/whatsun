@@ -5,7 +5,7 @@ import (
 	"io/fs"
 	"testing"
 	"testing/fstest"
-	"what/internal/analyzers/rules"
+	"what/internal/rules"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

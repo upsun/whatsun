@@ -3,7 +3,6 @@ package rules
 import (
 	"context"
 	_ "embed"
-	"errors"
 	"fmt"
 	"io/fs"
 	"os"
@@ -15,7 +14,6 @@ import (
 
 	"github.com/google/cel-go/cel"
 	"github.com/google/cel-go/common/types"
-
 	"what/internal/eval"
 	"what/internal/eval/celfuncs"
 	"what/internal/match"
@@ -211,16 +209,12 @@ func evalFunc(ev *eval.Evaluator) func(string) (bool, error) {
 		if err != nil {
 			return false, err
 		}
-		switch val.(type) {
-		case types.Bool:
-			return bool(val.(types.Bool)), nil
-		case types.String:
-			return string(val.(types.String)) != "", nil
-		case *types.Optional:
-			return val.(*types.Optional).HasValue(), nil
-		case types.Null:
-			return false, nil
+
+		asBool := val.ConvertToType(types.BoolType)
+		if types.IsError(asBool) {
+			return false, fmt.Errorf("%v", asBool)
 		}
-		return false, errors.New("condition returns unexpected type")
+
+		return bool(asBool.(types.Bool)), nil
 	}
 }

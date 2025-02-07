@@ -19,6 +19,7 @@ func AllFileFunctions(fsys *fs.FS, root *string) []cel.EnvOption {
 	return []cel.EnvOption{
 		FileContains(fsys, root),
 		FileExists(fsys, root),
+		FileGlob(fsys, root),
 		FileExistsRegex(fsys, root),
 		FileIsDir(fsys, root),
 		FileRead(fsys, root),
@@ -51,6 +52,13 @@ func FileExists(fsys *fs.FS, root *string) cel.EnvOption {
 			return false, ignoreNotExists(err)
 		}
 		return true, nil
+	})
+}
+
+// FileGlob defines a CEL function `file.glob(pattern) -> list`.
+func FileGlob(fsys *fs.FS, root *string) cel.EnvOption {
+	return stringReturnsListErr("file.glob", func(pattern string) ([]string, error) {
+		return fs.Glob(*fsys, filepath.Join(*root, pattern))
 	})
 }
 

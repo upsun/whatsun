@@ -33,10 +33,10 @@ package_managers:
   - when: file.exists("poetry.lock")
     then: poetry
 
-  - when: file.exists("Gemfile") || file.existsRegex("Gemfile.+")
+  - when: file.glob("Gemfile*").size() > 0
     then: bundler
 
-  - when: file.exists("go.mod") || file.exists("go.mod")
+  - when: file.exists("go.mod") || file.exists("go.sum")
     then: gomod
 
   - when: file.exists("cargo.toml")
