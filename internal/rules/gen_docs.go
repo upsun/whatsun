@@ -48,7 +48,7 @@ func GenerateDocs(w io.Writer) error {
 		b := strings.Builder{}
 
 		if isOperator {
-			b.WriteString(fmt.Sprintf("* **`%s`**\n", strings.Trim(name, "_")))
+			b.WriteString(fmt.Sprintf("* **`%s`**\n", strings.Trim(strings.ReplaceAll(name, "_", " "), "_ ")))
 		} else {
 			if comment, ok := celfuncs.FuncComments[name]; ok {
 				b.WriteString(fmt.Sprintf("* **`%s`**: %s\n", name, comment))
@@ -65,6 +65,12 @@ func GenerateDocs(w io.Writer) error {
 			}
 			if overload.IsMemberFunction() {
 				b.WriteString(fmt.Sprintf("  - `<%s>.%s(%s)` -> `%s`\n", argTypesStr[0], name, strings.Join(argTypesStr[1:], ", "), overload.ResultType()))
+			} else if isOperator {
+				descr := f.Name()
+				for _, argTypeStr := range argTypesStr {
+					descr = strings.Replace(descr, "_", "` `"+argTypeStr+"` `", 1)
+				}
+				b.WriteString(fmt.Sprintf("  - `%s` -> `%s`\n", strings.Trim(descr, " `"), overload.ResultType()))
 			} else {
 				b.WriteString(fmt.Sprintf("  - `%s(%s)` -> `%s`\n", f.Name(), strings.Join(argTypesStr, ", "), overload.ResultType()))
 			}
