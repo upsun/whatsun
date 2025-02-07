@@ -27,6 +27,11 @@ func WarmCache(filename string) error {
 					return err
 				}
 			}
+			for _, expr := range r.With {
+				if _, err := ev.CompileAndCache(expr); err != nil {
+					return err
+				}
+			}
 		}
 	}
 

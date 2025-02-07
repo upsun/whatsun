@@ -18,6 +18,7 @@ func TestAnalyze(t *testing.T) {
 	testFs := fstest.MapFS{
 		// Definitely Composer.
 		`composer.json`: &fstest.MapFile{Data: []byte(`{"require": {"symfony/framework-bundle": "^7"}}`)},
+		`composer.lock`: &fstest.MapFile{Data: []byte(`{"packages": [{"name": "symfony/framework-bundle", "version": "7.2.3"}]}`)},
 
 		// Ignored due to being a directory with the dot prefix.
 		".ignored":      &fstest.MapFile{Mode: fs.ModeDir},
@@ -57,18 +58,18 @@ func TestAnalyze(t *testing.T) {
 			Directories: map[string][]match.Match{
 				".": {{
 					Result: "composer",
-					Report: []string{`file.exists("composer.json")`},
+					Report: []rules.Report{{When: `file.exists("composer.json")`}},
 					Sure:   true,
 				}},
 				"ambiguous": {
-					{Result: "bun", Report: []string{`file.exists("package.json")`}},
-					{Result: "npm", Report: []string{`file.exists("package.json")`}},
-					{Result: "pnpm", Report: []string{`file.exists("package.json")`}},
-					{Result: "yarn", Report: []string{`file.exists("package.json")`}},
+					{Result: "bun", Report: []rules.Report{{When: `file.exists("package.json")`}}},
+					{Result: "npm", Report: []rules.Report{{When: `file.exists("package.json")`}}},
+					{Result: "pnpm", Report: []rules.Report{{When: `file.exists("package.json")`}}},
+					{Result: "yarn", Report: []rules.Report{{When: `file.exists("package.json")`}}},
 				},
 				"another-app": {{
 					Result: "npm",
-					Report: []string{`file.exists("package-lock.json")`},
+					Report: []rules.Report{{When: `file.exists("package-lock.json")`}},
 					Sure:   true,
 				}},
 			},
@@ -77,9 +78,10 @@ func TestAnalyze(t *testing.T) {
 			Directories: map[string][]match.Match{
 				".": {{
 					Result: "symfony",
-					Report: []string{
-						`composer.requires("symfony/framework-bundle")`,
-					},
+					Report: []rules.Report{{
+						When: `composer.requires("symfony/framework-bundle")`,
+						With: map[string]string{"major_version": "7"},
+					}},
 					Sure: true,
 				}},
 			},

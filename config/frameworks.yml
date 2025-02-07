@@ -4,8 +4,6 @@ frameworks:
   rules:
     - when: composer.requires("drupal/core") || composer.requires("drupal/core-recommended")
       then: drupal
-      # The "with" could supply extra data to the analysis output.
-      # TODO implement this.
       with:
         major_version: version.parse(composer.lockedVersion("drupal/core")).major
       exclusive: true

@@ -113,9 +113,9 @@ func TestEval(t *testing.T) {
 
 	t.Run("version.parse", func(t *testing.T) {
 		assert.Equal(t, types.String("v7.2.3"), ev(e, `composer.lockedVersion("symfony/framework-bundle")`))
-		assert.Equal(t, types.String("7"), ev(e, `version.Parse(composer.lockedVersion("symfony/framework-bundle")).major`))
-		assert.Equal(t, types.String("2"), ev(e, `version.Parse(composer.lockedVersion("symfony/framework-bundle")).minor`))
-		assert.Equal(t, types.String("3"), ev(e, `version.Parse(composer.lockedVersion("symfony/framework-bundle")).patch`))
+		assert.Equal(t, types.String("7"), ev(e, `version.parse(composer.lockedVersion("symfony/framework-bundle")).major`))
+		assert.Equal(t, types.String("2"), ev(e, `version.parse(composer.lockedVersion("symfony/framework-bundle")).minor`))
+		assert.Equal(t, types.String("3"), ev(e, `version.parse(composer.lockedVersion("symfony/framework-bundle")).patch`))
 	})
 
 	// Ensure the file cache can be saved.

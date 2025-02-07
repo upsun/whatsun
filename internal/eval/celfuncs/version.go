@@ -9,10 +9,11 @@ import (
 
 // VersionParse defines a CEL function to split a semantic version into major, minor and patch keys.
 func VersionParse() cel.EnvOption {
-	return stringReturnsMapErr("version.Parse", func(s string) (map[string]string, error) {
+	return stringReturnsMapErr("version.parse", func(s string) (map[string]string, error) {
+
 		v, err := semver.NewVersion(s)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("invalid version number: %s", s)
 		}
 		return map[string]string{
 			"major": fmt.Sprint(v.Major()),

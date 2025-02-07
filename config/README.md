@@ -8,10 +8,11 @@ A named **ruleset** contains a list of rules and some other metadata.
 
 Then each rule contains the keys:
 
-* `when` (string): the condition
+* `when` (string): the condition (all CEL expressions, for now)
 * `then` (string): a known result (if any)
 * `maybe` (list): possible results
 * `not` (list): specific results to exclude
+* `with` (map): a map of strings with any extra data to include in the report (all values are CEL expressions, for now)
 * `group`: put this rule into a group for exclusions
 * `exclusive` (bool): exclude all other results in this group
 
@@ -19,7 +20,7 @@ Then each rule contains the keys:
 
 ## Expressions
 
-Currently, all of the `when` conditions are evaluated using Common Expression Language (CEL).
+Currently, all of the `when` and `with` values are expressions, evaluated using Common Expression Language (CEL).
 
 See [internal/eval/celfuncs](../internal/eval/celfuncs) files for a list of the functions.
 

@@ -27,6 +27,8 @@ type Rule struct {
 	Not   []string `yaml:"not"`
 	Maybe []string `yaml:"maybe"`
 
+	With map[string]string `yaml:"with"`
+
 	Group     string `yaml:"group"`
 	Exclusive bool   `yaml:"exclusive"`
 }

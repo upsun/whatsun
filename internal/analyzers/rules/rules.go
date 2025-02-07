@@ -8,6 +8,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"what"
@@ -118,7 +119,7 @@ func (a *Analyzer) applyRuleset(rs *what.Ruleset, fsys fs.FS, ev *eval.Evaluator
 	var (
 		result  = &Result{Directories: make(map[string][]match.Match)}
 		evFunc  = evalFunc(ev)
-		matcher = &match.Matcher{Rules: rs.Rules}
+		matcher = &match.Matcher{Rules: rs.Rules, Report: reportFunc(ev)}
 	)
 	err := fs.WalkDir(fsys, ".", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
@@ -170,6 +171,38 @@ func (a *Analyzer) applyRuleset(rs *what.Ruleset, fsys fs.FS, ev *eval.Evaluator
 	}
 
 	return result, nil
+}
+
+type Report struct {
+	When string
+	With map[string]string
+}
+
+func reportFunc(ev *eval.Evaluator) func(rules []*what.Rule) any {
+	return func(rules []*what.Rule) any {
+		var reports []Report
+		for _, rule := range rules {
+			rep := Report{When: rule.When}
+			if len(rule.With) == 0 {
+				reports = append(reports, rep)
+				continue
+			}
+			rep.With = make(map[string]string)
+			for name, expr := range rule.With {
+				val, err := ev.Eval(expr)
+				if err != nil {
+					rep.With[name] = fmt.Sprint("[ERROR] ", err.Error())
+					continue
+				}
+				rep.With[name] = fmt.Sprint(val)
+			}
+			reports = append(reports, rep)
+		}
+		slices.SortFunc(reports, func(a, b Report) int {
+			return strings.Compare(a.When, b.When)
+		})
+		return reports
+	}
 }
 
 func evalFunc(ev *eval.Evaluator) func(string) (bool, error) {
