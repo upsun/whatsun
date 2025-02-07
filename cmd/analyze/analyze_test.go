@@ -5,12 +5,12 @@ import (
 	"io/fs"
 	"testing"
 	"testing/fstest"
+	"what/internal/analyzers/rules"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"what"
-	"what/analyzers/rules"
 	"what/internal/match"
 )
 

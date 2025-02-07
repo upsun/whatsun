@@ -1,16 +1,16 @@
 package match_test
 
 import (
+	"github.com/stretchr/testify/assert"
 	"slices"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
+	"what"
 
 	"what/internal/match"
 )
 
 func TestMatch(t *testing.T) {
-	rules := []match.Rule{
+	rules := []what.Rule{
 		{When: "a", Then: "a"},
 		{When: "aaa", Then: "a", Exclusive: true},
 		{When: "ab", Maybe: []string{"a", "b"}},

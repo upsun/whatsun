@@ -1,7 +1,6 @@
 package rules
 
 import (
-	"bytes"
 	"context"
 	_ "embed"
 	"errors"
@@ -24,23 +23,15 @@ import (
 //go:embed expr.cache
 var exprCache []byte
 
-//go:embed rule_sets.yml
-var configData []byte
-
 type Analyzer struct {
-	config match.Config
+	config map[string]what.Ruleset
 
 	AllowNested bool
 	MaxDepth    int
 }
 
 func NewAnalyzer() (*Analyzer, error) {
-	cnf, err := match.ParseConfig(bytes.NewReader(configData))
-	if err != nil {
-		return nil, err
-	}
-
-	return &Analyzer{config: cnf, AllowNested: false, MaxDepth: 3}, nil
+	return &Analyzer{config: what.Config, AllowNested: false, MaxDepth: 3}, nil
 }
 
 func (*Analyzer) String() string {
@@ -123,7 +114,7 @@ type Result struct {
 	Directories map[string][]match.Match
 }
 
-func (a *Analyzer) applyRuleset(rs *match.RuleSet, fsys fs.FS, ev *eval.Evaluator, evRoot *string) (*Result, error) {
+func (a *Analyzer) applyRuleset(rs *what.Ruleset, fsys fs.FS, ev *eval.Evaluator, evRoot *string) (*Result, error) {
 	var (
 		result  = &Result{Directories: make(map[string][]match.Match)}
 		evFunc  = evalFunc(ev)

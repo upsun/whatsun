@@ -14,7 +14,7 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"what"
-	"what/analyzers/rules"
+	"what/internal/analyzers/rules"
 )
 
 func main() {
