@@ -104,19 +104,19 @@ func TestEval(t *testing.T) {
 	})
 
 	t.Run("package_managers", func(t *testing.T) {
-		assert.Equal(t, types.Bool(false), ev(e, `composer.requires("drupal/core")`))
-		assert.Equal(t, types.Bool(true), ev(e, `composer.requires("symfony/framework-bundle")`))
-		assert.Equal(t, types.Bool(true), ev(e, `composer.requires("symfony/*")`))
-		assert.Equal(t, types.String("3.0.0"), ev(e, `composer.lockedVersion("psr/cache")`))
-		assert.Equal(t, types.String(""), ev(e, `composer.lockedVersion("drupal/core")`))
-		assert.Equal(t, types.Bool(true), ev(e, `npm.depends("express")`))
+		assert.Equal(t, types.Bool(false), ev(e, `dep.has("php", "drupal/core")`))
+		assert.Equal(t, types.Bool(true), ev(e, `dep.has("php", "symfony/framework-bundle")`))
+		assert.Equal(t, types.Bool(true), ev(e, `dep.has("php", "symfony/*")`))
+		assert.Equal(t, types.String("3.0.0"), ev(e, `dep.getVersion("php", "psr/cache")`))
+		assert.Equal(t, types.String(""), ev(e, `dep.getVersion("php", "drupal/core")`))
+		assert.Equal(t, types.Bool(true), ev(e, `dep.has("js", "express")`))
 	})
 
 	t.Run("version.parse", func(t *testing.T) {
-		assert.Equal(t, types.String("v7.2.3"), ev(e, `composer.lockedVersion("symfony/framework-bundle")`))
-		assert.Equal(t, types.String("7"), ev(e, `version.parse(composer.lockedVersion("symfony/framework-bundle")).major`))
-		assert.Equal(t, types.String("2"), ev(e, `version.parse(composer.lockedVersion("symfony/framework-bundle")).minor`))
-		assert.Equal(t, types.String("3"), ev(e, `version.parse(composer.lockedVersion("symfony/framework-bundle")).patch`))
+		assert.Equal(t, types.String("v7.2.3"), ev(e, `dep.getVersion("php", "symfony/framework-bundle")`))
+		assert.Equal(t, types.String("7"), ev(e, `version.parse(dep.getVersion("php", "symfony/framework-bundle")).major`))
+		assert.Equal(t, types.String("2"), ev(e, `version.parse(dep.getVersion("php", "symfony/framework-bundle")).minor`))
+		assert.Equal(t, types.String("3"), ev(e, `version.parse(dep.getVersion("php", "symfony/framework-bundle")).patch`))
 	})
 
 	// Ensure the file cache can be saved.

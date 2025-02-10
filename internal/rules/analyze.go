@@ -33,7 +33,7 @@ func (a *Analyzer) Analyze(_ context.Context, fsys fs.FS) (what.Result, error) {
 	}
 	dot := "."
 	evRoot := &dot
-	celOptions := defaultEnvOptions(fsys, evRoot)
+	celOptions := DefaultEnvOptions(fsys, evRoot)
 
 	ev, err := eval.NewEvaluator(&eval.Config{Cache: cache, EnvOptions: celOptions})
 	if err != nil {

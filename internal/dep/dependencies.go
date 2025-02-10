@@ -1,0 +1,91 @@
+package dep
+
+import (
+	"encoding/json"
+	"fmt"
+	"io/fs"
+	"path/filepath"
+	"regexp"
+	"strings"
+)
+
+const (
+	ManagerTypePHP        = "php"
+	ManagerTypeJavaScript = "js"
+	ManagerTypeGo         = "go"
+)
+
+type Dependency struct {
+	Vendor            string // The vendor, if any.
+	Name              string // The standard package name, which may include the vendor name.
+	VersionConstraint string
+	Version           string
+}
+
+type Manager interface {
+	Get(name string) (Dependency, bool)
+	Find(pattern string) ([]Dependency, error)
+}
+
+func GetManager(managerType string, fsys fs.FS, path string) (Manager, error) {
+	switch managerType {
+	case ManagerTypePHP:
+		return newPHPManager(fsys, path)
+	case ManagerTypeJavaScript:
+		return newJSManager(fsys, path)
+	case ManagerTypeGo:
+		return newGoManager(fsys, path)
+	}
+	return nil, fmt.Errorf("manager type not (yet) supported: %s", managerType)
+}
+
+// matchDependencyKey returns a value if a key is found in a map, or an empty string.
+// The key can contain "*" as a wildcard.
+// It returns all the matching keys.
+func matchDependencyKey(m map[string]string, key string) ([]string, error) {
+	if m == nil {
+		return nil, nil
+	}
+	if _, ok := m[key]; ok {
+		return []string{key}, nil
+	}
+	patt, err := regexp.Compile(wildCardToRegexp(key))
+	if err != nil {
+		return nil, err
+	}
+	var matches = make([]string, 0, len(m))
+	for k := range m {
+		if patt.MatchString(k) {
+			matches = append(matches, k)
+		}
+	}
+	return matches, nil
+}
+
+// wildCardToRegexp converts a wildcard pattern to a regular expression pattern.
+func wildCardToRegexp(pattern string) string {
+	var result strings.Builder
+	for i, literal := range strings.Split(pattern, "*") {
+		// Replace * with .*
+		if i > 0 {
+			result.WriteString(".*")
+		}
+
+		// Quote any regular expression meta characters in the
+		// literal text.
+		result.WriteString(regexp.QuoteMeta(literal))
+	}
+	return result.String()
+}
+
+func parseJSON(fsys fs.FS, path, filename string, dest any) error {
+	f, err := fsys.Open(filepath.Join(path, filename))
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	if err := json.NewDecoder(f).Decode(dest); err != nil {
+		return fmt.Errorf("failed to parse %s: %w", filepath.Join(path, filename), err)
+	}
+	return nil
+}

@@ -5,19 +5,19 @@ frameworks:
   max_nested_depth: 1
   rules:
     drupal:
-      when: composer.requires("drupal/core") || composer.requires("drupal/core-recommended")
+      when: dep.has("php", "drupal/core") || dep.has("php", "drupal/core-recommended")
       then: drupal
       with:
-        major_version: version.parse(composer.lockedVersion("drupal/core")).major
+        major_version: version.parse(dep.getVersion("php", "drupal/core")).major
       exclusive: true
       group: php
 
     # The drupal/drupal package represents Drupal 7.
     drupal7-composer:
-      when: composer.requires("drupal/drupal")
+      when: dep.has("php", "drupal/drupal")
       then: drupal
       with:
-        major_version: version.parse(composer.lockedVersion("drupal/drupal")).major
+        major_version: version.parse(dep.getVersion("php", "drupal/drupal")).major
       exclusive: true
       group: php
 
@@ -27,45 +27,58 @@ frameworks:
       group: php
 
     symfony-project:
-      when: composer.requires("symfony/*") && json.queryString(file.read("composer.json"), ".type") == "project"
+      when: dep.has("php", "symfony/*") && json.queryString(file.read("composer.json"), ".type") == "project"
       maybe: [symfony]
       group: php
 
     symfony-framework:
-      when: composer.requires("symfony/framework-bundle")
+      when: dep.has("php", "symfony/framework-bundle")
       then: symfony
       with:
-        major_version: version.parse(composer.lockedVersion("symfony/framework-bundle")).major
+        major_version: version.parse(dep.getVersion("php", "symfony/framework-bundle")).major
       group: php
       exclusive: true
 
     laravel-framework:
-      when: composer.requires("laravel/framework")
+      when: dep.has("php", "laravel/framework")
       then: laravel
       with:
-        major_version: version.parse(composer.lockedVersion("laravel/framework")).major
+        major_version: version.parse(dep.getVersion("php", "laravel/framework")).major
       group: php
       exclusive: true
 
     express:
-      when: npm.depends("express")
+      when: dep.has("js", "express")
       then: express
+      with:
+        version: version.parse(dep.getVersion("js", "express"))
       group: js
 
     gatsby:
-      when: file.exists("gatsby-config.js") || npm.depends("gatsby")
+      when: file.exists("gatsby-config.js") || dep.has("js", "gatsby")
       then: gatsby
+      with:
+        version: version.parse(dep.getVersion("js", "gatsby"))
       group: js
       exclusive: true
 
     strapi:
-      when: file.exists("strapi-config.json") || npm.depends("@strapi/strapi")
+      when: file.exists("strapi-config.json") || dep.has("js", "@strapi/strapi")
       then: strapi
+      with:
+        version: version.parse(dep.getVersion("js", "@strapi/strapi"))
       group: js
       exclusive: true
 
     magento:
-      when: composer.requires("magento/magento-composer-installer")
+      when: dep.has("php", "magento/magento-composer-installer")
       then: magento
       exclusive: true
       group: php
+
+    gin:
+      when: dep.has("go", "github.com/gin-gonic/gin")
+      then: gin
+      with:
+        version: version.parse(dep.getVersion("go", "github.com/gin-gonic/gin"))
+      group: go

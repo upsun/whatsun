@@ -54,6 +54,32 @@ func stringStringReturnsBoolErr(name string, f func(s1, s2 string) (bool, error)
 	)
 }
 
+// stringStringReturnsStringErr returns a CEL function wrapping the given one with the same signature.
+func stringStringReturnsStringErr(name string, f func(s1, s2 string) (string, error)) cel.EnvOption {
+	return cel.Function(
+		name,
+		cel.Overload(name,
+			[]*cel.Type{cel.StringType, cel.StringType},
+			cel.StringType,
+			cel.BinaryBinding(func(lhs, rhs ref.Val) ref.Val {
+				s1, ok := lhs.(types.String)
+				if !ok {
+					return types.NewErr("invalid argument 1")
+				}
+				s2, ok := rhs.(types.String)
+				if !ok {
+					return types.NewErr("invalid argument 2")
+				}
+				res, err := f(string(s1), string(s2))
+				if err != nil {
+					return types.NewErrFromString(err.Error())
+				}
+				return types.String(res)
+			}),
+		),
+	)
+}
+
 // stringReturnsBytesErr returns a CEL function wrapping the given one with the same signature.
 func stringReturnsBytesErr(name string, f func(s string) ([]byte, error)) cel.EnvOption {
 	return cel.Function(

@@ -1,15 +1,11 @@
 package celfuncs
 
 import (
-	"encoding/json"
-	"errors"
-	"fmt"
 	"io/fs"
-	"path/filepath"
-	"regexp"
-	"strings"
 
 	"github.com/google/cel-go/cel"
+
+	"what/internal/dep"
 )
 
 // AllPackageManagerFunctions returns CEL functions for reading package manager dependencies in an fs.FS filesystem.
@@ -19,132 +15,57 @@ func AllPackageManagerFunctions(fsys *fs.FS, root *string) []cel.EnvOption {
 		root = &dot
 	}
 	return []cel.EnvOption{
-		ComposerRequires(fsys, root),
-		ComposerLockedVersion(fsys, root),
-		NPMDepends(fsys, root),
+		DepHas(fsys, root),
+		DepGetVersion(fsys, root),
 	}
 }
 
-// NPMDepends defines a CEL function `npm.depends(dep string) -> bool`
-// It returns false (without an error) if package.json does not exist.
-// The dependency argument can contain "*" as a wildcard.
-func NPMDepends(fsys *fs.FS, root *string) cel.EnvOption {
-	FuncComments["npm.depends"] = "Check if a project has an NPM dependency (accepts * as a wildcard)"
-
-	return stringReturnsBoolErr("npm.depends", func(dep string) (bool, error) {
-		f, err := (*fsys).Open(filepath.Join(*root, "package.json"))
-		if err != nil {
-			if errors.Is(err, fs.ErrNotExist) {
-				return false, nil
-			}
-			return false, err
-		}
-		var contents = struct {
-			Dependencies map[string]string `json:"dependencies"`
-		}{}
-		if err := json.NewDecoder(f).Decode(&contents); err != nil {
-			return false, err
-		}
-		v, err := matchDependencyKey(contents.Dependencies, dep)
-		if err != nil {
-			return false, err
-		}
-		return v != "", nil
-	})
-}
-
-// ComposerRequires defines a CEL function `composer.requires(dep string) -> bool`
-// It returns false (without an error) if composer.json does not exist.
-// The dependency argument can contain "*" as a wildcard.
-func ComposerRequires(fsys *fs.FS, root *string) cel.EnvOption {
-	FuncComments["composer.requires"] = "Check if a project has a Composer dependency (accepts * as a wildcard)"
-
-	return stringReturnsBoolErr("composer.requires", func(dep string) (bool, error) {
-		f, err := (*fsys).Open(filepath.Join(*root, "composer.json"))
-		if err != nil {
-			if errors.Is(err, fs.ErrNotExist) {
-				return false, nil
-			}
-			return false, err
-		}
-		var contents = struct {
-			Require map[string]string `json:"require"`
-		}{}
-		if err := json.NewDecoder(f).Decode(&contents); err != nil {
-			return false, err
-		}
-		v, err := matchDependencyKey(contents.Require, dep)
-		if err != nil {
-			return false, err
-		}
-		return v != "", nil
-	})
-}
-
-// ComposerLockedVersion defines a CEL function `composer.lockedVersion(dep string) -> string`
-// It returns an empty string if composer.lock or the dependency do not exist.
-func ComposerLockedVersion(fsys *fs.FS, root *string) cel.EnvOption {
-	FuncComments["composer.lockedVersion"] = "Find the version of a dependency in composer.lock"
-
-	return stringReturnsStringErr("composer.lockedVersion", func(dep string) (string, error) {
-		f, err := (*fsys).Open(filepath.Join(*root, "composer.lock"))
-		if err != nil {
-			if errors.Is(err, fs.ErrNotExist) {
-				return "", nil
-			}
-			return "", err
-		}
-		var contents = struct {
-			Packages []struct {
-				Name    string `json:"name"`
-				Version string `json:"version"`
-			} `json:"packages"`
-		}{}
-		if err := json.NewDecoder(f).Decode(&contents); err != nil {
-			return "", fmt.Errorf("failed to parse composer.lock: %w", err)
-		}
-		for _, pkg := range contents.Packages {
-			if pkg.Name == dep {
-				return pkg.Version, nil
-			}
-		}
-		return "", nil
-	})
-}
-
-// matchDependencyKey returns a value if a key is found in a map, or an empty string.
-// The key can contain "*" as a wildcard.
-func matchDependencyKey(m map[string]string, key string) (string, error) {
-	if m == nil {
-		return "", nil
+func DepHas(fsys *fs.FS, root *string) cel.EnvOption {
+	FuncDocs["dep.has"] = FuncDoc{
+		Comment:     "Check if a project has a dependency",
+		Description: "This supports a few package management tools: more may be added later.",
+		Args: []ArgDoc{
+			{"managerType", "The manager type (`go`, `js` or `php`)"},
+			{"pattern", "The dependency name, accepting `*` as a wildcard"},
+		},
 	}
-	if value, ok := m[key]; ok {
-		return value, nil
+	return stringStringReturnsBoolErr("dep.has", func(manager, pattern string) (bool, error) {
+		return depExists(manager, *fsys, *root, pattern)
+	})
+}
+
+func DepGetVersion(fsys *fs.FS, root *string) cel.EnvOption {
+	FuncDocs["dep.getVersion"] = FuncDoc{
+		Comment:     "Find the version of a project dependency",
+		Description: "This returns an empty string if the dependency is not found.",
+		Args: []ArgDoc{
+			{"managerType", "The manager type (`go`, `js` or `php`)"},
+			{"name", "The dependency name"},
+		},
 	}
-	patt, err := regexp.Compile(wildCardToRegexp(key))
+
+	return stringStringReturnsStringErr("dep.getVersion", func(manager, name string) (string, error) {
+		return depVersion(manager, *fsys, *root, name)
+	})
+}
+
+func depVersion(managerType string, fsys fs.FS, path, name string) (string, error) {
+	m, err := dep.GetManager(managerType, fsys, path)
 	if err != nil {
 		return "", err
 	}
-	for k, v := range m {
-		if patt.MatchString(k) {
-			return v, nil
-		}
-	}
-	return "", nil
+	d, _ := m.Get(name)
+	return d.Version, nil
 }
 
-// wildCardToRegexp converts a wildcard pattern to a regular expression pattern.
-func wildCardToRegexp(pattern string) string {
-	var result strings.Builder
-	for i, literal := range strings.Split(pattern, "*") {
-		// Replace * with .*
-		if i > 0 {
-			result.WriteString(".*")
-		}
-
-		// Quote any regular expression meta characters in the
-		// literal text.
-		result.WriteString(regexp.QuoteMeta(literal))
+func depExists(managerType string, fsys fs.FS, path, pattern string) (bool, error) {
+	m, err := dep.GetManager(managerType, fsys, path)
+	if err != nil {
+		return false, err
 	}
-	return result.String()
+	deps, err := m.Find(pattern)
+	if err != nil {
+		return false, err
+	}
+	return len(deps) > 0, nil
 }

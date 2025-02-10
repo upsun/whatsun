@@ -13,7 +13,7 @@ import (
 	"what/internal/eval/celfuncs"
 )
 
-func defaultEnvOptions(fsys fs.FS, root *string) []cel.EnvOption {
+func DefaultEnvOptions(fsys fs.FS, root *string) []cel.EnvOption {
 	var celOptions []cel.EnvOption
 	celOptions = append(celOptions, celfuncs.AllFileFunctions(&fsys, root)...)
 	celOptions = append(celOptions, celfuncs.AllPackageManagerFunctions(&fsys, root)...)

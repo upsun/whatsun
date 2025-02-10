@@ -18,7 +18,7 @@ package_managers:
       group: js
       exclusive: true
     bun-lockfile:
-      when: file.exists("bun.lock")
+      when: file.exists("bun.lock") || file.exists("bun.lockb")
       then: bun
       group: js
       exclusive: true

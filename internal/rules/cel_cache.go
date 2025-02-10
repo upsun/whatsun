@@ -18,7 +18,7 @@ func WarmCache(filename string) error {
 	}
 
 	root := "."
-	celOptions := defaultEnvOptions(os.DirFS("."), &root)
+	celOptions := DefaultEnvOptions(os.DirFS("."), &root)
 	ev, err := eval.NewEvaluator(&eval.Config{Cache: cache, EnvOptions: celOptions})
 	if err != nil {
 		return err

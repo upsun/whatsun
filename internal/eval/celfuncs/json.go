@@ -12,7 +12,13 @@ import (
 
 // JSONQueryStringCELFunction defines a CEL function `json.queryString(b, expr) -> string`.
 func JSONQueryStringCELFunction() cel.EnvOption {
-	FuncComments["json.queryString"] = "Query a byte string (e.g. file contents) using JQ"
+	FuncDocs["json.queryString"] = FuncDoc{
+		Comment: "Query a byte string (e.g. file contents) using JQ",
+		Args: []ArgDoc{
+			{"contents", ""},
+			{"query", ""},
+		},
+	}
 
 	return bytesStringReturnsStringErr("json.queryString", jq)
 }
