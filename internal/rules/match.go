@@ -53,10 +53,7 @@ type Match struct {
 	Result string
 	Sure   bool
 	Report any
-}
-
-func (m *Match) String() string {
-	return fmt.Sprintf("%s (report: %v)", m.Result, m.Report)
+	Err    error
 }
 
 func DefaultReportFunc(rules []*Rule) any {

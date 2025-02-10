@@ -12,12 +12,17 @@ package_managers:
       then: yarn
       group: js
       exclusive: true
-    pnpm-lockfile:
-      when: file.exists("pnpm-lock.yaml")
+    meteor:
+      when: file.exists(".meteor/packages")
+      then: meteor
+      group: js
+      exclusive: true
+    pnpm:
+      when: file.exists("pnpm-lock.yaml") || file.exists("pnpm-workspace.yaml")
       then: pnpm
       group: js
       exclusive: true
-    bun-lockfile:
+    bun:
       when: file.exists("bun.lock") || file.exists("bun.lockb")
       then: bun
       group: js

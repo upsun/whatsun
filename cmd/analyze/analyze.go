@@ -4,17 +4,12 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	"io/fs"
 	"log"
 	"os"
 	"path/filepath"
-	"runtime"
 	"time"
+
 	"what/internal/rules"
-
-	"golang.org/x/sync/errgroup"
-
-	"what"
 )
 
 func main() {
@@ -32,60 +27,21 @@ func main() {
 	}
 	defer f.Close()
 
-	rulesAnalyzer, err := rules.NewAnalyzer()
+	analyzer, err := rules.NewAnalyzer()
 	if err != nil {
 		log.Fatal(err)
 	}
-	analyzers := []what.Analyzer{rulesAnalyzer}
-
-	fmt.Fprintf(os.Stderr, "Running analyzers: %v\n", analyzers)
-
-	resultChan := make(chan resultContext)
 	start := time.Now()
-	analyze(context.TODO(), analyzers, os.DirFS(absPath), resultChan)
+
+	result, err := analyzer.Analyze(context.TODO(), os.DirFS(absPath))
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	stdErrBuf := bufio.NewWriter(os.Stderr)
 	defer stdErrBuf.Flush()
 
-	for r := range resultChan {
-		if r.err != nil {
-			log.Fatal(r.err)
-		}
-		fmt.Fprintf(stdErrBuf, "Received result in %s from analyzer \"%s\":\n", time.Since(start), r.Analyzer.String())
-		fmt.Fprintln(stdErrBuf, r.Result)
-		stdErrBuf.Flush()
-	}
-}
-
-type resultContext struct {
-	err error
-	what.Analyzer
-	what.Result
-}
-
-// analyze runs a list of analyzers and sends results.
-func analyze(ctx context.Context, analyzers []what.Analyzer, fsys fs.FS, resultChan chan<- resultContext) {
-	go func() {
-		eg := errgroup.Group{}
-		eg.SetLimit(runtime.GOMAXPROCS(0))
-		defer close(resultChan)
-		for _, a := range analyzers {
-			a := a
-			eg.Go(func() error {
-				result, err := a.Analyze(ctx, fsys)
-				if err != nil {
-					return err
-				}
-				resultChan <- resultContext{
-					Analyzer: a,
-					Result:   result,
-				}
-				return nil
-			})
-		}
-		err := eg.Wait()
-		if err != nil {
-			resultChan <- resultContext{err: err}
-		}
-	}()
+	fmt.Fprintf(stdErrBuf, "Received result in %s:\n", time.Since(start))
+	fmt.Fprintln(stdErrBuf, result)
+	stdErrBuf.Flush()
 }

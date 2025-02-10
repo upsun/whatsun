@@ -36,10 +36,15 @@ func (s *store) List(report func(rules []*Rule) any) ([]Match, error) {
 		for _, r := range rules {
 			if r.Exclusive {
 				if conflict, conflicting := s.exclusiveByGroup[r.Group]; conflicting && conflict != result {
+					// Report the error as a match, so that conflicts don't fail the whole analysis.
 					if r.Group != "" {
-						return nil, fmt.Errorf("conflict found in group '%s': %s vs %s", r.Group, result, conflict)
+						matches = append(matches, Match{
+							Err: fmt.Errorf("conflict found in group %s: %s vs %s", r.Group, result, conflict)})
+					} else {
+						matches = append(matches, Match{
+							Err: fmt.Errorf("conflict found: %s", result)})
 					}
-					return nil, fmt.Errorf("conflict found: %s", result)
+					continue
 				}
 			}
 		}

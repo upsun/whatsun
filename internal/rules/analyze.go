@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
-	"what"
 
 	"what/internal/eval"
 )
@@ -22,11 +21,7 @@ func NewAnalyzer() (*Analyzer, error) {
 	return &Analyzer{config: Config}, nil
 }
 
-func (*Analyzer) String() string {
-	return "rules"
-}
-
-func (a *Analyzer) Analyze(_ context.Context, fsys fs.FS) (what.Result, error) {
+func (a *Analyzer) Analyze(_ context.Context, fsys fs.FS) (Results, error) {
 	cache, err := eval.NewFileCacheWithContent(exprCache, "")
 	if err != nil {
 		return nil, err
@@ -52,7 +47,7 @@ func (a *Analyzer) Analyze(_ context.Context, fsys fs.FS) (what.Result, error) {
 	return results, err
 }
 
-type Results map[string]*Result
+type Results map[string]Result
 
 func (r Results) String() string {
 	if r == nil {
@@ -90,9 +85,9 @@ type Result struct {
 	Directories map[string][]Match
 }
 
-func (a *Analyzer) applyRuleset(rs *Ruleset, fsys fs.FS, ev *eval.Evaluator, evRoot *string) (*Result, error) {
+func (a *Analyzer) applyRuleset(rs *Ruleset, fsys fs.FS, ev *eval.Evaluator, evRoot *string) (Result, error) {
 	var (
-		result  = &Result{Directories: make(map[string][]Match)}
+		result  = Result{Directories: make(map[string][]Match)}
 		evFunc  = evalFunc(ev)
 		matcher = &Matcher{Rules: rs.Rules, Report: reportFunc(ev)}
 	)
@@ -141,11 +136,8 @@ func (a *Analyzer) applyRuleset(rs *Ruleset, fsys fs.FS, ev *eval.Evaluator, evR
 		}
 		return nil
 	})
-	if err != nil {
-		return nil, err
-	}
 
-	return result, nil
+	return result, err
 }
 
 type Report struct {

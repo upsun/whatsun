@@ -1,9 +1,6 @@
 package what
 
-import (
-	"embed"
-	_ "embed"
-)
+import "embed"
 
 //go:embed config
 var ConfigData embed.FS
