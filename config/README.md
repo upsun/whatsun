@@ -36,7 +36,4 @@ Currently, all of the `when` and `with` values are expressions, evaluated using 
 
 See [../docs/functions.md](../docs/functions.md) files for a list of all the possible CEL functions.
 
-The expressions are compiled and then cached for better performance. The cache can be generated using the command `make warm_cache`.
-
-Currently, this command will change the cache file every time, even if expressions have not changed.
-This may be improved in the future, perhaps by making the functions accept explicit CEL program input instead of closing over pointers.
+The expressions are compiled and then cached for better performance.

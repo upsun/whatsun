@@ -63,28 +63,58 @@ func (c *FileCache) Save() error {
 	if c.filename == "" {
 		return errors.New("no cache filename specified")
 	}
-	f, err := os.Create(c.filename)
+	f, err := os.OpenFile(c.filename, os.O_RDWR|os.O_CREATE, 0666)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
+
 	c.memoryCache.mutex.RLock()
 	defer c.memoryCache.mutex.RUnlock()
-	if c.memoryCache.cache == nil {
-		c.memoryCache.cache = make(map[string]*cel.Ast)
-	}
-	lines := make([]string, len(c.memoryCache.cache))
-	i := 0
-	for k, v := range c.memoryCache.cache {
-		m, err := marshalAST(v)
-		if err != nil {
-			return err
+
+	// Read the file in order to skip re-marshalling the AST for previously cached expressions.
+	// This is for consistency (reducing unnecessary Git diffs) rather than performance.
+	// TODO why does the marshalled representation change each time? - perhaps it's due to pointers in the environment
+	var (
+		marshalled = make(map[string]string, len(c.memoryCache.cache))
+		scanner    = bufio.NewScanner(f)
+		lineNumber = 0
+	)
+	for scanner.Scan() {
+		lineNumber++
+		line := scanner.Text()
+		if strings.HasPrefix(line, "#") {
+			continue
 		}
-		lines[i] = k + "\t" + m
+		parts := strings.SplitN(line, "\t", 2)
+		if len(parts) != 2 {
+			return fmt.Errorf("malformed line %d (not tab-separated) in file: %s", lineNumber, c.filename)
+		}
+		if _, ok := c.memoryCache.cache[parts[0]]; ok {
+			marshalled[parts[0]] = parts[1]
+		}
+	}
+	for k, v := range c.memoryCache.cache {
+		// Only re-marshal for existing expressions.
+		if _, ok := marshalled[k]; !ok {
+			s, err := marshalAST(v)
+			if err != nil {
+				return err
+			}
+			marshalled[k] = s
+		}
+	}
+	lines := make([]string, len(marshalled))
+	i := 0
+	for k, v := range marshalled {
+		lines[i] = k + "\t" + v
 		i++
 	}
 	// Sort the result as the cache may be saved to Git.
 	slices.Sort(lines)
+	if _, err := f.Seek(0, 0); err != nil {
+		return err
+	}
 	_, err = fmt.Fprint(f, strings.Join(lines, "\n"))
 	return err
 }
@@ -105,7 +135,7 @@ func (c *FileCache) load(r io.Reader) error {
 		}
 		parts := strings.SplitN(line, "\t", 2)
 		if len(parts) != 2 {
-			return errors.New("malformed file: line does not contain two parts")
+			return fmt.Errorf("malformed line %d (not tab-separated)", lineNumber)
 		}
 		ast, err := unmarshalAST(parts[1])
 		if err != nil {

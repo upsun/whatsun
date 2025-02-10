@@ -5,7 +5,7 @@ help:
 		| awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
 .PHONY: build
-build:
+build: warm_cache
 	go build -o ./what cmd/analyze/analyze.go
 
 .PHONY: gen_docs
