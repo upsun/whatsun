@@ -12,7 +12,7 @@ var exprCache []byte
 
 // WarmCache can be used externally to generate a file containing cached expressions.
 func WarmCache(filename string) error {
-	cache, err := eval.NewFileCache(filename)
+	cache, err := eval.NewFileCacheWithContent(nil, filename)
 	if err != nil {
 		return err
 	}

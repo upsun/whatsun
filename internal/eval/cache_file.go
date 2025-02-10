@@ -112,6 +112,9 @@ func (c *FileCache) Save() error {
 	}
 	// Sort the result as the cache may be saved to Git.
 	slices.Sort(lines)
+	if err := f.Truncate(0); err != nil {
+		return err
+	}
 	if _, err := f.Seek(0, 0); err != nil {
 		return err
 	}
