@@ -6,6 +6,7 @@ import (
 	"os"
 	"sort"
 	"strings"
+
 	"what/internal/eval/celfuncs"
 
 	"github.com/google/cel-go/cel"

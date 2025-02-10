@@ -1,17 +1,16 @@
-// Package matcher applies rules to find information in data.
-package match
+package rules
 
 import (
 	"fmt"
-	"golang.org/x/sync/errgroup"
 	"runtime"
 	"sort"
-	"what"
+
+	"golang.org/x/sync/errgroup"
 )
 
 // Matcher is the matching engine.
 //
-// Given a set of what.Rule objects (perhaps defined in YAML), then the
+// Given a set of Rule objects (perhaps defined in YAML), then the
 // Matcher.Match method will evaluate the Rule.When condition of each, and
 // combine the matched rules into a list of Match results.
 //
@@ -19,8 +18,8 @@ import (
 // rules into a useful summary (this defaults to a list of conditions, via
 // DefaultReportFunc).
 type Matcher struct {
-	Rules  []what.Rule
-	Report func([]*what.Rule) any
+	Rules  map[string]Rule
+	Report func([]*Rule) any
 }
 
 func (f *Matcher) Match(eval func(condition string) (bool, error)) ([]Match, error) {
@@ -31,11 +30,11 @@ func (f *Matcher) Match(eval func(condition string) (bool, error)) ([]Match, err
 	eg := errgroup.Group{}
 	eg.SetLimit(runtime.GOMAXPROCS(0))
 	var s store
-	for _, rule := range f.Rules {
+	for name, rule := range f.Rules {
 		eg.Go(func() error {
 			match, err := eval(rule.When)
 			if err != nil {
-				return fmt.Errorf("when evaluating condition `%s`: %w", rule.When, err)
+				return fmt.Errorf("failed to eval rule %s, condition `%s`: %w", name, rule.When, err)
 			}
 			if match {
 				s.Add(&rule)
@@ -60,7 +59,7 @@ func (m *Match) String() string {
 	return fmt.Sprintf("%s (report: %v)", m.Result, m.Report)
 }
 
-func DefaultReportFunc(rules []*what.Rule) any {
+func DefaultReportFunc(rules []*Rule) any {
 	report := make([]string, 0, len(rules))
 	for _, rule := range rules {
 		if rule.Name != "" {

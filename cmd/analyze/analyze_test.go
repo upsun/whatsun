@@ -11,7 +11,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"what"
-	"what/internal/match"
 )
 
 func TestAnalyze(t *testing.T) {
@@ -55,31 +54,31 @@ func TestAnalyze(t *testing.T) {
 
 	assert.EqualValues(t, rules.Results{
 		"package_managers": {
-			Directories: map[string][]match.Match{
+			Directories: map[string][]rules.Match{
 				".": {{
 					Result: "composer",
-					Report: []rules.Report{{Rule: `when: file.exists("composer.json")`}},
+					Report: []rules.Report{{Rule: "composer"}},
 					Sure:   true,
 				}},
 				"ambiguous": {
-					{Result: "bun", Report: []rules.Report{{Rule: `js-packages`}}},
-					{Result: "npm", Report: []rules.Report{{Rule: `js-packages`}}},
-					{Result: "pnpm", Report: []rules.Report{{Rule: `js-packages`}}},
-					{Result: "yarn", Report: []rules.Report{{Rule: `js-packages`}}},
+					{Result: "bun", Report: []rules.Report{{Rule: "js-packages"}}},
+					{Result: "npm", Report: []rules.Report{{Rule: "js-packages"}}},
+					{Result: "pnpm", Report: []rules.Report{{Rule: "js-packages"}}},
+					{Result: "yarn", Report: []rules.Report{{Rule: "js-packages"}}},
 				},
 				"another-app": {{
 					Result: "npm",
-					Report: []rules.Report{{Rule: `npm-lockfile`}},
+					Report: []rules.Report{{Rule: "npm-lockfile"}},
 					Sure:   true,
 				}},
 			},
 		},
 		"frameworks": {
-			Directories: map[string][]match.Match{
+			Directories: map[string][]rules.Match{
 				".": {{
 					Result: "symfony",
 					Report: []rules.Report{{
-						Rule: `symfony-framework`,
+						Rule: "symfony-framework",
 						With: map[string]string{"major_version": "7"},
 					}},
 					Sure: true,

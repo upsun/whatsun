@@ -1,72 +1,80 @@
 # Analyze package managers.
 package_managers:
+  max_depth: 2
   rules:
-  - name: npm-lockfile
-    when: file.exists("package-lock.json")
-    then: npm
-    group: js
-    exclusive: true
-  - name: yarn-lockfile
-    when: file.exists("yarn.lock")
-    then: yarn
-    group: js
-    exclusive: true
-  - name: pnpm-lockfile
-    when: file.exists("pnpm-lock.yaml")
-    then: pnpm
-    group: js
-    exclusive: true
-  - name: bun-lockfile
-    when: file.exists("bun.lock")
-    then: bun
-    group: js
-    exclusive: true
-  - name: js-packages
-    when: file.exists("package.json")
-    maybe: [npm, pnpm, yarn, bun]
-    group: js
+    npm-lockfile:
+      when: file.exists("package-lock.json")
+      then: npm
+      group: js
+      exclusive: true
+    yarn-lockfile:
+      when: file.exists("yarn.lock")
+      then: yarn
+      group: js
+      exclusive: true
+    pnpm-lockfile:
+      when: file.exists("pnpm-lock.yaml")
+      then: pnpm
+      group: js
+      exclusive: true
+    bun-lockfile:
+      when: file.exists("bun.lock")
+      then: bun
+      group: js
+      exclusive: true
+    js-packages:
+      when: file.exists("package.json")
+      maybe: [npm, pnpm, yarn, bun]
+      group: js
 
-  - when: file.exists("composer.json")
-    then: composer
+    composer:
+      when: file.exists("composer.json")
+      then: composer
 
-  - when: file.exists("requirements.txt")
-    then: pip
-  - when: file.exists("Pipfile")
-    then: pipenv
-  - when: file.exists("pyproject.toml")
-    maybe: [poetry, pip]
-  - when: file.exists("poetry.lock")
-    then: poetry
+    pip:
+      when: file.exists("requirements.txt")
+      then: pip
 
-  - when: file.glob("Gemfile*").size() > 0
-    then: bundler
+    pipenv:
+      when: file.exists("Pipfile")
+      then: pipenv
 
-  - when: file.exists("go.mod") || file.exists("go.sum")
-    then: gomod
+    pyproject:
+      when: file.exists("pyproject.toml")
+      maybe: [poetry, pip]
 
-  - when: file.exists("cargo.toml")
-    then: cargo
+    poetry:
+      when: file.exists("poetry.lock")
+      then: poetry
 
-  - when: file.exists("pom.xml")
-    then: maven
-  - when: file.exists("build.gradle")
-    then: gradle
-  - when: file.exists("build.gradle.kts")
-    then: gradle
-  - when: file.exists("settings.gradle")
-    then: gradle
-  - when: file.exists("gradle.properties")
-    then: gradle
-  - when: file.exists("gradlew")
-    then: gradle
-  - when: file.exists("gradlew.bat")
-    then: gradle
+    bundler:
+      when: file.glob("Gemfile*").size() > 0
+      then: bundler
 
-  - when: file.exists("packages.lock.json")
-    then: nuget
+    gomod:
+      when: file.exists("go.mod") || file.exists("go.sum")
+      then: gomod
 
-  - when: file.exists("mix.exs")
-    then: mix
+    cargo:
+      when: file.exists("cargo.toml")
+      then: cargo
 
-  - when: file.isDir("quicklisp")
-    then: quicklisp
+    maven:
+      when: file.exists("pom.xml")
+      then: maven
+
+    gradle:
+      when: file.existsRegex(r"(build.gradle(\.kts)?|settings\.gradle|gradle\.properties|gradlew|gradlew\.bat)")
+      then: gradle
+
+    nuget:
+      when: file.exists("packages.lock.json")
+      then: nuget
+
+    mix:
+      when: file.exists("mix.exs")
+      then: mix
+
+    quicklisp:
+      when: file.isDir("quicklisp")
+      then: quicklisp

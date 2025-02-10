@@ -1,7 +1,6 @@
-package what
+package rules
 
 import (
-	"embed"
 	"fmt"
 	"io/fs"
 	"os"
@@ -9,16 +8,18 @@ import (
 	"strings"
 
 	"gopkg.in/yaml.v3"
-)
 
-//go:embed config
-var configData embed.FS
+	"what"
+)
 
 var Config map[string]Ruleset
 
 type Ruleset struct {
-	Depends []string `yaml:"depends"`
-	Rules   []Rule   `yaml:"rules"`
+	Depends []string        `yaml:"depends"`
+	Rules   map[string]Rule `yaml:"rules"`
+
+	MaxDepth       int `yaml:"max_depth"`
+	MaxNestedDepth int `yaml:"max_nested_depth"`
 }
 
 type Rule struct {
@@ -44,7 +45,7 @@ func init() {
 
 func parseConfig() error {
 	dirname := "config"
-	entries, err := fs.ReadDir(configData, dirname)
+	entries, err := fs.ReadDir(what.ConfigData, dirname)
 	if err != nil {
 		return err
 	}
@@ -52,7 +53,7 @@ func parseConfig() error {
 	for _, entry := range entries {
 		if strings.HasSuffix(entry.Name(), ".yaml") || strings.HasSuffix(entry.Name(), ".yml") {
 			subConfig := make(map[string]Ruleset)
-			f, err := configData.Open(filepath.Join(dirname, entry.Name()))
+			f, err := what.ConfigData.Open(filepath.Join(dirname, entry.Name()))
 			if err != nil {
 				return fmt.Errorf("failed to open config file %s: %w", entry.Name(), err)
 			}
@@ -61,6 +62,11 @@ func parseConfig() error {
 			}
 			for k, v := range subConfig {
 				Config[k] = v
+				// Copy the name to the rule.
+				for name, rule := range v.Rules {
+					rule.Name = name
+					Config[k].Rules[name] = rule
+				}
 			}
 		}
 	}

@@ -1,11 +1,14 @@
 package rules
 
 import (
+	_ "embed"
 	"os"
 
-	"what"
 	"what/internal/eval"
 )
+
+//go:embed expr.cache
+var exprCache []byte
 
 // WarmCache can be used externally to generate a file containing cached expressions.
 func WarmCache(filename string) error {
@@ -20,7 +23,7 @@ func WarmCache(filename string) error {
 	if err != nil {
 		return err
 	}
-	for _, rs := range what.Config {
+	for _, rs := range Config {
 		for _, r := range rs.Rules {
 			if r.When != "" {
 				if _, err := ev.CompileAndCache(r.When); err != nil {

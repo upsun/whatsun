@@ -1,17 +1,15 @@
-package match
+package rules
 
 import (
 	"fmt"
 	"slices"
 	"strings"
 	"sync"
-
-	"what"
 )
 
 type store struct {
-	is    map[string][]*what.Rule
-	maybe map[string][]*what.Rule
+	is    map[string][]*Rule
+	maybe map[string][]*Rule
 	not   map[string]struct{}
 
 	exclusiveByGroup map[string]string
@@ -19,7 +17,7 @@ type store struct {
 	mutex sync.RWMutex
 }
 
-func (s *store) List(report func(rules []*what.Rule) any) ([]Match, error) {
+func (s *store) List(report func(rules []*Rule) any) ([]Match, error) {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 	if len(s.is) == 0 && len(s.maybe) == 0 {
@@ -79,7 +77,7 @@ func (s *store) List(report func(rules []*what.Rule) any) ([]Match, error) {
 	return matches, nil
 }
 
-func (s *store) Add(rule *what.Rule) {
+func (s *store) Add(rule *Rule) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
@@ -94,7 +92,7 @@ func (s *store) Add(rule *what.Rule) {
 
 	if len(rule.Maybe) > 0 {
 		if s.maybe == nil {
-			s.maybe = make(map[string][]*what.Rule)
+			s.maybe = make(map[string][]*Rule)
 		}
 		for _, v := range rule.Maybe {
 			s.maybe[v] = append(s.maybe[v], rule)
@@ -103,7 +101,7 @@ func (s *store) Add(rule *what.Rule) {
 
 	if rule.Then != "" {
 		if s.is == nil {
-			s.is = make(map[string][]*what.Rule)
+			s.is = make(map[string][]*Rule)
 		}
 		if rule.Exclusive {
 			if s.exclusiveByGroup == nil {

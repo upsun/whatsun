@@ -1,52 +1,29 @@
+// Package rules applies rules and combines the results.
 package rules
 
 import (
 	"context"
-	_ "embed"
 	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
-	"slices"
 	"sort"
 	"strings"
 	"what"
 
-	"github.com/google/cel-go/cel"
-	"github.com/google/cel-go/common/types"
 	"what/internal/eval"
-	"what/internal/eval/celfuncs"
-	"what/internal/match"
 )
 
-//go:embed expr.cache
-var exprCache []byte
-
 type Analyzer struct {
-	config map[string]what.Ruleset
-
-	AllowNested bool
-	MaxDepth    int
+	config map[string]Ruleset
 }
 
 func NewAnalyzer() (*Analyzer, error) {
-	return &Analyzer{config: what.Config, AllowNested: false, MaxDepth: 3}, nil
+	return &Analyzer{config: Config}, nil
 }
 
 func (*Analyzer) String() string {
 	return "rules"
-}
-
-func defaultEnvOptions(fsys fs.FS, root *string) []cel.EnvOption {
-	var celOptions []cel.EnvOption
-	celOptions = append(celOptions, celfuncs.AllFileFunctions(&fsys, root)...)
-	celOptions = append(celOptions, celfuncs.AllPackageManagerFunctions(&fsys, root)...)
-
-	return append(
-		celOptions,
-		celfuncs.JSONQueryStringCELFunction(),
-		celfuncs.VersionParse(),
-	)
 }
 
 func (a *Analyzer) Analyze(_ context.Context, fsys fs.FS) (what.Result, error) {
@@ -110,14 +87,14 @@ func (r Results) String() string {
 }
 
 type Result struct {
-	Directories map[string][]match.Match
+	Directories map[string][]Match
 }
 
-func (a *Analyzer) applyRuleset(rs *what.Ruleset, fsys fs.FS, ev *eval.Evaluator, evRoot *string) (*Result, error) {
+func (a *Analyzer) applyRuleset(rs *Ruleset, fsys fs.FS, ev *eval.Evaluator, evRoot *string) (*Result, error) {
 	var (
-		result  = &Result{Directories: make(map[string][]match.Match)}
+		result  = &Result{Directories: make(map[string][]Match)}
 		evFunc  = evalFunc(ev)
-		matcher = &match.Matcher{Rules: rs.Rules, Report: reportFunc(ev)}
+		matcher = &Matcher{Rules: rs.Rules, Report: reportFunc(ev)}
 	)
 	err := fs.WalkDir(fsys, ".", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
@@ -154,12 +131,12 @@ func (a *Analyzer) applyRuleset(rs *what.Ruleset, fsys fs.FS, ev *eval.Evaluator
 			if len(m) > 0 {
 				result.Directories[path] = append(result.Directories[path], m...)
 			}
-			if !a.AllowNested && depth > 0 {
+			if rs.MaxNestedDepth != 0 && depth >= rs.MaxNestedDepth {
 				return filepath.SkipDir
 			}
 		}
 
-		if depth > a.MaxDepth {
+		if depth >= rs.MaxDepth {
 			return filepath.SkipDir
 		}
 		return nil
@@ -174,50 +151,4 @@ func (a *Analyzer) applyRuleset(rs *what.Ruleset, fsys fs.FS, ev *eval.Evaluator
 type Report struct {
 	Rule string
 	With map[string]string
-}
-
-func reportFunc(ev *eval.Evaluator) func(rules []*what.Rule) any {
-	return func(rules []*what.Rule) any {
-		var reports []Report
-		for _, rule := range rules {
-			rep := Report{Rule: rule.Name}
-			if rep.Rule == "" && rule.When != "" {
-				rep.Rule = "when: " + rule.When
-			}
-			if len(rule.With) == 0 {
-				reports = append(reports, rep)
-				continue
-			}
-			rep.With = make(map[string]string)
-			for name, expr := range rule.With {
-				val, err := ev.Eval(expr)
-				if err != nil {
-					rep.With[name] = fmt.Sprint("[ERROR] ", err.Error())
-					continue
-				}
-				rep.With[name] = fmt.Sprint(val)
-			}
-			reports = append(reports, rep)
-		}
-		slices.SortFunc(reports, func(a, b Report) int {
-			return strings.Compare(a.Rule, b.Rule)
-		})
-		return reports
-	}
-}
-
-func evalFunc(ev *eval.Evaluator) func(string) (bool, error) {
-	return func(condition string) (bool, error) {
-		val, err := ev.Eval(condition)
-		if err != nil {
-			return false, err
-		}
-
-		asBool := val.ConvertToType(types.BoolType)
-		if types.IsError(asBool) {
-			return false, fmt.Errorf("%v", asBool)
-		}
-
-		return bool(asBool.(types.Bool)), nil
-	}
 }

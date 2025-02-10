@@ -1,8 +1,10 @@
 # Analyze frameworks. Note, these are just examples.
 # TODO complete these rules
 frameworks:
+  max_depth: 5
+  max_nested_depth: 1
   rules:
-    - name: drupal
+    drupal:
       when: composer.requires("drupal/core") || composer.requires("drupal/core-recommended")
       then: drupal
       with:
@@ -11,7 +13,7 @@ frameworks:
       group: php
 
     # The drupal/drupal package represents Drupal 7.
-    - name: drupal7-composer
+    drupal7-composer:
       when: composer.requires("drupal/drupal")
       then: drupal
       with:
@@ -19,17 +21,17 @@ frameworks:
       exclusive: true
       group: php
 
-    - name: drupal-direct
+    drupal-direct:
       when: file.exists("index.php") && file.contains("index.php", "drupal_bootstrap(DRUPAL_BOOTSTRAP_FULL);")
       then: drupal
       group: php
 
-    - name: symfony-project
+    symfony-project:
       when: composer.requires("symfony/*") && json.queryString(file.read("composer.json"), ".type") == "project"
       maybe: [symfony]
       group: php
 
-    - name: symfony-framework
+    symfony-framework:
       when: composer.requires("symfony/framework-bundle")
       then: symfony
       with:
@@ -37,7 +39,7 @@ frameworks:
       group: php
       exclusive: true
 
-    - name: laravel-framework
+    laravel-framework:
       when: composer.requires("laravel/framework")
       then: laravel
       with:
@@ -45,24 +47,24 @@ frameworks:
       group: php
       exclusive: true
 
-    - name: express
+    express:
       when: npm.depends("express")
       then: express
       group: js
 
-    - name: gatsby
+    gatsby:
       when: file.exists("gatsby-config.js") || npm.depends("gatsby")
       then: gatsby
       group: js
       exclusive: true
 
-    - name: gatsby
+    strapi:
       when: file.exists("strapi-config.json") || npm.depends("@strapi/strapi")
       then: strapi
       group: js
       exclusive: true
 
-    - name: magento
+    magento:
       when: composer.requires("magento/magento-composer-installer")
       then: magento
       exclusive: true
