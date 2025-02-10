@@ -17,10 +17,10 @@ type Matcher struct {
 	Rules map[string]Rule
 }
 
-func (f *Matcher) Match(eval func(condition string) (bool, error)) ([]Match, error) {
+func (f *Matcher) Match(eval func(rule *Rule) (bool, error)) ([]Match, error) {
 	var s store
 	for name, rule := range f.Rules {
-		match, err := eval(rule.When)
+		match, err := eval(&rule)
 		if err != nil {
 			return nil, fmt.Errorf("failed to eval rule %s, condition `%s`: %w", name, rule.When, err)
 		}

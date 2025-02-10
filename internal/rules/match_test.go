@@ -56,8 +56,8 @@ func TestMatch(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			matches, err := m.Match(func(condition string) (bool, error) {
-				return slices.Contains(c.data, condition), nil
+			matches, err := m.Match(func(rule *rules.Rule) (bool, error) {
+				return slices.Contains(c.data, rule.When), nil
 			})
 			if c.expectError {
 				assert.Error(t, err)

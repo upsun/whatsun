@@ -1,4 +1,4 @@
-package main
+package rules_test
 
 import (
 	"context"
@@ -14,13 +14,29 @@ import (
 
 func TestAnalyze(t *testing.T) {
 	testFs := fstest.MapFS{
+		".gitignore": &fstest.MapFile{Data: []byte("/git-ignored/\n" +
+			"git-ignored-deep/\n" +
+			"git-ignored-wildcard*\n",
+		)},
+
 		// Definitely Composer.
 		`composer.json`: &fstest.MapFile{Data: []byte(`{"require": {"symfony/framework-bundle": "^7"}}`)},
 		`composer.lock`: &fstest.MapFile{Data: []byte(`{"packages": [{"name": "symfony/framework-bundle", "version": "7.2.3"}]}`)},
 
-		// Ignored due to being a directory with the dot prefix.
-		".ignored":      &fstest.MapFile{Mode: fs.ModeDir},
-		".ignored/file": &fstest.MapFile{},
+		// Ignored due to .gitignore.
+		"git-ignored/composer.json":                      &fstest.MapFile{Data: []byte("{}")},
+		"a/b/git-ignored-deep/composer.json":             &fstest.MapFile{Data: []byte("{}")},
+		"a/b/git-ignored-wildcard-example/composer.json": &fstest.MapFile{Data: []byte("{}")},
+
+		// Ignored due to .gitignore in a subdirectory.
+		"x/y/.gitignore":                  &fstest.MapFile{Data: []byte("ignore-subdir/")},
+		"x/y/ignore-subdir/composer.json": &fstest.MapFile{Data: []byte("{}")},
+
+		// Ignored due to default ignores.
+		"node_modules/composer.lock": &fstest.MapFile{Data: []byte("{}")},
+
+		// Ignored due to argument ignores.
+		"arg-ignored/composer.lock": &fstest.MapFile{Data: []byte("{}")},
 
 		// Potentially Composer or perhaps others.
 		"vendor":         &fstest.MapFile{Mode: fs.ModeDir},
@@ -29,10 +45,6 @@ func TestAnalyze(t *testing.T) {
 		// Definitely NPM.
 		"another-app/package.json":      &fstest.MapFile{Data: []byte("{}")},
 		"another-app/package-lock.json": &fstest.MapFile{Data: []byte("{}")},
-
-		// Ignored due to depth or nesting.
-		"another-app/nested/composer.lock":          &fstest.MapFile{},
-		"some/deep/path/containing/a/composer.json": &fstest.MapFile{Data: []byte("{}")},
 
 		// Detected without having a package manager.
 		"configured-app/.platform.app.yaml": &fstest.MapFile{},
@@ -48,11 +60,25 @@ func TestAnalyze(t *testing.T) {
 		"meteor/package-lock.json": &fstest.MapFile{},
 	}
 
-	rulesAnalyzer, err := rules.NewAnalyzer()
+	rulesAnalyzer, err := rules.NewAnalyzer([]string{"arg-ignored"})
 	require.NoError(t, err)
 
 	result, err := rulesAnalyzer.Analyze(context.Background(), testFs, ".")
 	require.NoError(t, err)
+
+	expectIgnored := []string{
+		"git-ignored",
+		"node_modules",
+		"a/b/git-ignored-deep",
+		"a/b/git-ignored-wildcard-example",
+		"x/y/ignore-subdir",
+		"arg-ignored",
+	}
+	for _, v := range expectIgnored {
+		if _, ok := result["package_managers"].Paths[v]; ok {
+			t.Error("Result found for path but it should be ignored:", v)
+		}
+	}
 
 	assert.EqualValues(t, []rules.Report{{
 		Result: "composer", Rules: []string{"composer"}, Sure: true},

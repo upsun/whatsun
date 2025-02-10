@@ -17,8 +17,6 @@ var Config map[string]Ruleset
 type Ruleset struct {
 	Depends []string        `yaml:"depends"`
 	Rules   map[string]Rule `yaml:"rules"`
-
-	MaxDepth int `yaml:"max_depth"`
 }
 
 type Rule struct {
@@ -31,6 +29,8 @@ type Rule struct {
 	With map[string]string `yaml:"with"`
 
 	GroupList yamlListOrString `yaml:"group"`
+
+	Ignore yamlListOrString `yaml:"ignore"`
 }
 
 type yamlListOrString []string

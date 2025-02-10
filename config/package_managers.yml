@@ -1,6 +1,5 @@
 # Analyze package managers.
 package_managers:
-  max_depth: 2
   rules:
     npm-lockfile:
       when: fs.fileExists("package-lock.json")
@@ -34,6 +33,8 @@ package_managers:
     composer:
       when: fs.fileExists("composer.json")
       then: composer
+      ignore:
+        - modules/
 
     pip:
       when: fs.fileExists("requirements.txt")

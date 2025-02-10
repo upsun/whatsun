@@ -8,12 +8,14 @@ import (
 	"os"
 	"path/filepath"
 	"runtime/pprof"
+	"strings"
 	"time"
 
 	"what/internal/rules"
 )
 
 var cpuprofile = flag.String("cpuprofile", "", "Write CPU profile to a file")
+var ignore = flag.String("ignore", "", "Comma-separated list of paths (or patterns) to ignore, adding to defaults")
 
 func main() {
 	flag.Parse()
@@ -41,7 +43,9 @@ func main() {
 	}
 	defer f.Close()
 
-	analyzer, err := rules.NewAnalyzer()
+	ignoreSlice := strings.Split(*ignore, ",")
+
+	analyzer, err := rules.NewAnalyzer(ignoreSlice)
 	if err != nil {
 		log.Fatal(err)
 	}

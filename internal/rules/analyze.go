@@ -10,19 +10,22 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/go-git/go-git/v5/plumbing/format/gitignore"
 	"github.com/google/cel-go/common/types"
 	"golang.org/x/sync/errgroup"
 
 	"what/internal/eval"
 	"what/internal/eval/celfuncs"
+	"what/internal/fsgitignore"
 )
 
 type Analyzer struct {
 	config    map[string]Ruleset
 	evaluator *eval.Evaluator
+	ignore    []string
 }
 
-func NewAnalyzer() (*Analyzer, error) {
+func NewAnalyzer(ignore []string) (*Analyzer, error) {
 	cache, err := eval.NewFileCacheWithContent(exprCache, "")
 	if err != nil {
 		return nil, err
@@ -31,13 +34,18 @@ func NewAnalyzer() (*Analyzer, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Analyzer{evaluator: ev, config: Config}, nil
+	return &Analyzer{evaluator: ev, config: Config, ignore: ignore}, nil
 }
 
-func (a *Analyzer) Analyze(_ context.Context, fsys fs.FS, root string) (Results, error) {
+func (a *Analyzer) Analyze(ctx context.Context, fsys fs.FS, root string) (Results, error) {
+	dirs, err := a.collectDirectories(ctx, fsys, root)
+	if err != nil {
+		return nil, err
+	}
+
 	var results = make(Results, len(a.config))
 	for name, rs := range a.config {
-		res, err := a.applyRuleset(&rs, fsys, root)
+		res, err := a.applyRuleset(&rs, fsys, dirs)
 		if err != nil {
 			return nil, err
 		}
@@ -45,6 +53,45 @@ func (a *Analyzer) Analyze(_ context.Context, fsys fs.FS, root string) (Results,
 	}
 
 	return results, nil
+}
+
+func (a *Analyzer) collectDirectories(_ context.Context, fsys fs.FS, root string) ([]string, error) {
+	var ignorePatterns = defaultIgnorePatterns
+	if len(a.ignore) > 0 {
+		ignorePatterns = append(ignorePatterns, fsgitignore.ParsePatterns(a.ignore, fsgitignore.Split(root))...)
+	}
+	var gitIgnorePatterns []gitignore.Pattern
+	var directoryPaths []string
+	err := fs.WalkDir(fsys, root, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if !d.IsDir() {
+			return nil
+		}
+		// Hard-limit the directory depth to 16.
+		if strings.Count(path, string(os.PathSeparator)) >= 16 {
+			return filepath.SkipDir
+		}
+		if d.Name() == ".git" || d.Name() == "node_modules" {
+			return fs.SkipDir
+		}
+		if gitignore.NewMatcher(append(gitIgnorePatterns, ignorePatterns...)).Match(fsgitignore.Split(path), true) {
+			return fs.SkipDir
+		}
+		patterns, err := fsgitignore.ParseIgnoreFiles(fsys, path)
+		if err != nil {
+			return err
+		}
+		gitIgnorePatterns = append(gitIgnorePatterns, patterns...)
+		directoryPaths = append(directoryPaths, path)
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return directoryPaths, nil
 }
 
 func (a *Analyzer) evalWithInput(input any) func(string) (bool, error) {
@@ -68,48 +115,31 @@ type dirReport struct {
 	Report Report
 }
 
-func (a *Analyzer) applyRuleset(rs *Ruleset, fsys fs.FS, root string) (map[string][]Report, error) {
+// TODO: only use defaults if no gitignore files are in the parent tree
+var defaultIgnorePatterns = fsgitignore.ParsePatterns([]string{
+	"node_modules/",
+	".idea/",
+	".vscode/",
+	"/.ddev",
+	"venv/",
+	"virtualenv/",
+	".virtualenv/",
+	"elm-stuff/",
+	"tests/",
+	"testdata/",
+	"fixtures/",
+	"Fixtures/",
+	"__fixtures__/",
+	"__pycache__/",
+	".build/",
+	".workspace/",
+
+	// TODO remove this when it can be parsed from e.g. composer.json
+	"vendor/",
+}, nil)
+
+func (a *Analyzer) applyRuleset(rs *Ruleset, fsys fs.FS, directoryPaths []string) (map[string][]Report, error) {
 	matcher := &Matcher{rs.Rules}
-
-	var directoryPaths []string
-	err := fs.WalkDir(fsys, root, func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if !d.IsDir() {
-			return nil
-		}
-
-		// Calculate depth.
-		// In a structure ./a/b/c then files in the root are level 0, in "a" are in level 1, in "b" are level 2, etc.
-		var depth int
-		if path != "." {
-			depth = strings.Count(path, string(os.PathSeparator)) + 1
-		}
-
-		n := d.Name()
-		// TODO implement actual gitignore
-		if len(n) > 1 && n[0] == '.' {
-			return filepath.SkipDir
-		}
-		switch n {
-		case "vendor", "node_modules", "packages", "pkg", "tests", "logs", "doc", "docs", "bin", "dist",
-			"__pycache__", "venv", "virtualenv", "target", "out", "build", "obj", "elm-stuff":
-			return filepath.SkipDir
-		}
-
-		if d.IsDir() {
-			directoryPaths = append(directoryPaths, path)
-		}
-
-		if depth >= min(rs.MaxDepth, 10) {
-			return filepath.SkipDir
-		}
-		return nil
-	})
-	if err != nil {
-		return nil, err
-	}
 
 	var dirReports []dirReport
 
@@ -118,7 +148,18 @@ func (a *Analyzer) applyRuleset(rs *Ruleset, fsys fs.FS, root string) (map[strin
 	for _, d := range directoryPaths {
 		eg.Go(func() error {
 			input := celfuncs.FilesystemInput(fsys, d)
-			matches, err := matcher.Match(a.evalWithInput(input))
+			evalWithInput := a.evalWithInput(input)
+			dirSplit := fsgitignore.Split(d)
+			matches, err := matcher.Match(func(rule *Rule) (bool, error) {
+				// TODO tidy this up
+				if len(rule.Ignore) > 0 {
+					if gitignore.NewMatcher(fsgitignore.ParsePatterns(rule.Ignore, nil)).Match(dirSplit, true) {
+						return false, nil
+					}
+				}
+
+				return evalWithInput(rule.When)
+			})
 			if err != nil {
 				return fmt.Errorf("in directory %s: %w", d, err)
 			}
@@ -140,5 +181,5 @@ func (a *Analyzer) applyRuleset(rs *Ruleset, fsys fs.FS, root string) (map[strin
 		reports[r.Path] = append(reports[r.Path], r.Report)
 	}
 
-	return reports, err
+	return reports, nil
 }

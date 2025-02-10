@@ -1,6 +1,5 @@
 # Analyze frameworks. Note, these are just examples.
 frameworks:
-  max_depth: 5
   rules:
     grav: # Grav CMS. See: https://github.com/getgrav/grav
       when: fs.depExists("php", "getgrav/grav")

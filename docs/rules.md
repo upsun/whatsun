@@ -10,7 +10,6 @@ A named **ruleset** contains **rules** (keyed by name) and some other configurat
 
 ```yaml
 example-ruleset:
-  max_depth: 0 # Stop searching after this level
   rules:
     example-rule:
       when: fs.fileExists("Dockerfile")
@@ -19,13 +18,14 @@ example-ruleset:
 
 Each rule may contain the keys:
 
-| Key   | Type                  | Required? | Description                                                           |
-|-------|-----------------------|:---------:|-----------------------------------------------------------------------|
-| when  | string                |    yes    | The condition (always a CEL expression, for now)                      |
-| then  | list or single string |           | Known result(s) (if any)                                              |
-| maybe | list or single string |           | Possible results (either `then` or `maybe` is required)               |
-| with  | map of strings        |           | Extra data to include in the report (always CEL expressions, for now) |
-| group | list or single string |           | Group(s) in which `then` results will exclude other `maybe` ones      |
+| Key    | Type                  | Required? | Description                                                           |
+|--------|-----------------------|:---------:|-----------------------------------------------------------------------|
+| when   | string                |    yes    | The condition (always a CEL expression, for now)                      |
+| then   | list or single string |           | Known result(s) (if any)                                              |
+| maybe  | list or single string |           | Possible results (either `then` or `maybe` is required)               |
+| with   | map of strings        |           | Extra data to include in the report (always CEL expressions, for now) |
+| group  | list or single string |           | Group(s) in which `then` results will exclude other `maybe` ones      |
+| ignore | list or single string |           | Directory path(s) to ignore for this rule (in Git's format)           |
 
 Rules and rulesets are not applied in any particular order.
 
