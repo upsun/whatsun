@@ -4,15 +4,22 @@ This directory contains YAML files that define analysis rules.
 
 ## Rule format
 
-A named **ruleset** contains a list of `rules` and some other metadata.
+A named **ruleset** contains **rules** (keyed by name) and some other configuration, for example:
 
-[//]: # (TODO document metadata)
+```yaml
+example-ruleset:
+  max_depth: 0 # Stop searching after the top level
+  max_nested_depth: 0 # Stop searching if a result is found after this level
+  rules:
+    example-rule:
+      when: file.exists("Dockerfile")
+      then: docker
+```
 
-Then each rule contains the keys:
+Each rule may contain the keys:
 
 | Key       | Type            | Required? | Description                                      |
 |-----------|-----------------|:---------:|--------------------------------------------------|
-| name      | string          |           | A name for the rule                              |
 | when      | string          |    yes    | The condition (always a CEL expression, for now) |
 | then      | string          |           | A known result (if any)                          |
 | maybe     | list of strings |           | Possible results                                 |
@@ -20,6 +27,8 @@ Then each rule contains the keys:
 | with      | map of strings  |           | Extra data to include in the report              |
 | group     | string          |           | A group in which to apply exclusions             |
 | exclusive | bool            |           | Exclude all other results in this group          |
+
+Rules and rulesets are not applied in any particular order.
 
 ## Expressions
 
