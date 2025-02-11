@@ -1,6 +1,7 @@
 package dep_test
 
 import (
+	"io/fs"
 	"testing"
 	"testing/fstest"
 
@@ -11,7 +12,7 @@ import (
 )
 
 func TestPHP(t *testing.T) {
-	fs := fstest.MapFS{
+	var fsys fs.FS = &fstest.MapFS{
 		"composer.json": {Data: []byte(`{
     		"name": "test/test",
 			"require": {
@@ -29,7 +30,7 @@ func TestPHP(t *testing.T) {
 		}`)},
 	}
 
-	m, err := dep.GetManager(dep.ManagerTypePHP, fs, ".")
+	m, err := dep.GetManager(dep.ManagerTypePHP, &fsys, ".")
 	require.NoError(t, err)
 
 	toFind := []struct {

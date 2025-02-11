@@ -1,6 +1,7 @@
 package dep_test
 
 import (
+	"io/fs"
 	"testing"
 	"testing/fstest"
 
@@ -11,7 +12,7 @@ import (
 )
 
 func TestParseRequirementsTXT(t *testing.T) {
-	fs := fstest.MapFS{
+	var fsys fs.FS = &fstest.MapFS{
 		"requirements.txt": {Data: []byte(`
 			requests>=2.25.1
 			numpy==1.21.0
@@ -20,7 +21,7 @@ func TestParseRequirementsTXT(t *testing.T) {
 		`)},
 	}
 
-	m, err := dep.GetManager(dep.ManagerTypePython, fs, ".")
+	m, err := dep.GetManager(dep.ManagerTypePython, &fsys, ".")
 	require.NoError(t, err)
 
 	toFind := []struct {
@@ -55,7 +56,7 @@ func TestParseRequirementsTXT(t *testing.T) {
 }
 
 func TestParsePipfile(t *testing.T) {
-	fs := fstest.MapFS{
+	var fsys fs.FS = &fstest.MapFS{
 		"Pipfile": {Data: []byte(`
 			[packages]
 			"requests" = ">=2.25.1"
@@ -63,7 +64,7 @@ func TestParsePipfile(t *testing.T) {
 		`)},
 	}
 
-	m, err := dep.GetManager(dep.ManagerTypePython, fs, ".")
+	m, err := dep.GetManager(dep.ManagerTypePython, &fsys, ".")
 	require.NoError(t, err)
 
 	cases := []struct {
@@ -81,7 +82,7 @@ func TestParsePipfile(t *testing.T) {
 }
 
 func TestParsePyprojectTOML(t *testing.T) {
-	fs := fstest.MapFS{
+	var fsys fs.FS = &fstest.MapFS{
 		"pyproject.toml": {Data: []byte(`
 			[project]
 			dependencies = ["requests>=2.25.1", "numpy==1.21.0"]
@@ -92,7 +93,7 @@ func TestParsePyprojectTOML(t *testing.T) {
 		`)},
 	}
 
-	m, err := dep.GetManager(dep.ManagerTypePython, fs, ".")
+	m, err := dep.GetManager(dep.ManagerTypePython, &fsys, ".")
 	require.NoError(t, err)
 
 	cases := []struct {

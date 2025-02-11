@@ -3,9 +3,11 @@ package dep
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/IGLOU-EU/go-wildcard/v2"
 	"io/fs"
 	"path/filepath"
+	"sync"
+
+	"github.com/IGLOU-EU/go-wildcard/v2"
 )
 
 const (
@@ -29,22 +31,35 @@ type Manager interface {
 	Find(pattern string) ([]Dependency, error)
 }
 
-func GetManager(managerType string, fsys fs.FS, path string) (Manager, error) {
-	switch managerType {
-	case ManagerTypePHP:
-		return newPHPManager(fsys, path)
-	case ManagerTypeJavaScript:
-		return newJSManager(fsys, path)
-	case ManagerTypeGo:
-		return newGoManager(fsys, path)
-	case ManagerTypePython:
-		return newPythonManager(fsys, path)
-	case ManagerTypeRuby:
-		return newRubyManager(fsys, path)
-	case ManagerTypeJava:
-		return newJavaManager(fsys, path)
+var managerCache sync.Map
+
+var managerFuncs = map[string]func(fs.FS, string) (Manager, error){
+	ManagerTypeGo:         newGoManager,
+	ManagerTypeJava:       newJavaManager,
+	ManagerTypeJavaScript: newJSManager,
+	ManagerTypePHP:        newPHPManager,
+	ManagerTypePython:     newPythonManager,
+	ManagerTypeRuby:       newRubyManager,
+}
+
+func GetManager(managerType string, fsys *fs.FS, path string) (Manager, error) {
+	cacheKey := struct {
+		managerType string
+		path        string
+		fsys        *fs.FS
+	}{managerType, path, fsys}
+	if manager, ok := managerCache.Load(cacheKey); ok {
+		return manager.(Manager), nil
 	}
-	return nil, fmt.Errorf("manager type not (yet) supported: %s", managerType)
+	if managerFunc, ok := managerFuncs[managerType]; ok {
+		manager, err := managerFunc(*fsys, path)
+		if err != nil {
+			return nil, err
+		}
+		managerCache.Store(cacheKey, manager)
+		return manager, nil
+	}
+	return nil, fmt.Errorf("manager type not supported: %s", managerType)
 }
 
 // matchDependencyKey returns a value if a key is found in a map, or an empty string.

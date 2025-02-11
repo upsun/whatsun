@@ -30,7 +30,7 @@ func DepHas(fsys *fs.FS, root *string) cel.EnvOption {
 		},
 	}
 	return stringStringReturnsBoolErr("dep.has", func(manager, pattern string) (bool, error) {
-		return depExists(manager, *fsys, *root, pattern)
+		return depExists(manager, fsys, *root, pattern)
 	})
 }
 
@@ -45,11 +45,11 @@ func DepGetVersion(fsys *fs.FS, root *string) cel.EnvOption {
 	}
 
 	return stringStringReturnsStringErr("dep.getVersion", func(manager, name string) (string, error) {
-		return depVersion(manager, *fsys, *root, name)
+		return depVersion(manager, fsys, *root, name)
 	})
 }
 
-func depVersion(managerType string, fsys fs.FS, path, name string) (string, error) {
+func depVersion(managerType string, fsys *fs.FS, path, name string) (string, error) {
 	m, err := dep.GetManager(managerType, fsys, path)
 	if err != nil {
 		return "", err
@@ -58,7 +58,7 @@ func depVersion(managerType string, fsys fs.FS, path, name string) (string, erro
 	return d.Version, nil
 }
 
-func depExists(managerType string, fsys fs.FS, path, pattern string) (bool, error) {
+func depExists(managerType string, fsys *fs.FS, path, pattern string) (bool, error) {
 	m, err := dep.GetManager(managerType, fsys, path)
 	if err != nil {
 		return false, err
