@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"context"
 	"fmt"
 	"log"
@@ -38,10 +37,6 @@ func main() {
 		log.Fatal(err)
 	}
 
-	stdErrBuf := bufio.NewWriter(os.Stderr)
-	defer stdErrBuf.Flush()
-
-	fmt.Fprintf(stdErrBuf, "Received result in %s:\n", time.Since(start))
-	fmt.Fprintln(stdErrBuf, result)
-	stdErrBuf.Flush()
+	fmt.Fprintf(os.Stdout, "Received result in %s:\n", time.Since(start))
+	fmt.Fprintln(os.Stdout, result)
 }
