@@ -108,3 +108,27 @@ frameworks:
       then: django
       group: python
       exclusive: true
+
+    rails:
+      when: dep.has("ruby", "rails")
+      then: rails
+      with:
+        version: dep.getVersion("ruby", "rails")
+      group: ruby
+      exclusive: true
+
+    jekyll:
+      when: dep.has("ruby", "jekyll")
+      then: jekyll
+      with:
+        version: dep.getVersion("ruby", "jekyll")
+      group: ruby
+      exclusive: true
+
+    sinatra:
+      when: dep.has("ruby", "sinatra")
+      then: sinatra
+      with:
+        version: dep.getVersion("ruby", "sinatra")
+      group: ruby
+      exclusive: true

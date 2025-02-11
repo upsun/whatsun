@@ -14,6 +14,7 @@ const (
 	ManagerTypeJavaScript = "js"
 	ManagerTypeGo         = "go"
 	ManagerTypePython     = "python"
+	ManagerTypeRuby       = "ruby"
 )
 
 type Dependency struct {
@@ -38,6 +39,8 @@ func GetManager(managerType string, fsys fs.FS, path string) (Manager, error) {
 		return newGoManager(fsys, path)
 	case ManagerTypePython:
 		return newPythonManager(fsys, path)
+	case ManagerTypeRuby:
+		return newRubyManager(fsys, path)
 	}
 	return nil, fmt.Errorf("manager type not (yet) supported: %s", managerType)
 }
