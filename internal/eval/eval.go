@@ -18,7 +18,7 @@ type Config struct {
 type Evaluator struct {
 	celEnv       *cel.Env
 	cache        Cache
-	programCache *programCache
+	programCache sync.Map
 }
 
 func NewEvaluator(cnf *Config) (*Evaluator, error) {
@@ -31,7 +31,7 @@ func NewEvaluator(cnf *Config) (*Evaluator, error) {
 		cache = &memoryCache{}
 	}
 
-	return &Evaluator{celEnv: celEnv, cache: cache, programCache: &programCache{}}, nil
+	return &Evaluator{celEnv: celEnv, cache: cache}, nil
 }
 
 func (e *Evaluator) Eval(expr string) (ref.Val, error) {
@@ -66,14 +66,16 @@ func (e *Evaluator) CompileAndCache(expr string) (*cel.Ast, error) {
 }
 
 func (e *Evaluator) eval(ast *cel.Ast) (ref.Val, error) {
-	prg, ok := e.programCache.get(ast)
-	if !ok {
+	var prg cel.Program
+	if v, ok := e.programCache.Load(ast); ok {
+		prg = v.(cel.Program)
+	} else {
 		var err error
 		prg, err = e.celEnv.Program(ast)
 		if err != nil {
 			return nil, err
 		}
-		e.programCache.set(ast, prg)
+		e.programCache.Store(ast, prg)
 	}
 
 	out, _, err := prg.Eval(map[string]any{})
@@ -93,28 +95,4 @@ func newCelEnv(cnf *Config) (*cel.Env, error) {
 	}
 
 	return celEnv, nil
-}
-
-type programCache struct {
-	programs map[*cel.Ast]cel.Program
-	mux      sync.RWMutex
-}
-
-func (pc *programCache) get(ast *cel.Ast) (cel.Program, bool) {
-	pc.mux.RLock()
-	defer pc.mux.RUnlock()
-	if pc.programs != nil {
-		prg, ok := pc.programs[ast]
-		return prg, ok
-	}
-	return nil, false
-}
-
-func (pc *programCache) set(ast *cel.Ast, program cel.Program) {
-	pc.mux.Lock()
-	defer pc.mux.Unlock()
-	if pc.programs == nil {
-		pc.programs = make(map[*cel.Ast]cel.Program)
-	}
-	pc.programs[ast] = program
 }
