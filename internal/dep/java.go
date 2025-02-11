@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/fs"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 
@@ -80,7 +81,32 @@ func (m *javaManager) parse() error {
 		}
 		defer f.Close()
 
-		reqs, err := parseGradleDependencies(f)
+		reqs, err := parseGradleDependencies(f, gradleGroovyPatt)
+		if err != nil {
+			return err
+		}
+		m.mu.Lock()
+		defer m.mu.Unlock()
+		for k, v := range reqs {
+			vnd, parts := "", strings.SplitN(k, ":", 2)
+			if len(parts) == 2 {
+				vnd = parts[0]
+			}
+			m.deps[k] = Dependency{Vendor: vnd, Name: k, Version: v}
+		}
+		return nil
+	})
+	eg.Go(func() error {
+		f, err := m.fsys.Open(filepath.Join(m.path, "build.gradle.kts"))
+		if err != nil {
+			if errors.Is(err, fs.ErrNotExist) {
+				return nil
+			}
+			return err
+		}
+		defer f.Close()
+
+		reqs, err := parseGradleDependencies(f, gradleKotlinPatt)
 		if err != nil {
 			return err
 		}
@@ -141,21 +167,20 @@ type GradleDependency struct {
 	Version string `json:"version"`
 }
 
-func parseGradleDependencies(r io.Reader) (map[string]string, error) {
+var (
+	gradleGroovyPatt = regexp.MustCompile(`^(?:implementation|compileOnly|runtimeOnly) ['"]?([^'":]+):([^'":]+):([^'"]+)['"]?$`)
+	gradleKotlinPatt = regexp.MustCompile(`^(?:implementation|compileOnly|runtimeOnly)\(['"]?([^'":]+):([^'":]+):([^'"]+)['"]?\)$`)
+)
+
+func parseGradleDependencies(r io.Reader, patt *regexp.Regexp) (map[string]string, error) {
 	var deps map[string]string
 	scanner := bufio.NewScanner(r)
 	deps = make(map[string]string)
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
-		if strings.HasPrefix(line, "implementation") {
-			parts := strings.Fields(line)
-			if len(parts) > 1 {
-				dependency := strings.Trim(parts[1], "'")
-				parts := strings.Split(dependency, ":")
-				if len(parts) == 3 {
-					deps[parts[0]+":"+parts[1]] = parts[2]
-				}
-			}
+		matches := patt.FindStringSubmatch(line)
+		if len(matches) > 3 {
+			deps[matches[1]+":"+matches[2]] = matches[3]
 		}
 	}
 	return deps, nil

@@ -58,6 +58,68 @@ implementation 'com.fasterxml.jackson.core:jackson-databind:2.12.5'
 	}
 }
 
+func TestGradleKTS(t *testing.T) {
+	fs := fstest.MapFS{
+		"build.gradle.kts": {Data: []byte(`dependencies {
+    implementation("org.codehaus.groovy:groovy:3.0.5")
+    implementation("org.codehaus.groovy:groovy-json:3.0.5")
+    implementation("org.codehaus.groovy:groovy-nio:3.0.5")
+}`)},
+	}
+
+	m, err := dep.GetManager(dep.ManagerTypeJava, fs, ".")
+	require.NoError(t, err)
+
+	toFind := []struct {
+		pattern      string
+		dependencies []dep.Dependency
+	}{
+		{"org.codehaus.groovy:*", []dep.Dependency{
+			{
+				Vendor:  "org.codehaus.groovy",
+				Name:    "org.codehaus.groovy:groovy",
+				Version: "3.0.5",
+			},
+			{
+				Vendor:  "org.codehaus.groovy",
+				Name:    "org.codehaus.groovy:groovy-json",
+				Version: "3.0.5",
+			},
+			{
+				Vendor:  "org.codehaus.groovy",
+				Name:    "org.codehaus.groovy:groovy-nio",
+				Version: "3.0.5",
+			},
+		}},
+	}
+	for _, c := range toFind {
+		deps, err := m.Find(c.pattern)
+		require.NoError(t, err)
+		slices.SortFunc(deps, func(a, b dep.Dependency) int {
+			return strings.Compare(a.Name, b.Name)
+		})
+		assert.Equal(t, c.dependencies, deps)
+	}
+
+	toGet := []struct {
+		name       string
+		dependency dep.Dependency
+		found      bool
+	}{
+		{name: "org.apache.commons:commons-lang3"},
+		{"org.codehaus.groovy:groovy-nio", dep.Dependency{
+			Vendor:  "org.codehaus.groovy",
+			Name:    "org.codehaus.groovy:groovy-nio",
+			Version: "3.0.5",
+		}, true},
+	}
+	for _, c := range toGet {
+		d, ok := m.Get(c.name)
+		assert.Equal(t, c.found, ok, c.name)
+		assert.Equal(t, c.dependency, d, c.name)
+	}
+}
+
 func TestMaven(t *testing.T) {
 	fs := fstest.MapFS{
 		"pom.xml": {Data: []byte(`
