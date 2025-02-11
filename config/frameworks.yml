@@ -92,3 +92,19 @@ frameworks:
       when: dep.has("python", "pyramid")
       then: pyramid
       group: python
+
+    fastapi:
+      when: dep.has("python", "fastapi")
+      then: fastapi
+      group: python
+
+    tornado:
+      when: dep.has("python", "tornado")
+      then: tornado
+      group: python
+
+    django:
+      when: dep.has("python", "django")
+      then: django
+      group: python
+      exclusive: true
