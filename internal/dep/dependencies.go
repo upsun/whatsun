@@ -15,6 +15,7 @@ const (
 	ManagerTypeGo         = "go"
 	ManagerTypePython     = "python"
 	ManagerTypeRuby       = "ruby"
+	ManagerTypeJava       = "java"
 )
 
 type Dependency struct {
@@ -41,6 +42,8 @@ func GetManager(managerType string, fsys fs.FS, path string) (Manager, error) {
 		return newPythonManager(fsys, path)
 	case ManagerTypeRuby:
 		return newRubyManager(fsys, path)
+	case ManagerTypeJava:
+		return newJavaManager(fsys, path)
 	}
 	return nil, fmt.Errorf("manager type not (yet) supported: %s", managerType)
 }
@@ -48,7 +51,7 @@ func GetManager(managerType string, fsys fs.FS, path string) (Manager, error) {
 // matchDependencyKey returns a value if a key is found in a map, or an empty string.
 // The key can contain "*" as a wildcard.
 // It returns all the matching keys.
-func matchDependencyKey(m map[string]string, key string) ([]string, error) {
+func matchDependencyKey[M ~map[string]V, V any](m M, key string) ([]string, error) {
 	if m == nil {
 		return nil, nil
 	}

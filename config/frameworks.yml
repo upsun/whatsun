@@ -217,3 +217,19 @@ frameworks:
         version: dep.getVersion("ruby", "sinatra")
       group: ruby
       exclusive: true
+
+    spring-boot:
+      when: dep.has("java", "org.springframework.boot:*")
+      then: spring-boot
+      with:
+        version: version.parse(dep.getVersion("java", "org.springframework.boot:spring-boot-starter-parent"))
+      group: java
+      exclusive: true
+
+    quarkus:
+      when: dep.has("java", "io.quarkus:*")
+      then: quarkus
+      with:
+        version: version.parse(dep.getVersion("java", "io.quarkus:quarkus-rest"))
+      group: java
+      exclusive: true
