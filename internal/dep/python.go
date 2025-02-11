@@ -4,22 +4,18 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"github.com/BurntSushi/toml"
 	"io"
 	"io/fs"
 	"path/filepath"
 	"regexp"
 	"strings"
-	"sync"
-
-	"github.com/BurntSushi/toml"
-	"golang.org/x/sync/errgroup"
 )
 
 type pythonManager struct {
 	fsys fs.FS
 	path string
 
-	mux          sync.Mutex
 	requirements map[string]string
 }
 
@@ -47,8 +43,6 @@ func (m *pythonManager) parseFile(filename string, parseFunc func(io.Reader) (ma
 	if err != nil {
 		return err
 	}
-	m.mux.Lock()
-	defer m.mux.Unlock()
 	if m.requirements == nil {
 		m.requirements = make(map[string]string)
 	}
@@ -59,17 +53,16 @@ func (m *pythonManager) parseFile(filename string, parseFunc func(io.Reader) (ma
 }
 
 func (m *pythonManager) parse() error {
-	eg := errgroup.Group{}
-	eg.Go(func() error {
-		return m.parseFile("requirements.txt", parseRequirementsTXT)
-	})
-	eg.Go(func() error {
-		return m.parseFile("Pipfile", parsePipfile)
-	})
-	eg.Go(func() error {
-		return m.parseFile("pyproject.toml", parsePyprojectTOML)
-	})
-	return eg.Wait()
+	if err := m.parseFile("requirements.txt", parseRequirementsTXT); err != nil {
+		return err
+	}
+	if err := m.parseFile("Pipfile", parsePipfile); err != nil {
+		return err
+	}
+	if err := m.parseFile("pyproject.toml", parsePyprojectTOML); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (m *pythonManager) Find(pattern string) ([]Dependency, error) {
