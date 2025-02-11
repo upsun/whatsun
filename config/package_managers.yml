@@ -61,7 +61,7 @@ package_managers:
       then: gomod
 
     cargo:
-      when: file.exists("cargo.toml")
+      when: file.exists("Cargo.toml")
       then: cargo
 
     maven:
