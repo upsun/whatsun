@@ -2,19 +2,34 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"log"
 	"os"
 	"path/filepath"
+	"runtime/pprof"
 	"time"
 
 	"what/internal/rules"
 )
 
+var cpuprofile = flag.String("cpuprofile", "", "Write CPU profile to a file")
+
 func main() {
+	flag.Parse()
+	if cpuprofile != nil && *cpuprofile != "" {
+		f, err := os.Create(*cpuprofile)
+		if err != nil {
+			log.Fatal(err)
+		}
+		if err := pprof.StartCPUProfile(f); err != nil {
+			log.Fatal(err)
+		}
+		defer pprof.StopCPUProfile()
+	}
 	path := "."
-	if len(os.Args) > 1 {
-		path = os.Args[1]
+	if flag.NArg() > 1 {
+		path = flag.Arg(1)
 	}
 	absPath, err := filepath.Abs(path)
 	if err != nil {
