@@ -71,6 +71,14 @@ frameworks:
       group: php
       exclusive: true
 
+    wordpress:
+      when: file.exists("wp-config.php") || dep.has("php", "wordpress/wordpress")
+      then: wordpress
+      with:
+        version: version.parse(dep.getVersion("php", "wordpress/wordpress"))
+      group: php
+      exclusive: true
+
     express:
       when: dep.has("js", "express")
       then: express
