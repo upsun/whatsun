@@ -102,6 +102,45 @@ frameworks:
       group: js
       exclusive: true
 
+    nestjs:
+      when: dep.has("js", "@nestjs/core")
+      then: nestjs
+      with:
+        version: version.parse(dep.getVersion("js", "@nestjs/core"))
+      group: js
+      exclusive: true
+
+    nextjs:
+      when: dep.has("js", "next")
+      then: nextjs
+      with:
+        version: version.parse(dep.getVersion("js", "next"))
+      group: js
+      exclusive: true
+
+    svelte-kit:
+      when: dep.has("js", "@sveltejs/kit")
+      then: svelte-kit
+      with:
+        version: version.parse(dep.getVersion("js", "@sveltejs/kit"))
+      group: js
+      exclusive: true
+
+    reactjs:
+      when: dep.has("js", "react")
+      then: reactjs
+      with:
+        version: version.parse(dep.getVersion("js", "react"))
+      group: js
+
+    vuejs:
+      when: dep.has("js", "vue")
+      then: vuejs
+      with:
+        version: version.parse(dep.getVersion("js", "vue"))
+      group: js
+      exclusive: true
+
     magento:
       when: dep.has("php", "magento/magento-composer-installer")
       then: magento
