@@ -107,6 +107,20 @@ frameworks:
         version: version.parse(dep.getVersion("go", "github.com/gin-gonic/gin"))
       group: go
 
+    fiber:
+      when: dep.has("go", "github.com/gofiber/fiber*")
+      then: fiber
+      with:
+        version: version.parse(dep.getVersion("go", "github.com/gofiber/fiber/v2"))
+      group: go
+
+    echo:
+      when: dep.has("go", "github.com/labstack/echo*")
+      then: echo
+      with:
+        version: version.parse(dep.getVersion("go", "github.com/labstack/echo/v4"))
+      group: go
+
     flask:
       when: dep.has("python", "flask")
       then: flask
