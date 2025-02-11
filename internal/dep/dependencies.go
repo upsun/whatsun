@@ -3,10 +3,9 @@ package dep
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/IGLOU-EU/go-wildcard/v2"
 	"io/fs"
 	"path/filepath"
-	"regexp"
-	"strings"
 )
 
 const (
@@ -58,33 +57,14 @@ func matchDependencyKey[M ~map[string]V, V any](m M, key string) ([]string, erro
 	if _, ok := m[key]; ok {
 		return []string{key}, nil
 	}
-	patt, err := regexp.Compile(wildCardToRegexp(key))
-	if err != nil {
-		return nil, err
-	}
+
 	var matches = make([]string, 0, len(m))
 	for k := range m {
-		if patt.MatchString(k) {
+		if wildcard.Match(key, k) {
 			matches = append(matches, k)
 		}
 	}
 	return matches, nil
-}
-
-// wildCardToRegexp converts a wildcard pattern to a regular expression pattern.
-func wildCardToRegexp(pattern string) string {
-	var result strings.Builder
-	for i, literal := range strings.Split(pattern, "*") {
-		// Replace * with .*
-		if i > 0 {
-			result.WriteString(".*")
-		}
-
-		// Quote any regular expression meta characters in the
-		// literal text.
-		result.WriteString(regexp.QuoteMeta(literal))
-	}
-	return result.String()
 }
 
 func parseJSON(fsys fs.FS, path, filename string, dest any) error {

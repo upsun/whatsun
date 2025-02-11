@@ -69,7 +69,7 @@ package_managers:
       then: maven
 
     gradle:
-      when: file.existsRegex(r"(build.gradle(\.kts)?|settings\.gradle|gradle\.properties|gradlew|gradlew\.bat)")
+      when: file.exists("build.gradle") || file.exists("build.gradle.kts")
       then: gradle
 
     nuget:

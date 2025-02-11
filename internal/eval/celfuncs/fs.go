@@ -4,7 +4,6 @@ import (
 	"errors"
 	"io/fs"
 	"path/filepath"
-	"regexp"
 	"strings"
 
 	"github.com/google/cel-go/cel"
@@ -20,7 +19,6 @@ func AllFileFunctions(fsys *fs.FS, root *string) []cel.EnvOption {
 		FileContains(fsys, root),
 		FileExists(fsys, root),
 		FileGlob(fsys, root),
-		FileExistsRegex(fsys, root),
 		FileIsDir(fsys, root),
 		FileRead(fsys, root),
 	}
@@ -78,31 +76,6 @@ func FileGlob(fsys *fs.FS, root *string) cel.EnvOption {
 
 	return stringReturnsListErr("file.glob", func(pattern string) ([]string, error) {
 		return fs.Glob(*fsys, filepath.Join(*root, pattern))
-	})
-}
-
-func FileExistsRegex(fsys *fs.FS, root *string) cel.EnvOption {
-	FuncDocs["file.existsRegex"] = FuncDoc{
-		Comment:     "Check if files exist matching a regular expression pattern",
-		Description: "The `pattern` is a Go regular expression ([syntax overview](https://pkg.go.dev/regexp/syntax#hdr-Syntax)).",
-		Args:        []ArgDoc{{"pattern", ""}},
-	}
-
-	return stringReturnsBoolErr("file.existsRegex", func(pattern string) (bool, error) {
-		entries, err := fs.ReadDir(*fsys, *root)
-		if err != nil {
-			return false, err
-		}
-		rx, err := regexp.Compile(pattern)
-		if err != nil {
-			return false, err
-		}
-		for _, e := range entries {
-			if rx.MatchString(e.Name()) {
-				return true, nil
-			}
-		}
-		return false, nil
 	})
 }
 

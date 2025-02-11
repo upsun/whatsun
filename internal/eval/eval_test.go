@@ -64,7 +64,6 @@ func TestEval(t *testing.T) {
 		assert.Equal(t, types.Bool(true), ev(e, `file.exists("foo")`))
 		assert.Equal(t, types.Bool(true), ev(e, `file.glob("fo*").size() > 0`))
 		assert.Equal(t, types.Bool(false), ev(e, `file.exists("bar")`))
-		assert.Equal(t, types.Bool(true), ev(e, `file.existsRegex("foo|bar")`))
 		assert.Equal(t, types.Bool(true), ev(e, `file.exists("package.json")`))
 		assert.Equal(t, types.Bool(true), ev(e, `file.exists("subdir")`))
 

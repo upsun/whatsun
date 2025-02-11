@@ -4,8 +4,8 @@ import (
 	"errors"
 	"io/fs"
 	"path/filepath"
-	"regexp"
 
+	"github.com/IGLOU-EU/go-wildcard/v2"
 	"golang.org/x/mod/modfile"
 )
 
@@ -45,13 +45,9 @@ func (m *goManager) Get(name string) (Dependency, bool) {
 }
 
 func (m *goManager) Find(pattern string) ([]Dependency, error) {
-	patt, err := regexp.Compile(wildCardToRegexp(pattern))
-	if err != nil {
-		return nil, err
-	}
 	var matches []Dependency
 	for _, v := range m.file.Require {
-		if !v.Indirect && patt.MatchString(v.Mod.Path) {
+		if !v.Indirect && wildcard.Match(pattern, v.Mod.Path) {
 			matches = append(matches, Dependency{
 				Name:    v.Mod.Path,
 				Version: v.Mod.Version,

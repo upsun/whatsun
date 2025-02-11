@@ -33,13 +33,6 @@ Check whether a file exists.
 
 * `file.exists(filename string)` -> `bool`
 
-### `file.existsRegex`
-Check if files exist matching a regular expression pattern.
-
-The `pattern` is a Go regular expression ([syntax overview](https://pkg.go.dev/regexp/syntax#hdr-Syntax)).
-
-* `file.existsRegex(pattern string)` -> `bool`
-
 ### `file.glob`
 List files matching a glob pattern.
 
