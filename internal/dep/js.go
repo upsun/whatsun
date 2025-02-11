@@ -57,6 +57,9 @@ func (m *jsManager) Find(pattern string) ([]Dependency, error) {
 	if err != nil {
 		return nil, err
 	}
+	if len(matches) == 0 {
+		return nil, nil
+	}
 	var deps = make([]Dependency, 0, len(matches))
 	for _, match := range matches {
 		parts := strings.SplitN(match, "/", 2)
@@ -90,9 +93,9 @@ func (m *jsManager) Get(name string) (Dependency, bool) {
 		vendor = parts[0]
 	}
 	return Dependency{
-		Name:              name,
-		Vendor:            vendor,
-		VersionConstraint: constraint,
-		Version:           m.getLockedVersion(name),
+		Name:       name,
+		Vendor:     vendor,
+		Constraint: constraint,
+		Version:    m.getLockedVersion(name),
 	}, true
 }

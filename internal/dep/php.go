@@ -57,6 +57,9 @@ func (m *phpManager) Find(pattern string) ([]Dependency, error) {
 	if err != nil {
 		return nil, err
 	}
+	if len(matches) == 0 {
+		return nil, nil
+	}
 	var deps = make([]Dependency, 0, len(matches))
 	for _, match := range matches {
 		parts := strings.SplitN(match, "/", 2)
@@ -65,10 +68,10 @@ func (m *phpManager) Find(pattern string) ([]Dependency, error) {
 			vendor = parts[0]
 		}
 		deps = append(deps, Dependency{
-			Vendor:            vendor,
-			Name:              name,
-			VersionConstraint: m.composerJSON.Require[match],
-			Version:           m.getLockedVersion(match),
+			Vendor:     vendor,
+			Name:       name,
+			Constraint: m.composerJSON.Require[match],
+			Version:    m.getLockedVersion(match),
 		})
 	}
 	return deps, nil
@@ -95,9 +98,9 @@ func (m *phpManager) Get(name string) (Dependency, bool) {
 		vendor = parts[0]
 	}
 	return Dependency{
-		Vendor:            vendor,
-		Name:              name,
-		VersionConstraint: constraint,
-		Version:           m.getLockedVersion(packageName),
+		Vendor:     vendor,
+		Name:       name,
+		Constraint: constraint,
+		Version:    m.getLockedVersion(packageName),
 	}, true
 }

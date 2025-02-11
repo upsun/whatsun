@@ -13,13 +13,14 @@ const (
 	ManagerTypePHP        = "php"
 	ManagerTypeJavaScript = "js"
 	ManagerTypeGo         = "go"
+	ManagerTypePython     = "python"
 )
 
 type Dependency struct {
-	Vendor            string // The vendor, if any.
-	Name              string // The standard package name, which may include the vendor name.
-	VersionConstraint string
-	Version           string
+	Vendor     string // The vendor, if any.
+	Name       string // The standard package name, which may include the vendor name.
+	Constraint string // The version constraint.
+	Version    string // The resolved version (e.g. from a lock file).
 }
 
 type Manager interface {
@@ -35,6 +36,8 @@ func GetManager(managerType string, fsys fs.FS, path string) (Manager, error) {
 		return newJSManager(fsys, path)
 	case ManagerTypeGo:
 		return newGoManager(fsys, path)
+	case ManagerTypePython:
+		return newPythonManager(fsys, path)
 	}
 	return nil, fmt.Errorf("manager type not (yet) supported: %s", managerType)
 }

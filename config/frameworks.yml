@@ -82,3 +82,13 @@ frameworks:
       with:
         version: version.parse(dep.getVersion("go", "github.com/gin-gonic/gin"))
       group: go
+
+    flask:
+      when: dep.has("python", "flask")
+      then: flask
+      group: python
+
+    pyramid:
+      when: dep.has("python", "pyramid")
+      then: pyramid
+      group: python
