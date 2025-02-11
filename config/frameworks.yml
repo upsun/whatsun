@@ -47,6 +47,30 @@ frameworks:
       group: php
       exclusive: true
 
+    cakephp:
+      when: dep.has("php", "cakephp/cakephp")
+      then: cakephp
+      with:
+        version: version.parse(dep.getVersion("php", "cakephp/cakephp"))
+      group: php
+      exclusive: true
+
+    laminas:
+      when: dep.has("php", "laminas/laminas-mvc")
+      then: laminas
+      with:
+        version: version.parse(dep.getVersion("php", "laminas/laminas-mvc"))
+      group: php
+      exclusive: true
+
+    codeigniter:
+      when: dep.has("php", "codeigniter4/framework")
+      then: codeigniter
+      with:
+        major_version: version.parse(dep.getVersion("php", "codeigniter4/framework")).major
+      group: php
+      exclusive: true
+
     express:
       when: dep.has("js", "express")
       then: express
