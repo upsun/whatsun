@@ -15,22 +15,23 @@ import (
 
 type Analyzer struct {
 	config map[string]Ruleset
+	cache  eval.Cache
 }
 
 func NewAnalyzer() (*Analyzer, error) {
-	return &Analyzer{config: Config}, nil
-}
-
-func (a *Analyzer) Analyze(_ context.Context, fsys fs.FS) (Results, error) {
 	cache, err := eval.NewFileCacheWithContent(exprCache, "")
 	if err != nil {
 		return nil, err
 	}
+	return &Analyzer{cache: cache, config: Config}, nil
+}
+
+func (a *Analyzer) Analyze(_ context.Context, fsys fs.FS) (Results, error) {
 	dot := "."
 	evRoot := &dot
 	celOptions := DefaultEnvOptions(fsys, evRoot)
 
-	ev, err := eval.NewEvaluator(&eval.Config{Cache: cache, EnvOptions: celOptions})
+	ev, err := eval.NewEvaluator(&eval.Config{Cache: a.cache, EnvOptions: celOptions})
 	if err != nil {
 		return nil, err
 	}
