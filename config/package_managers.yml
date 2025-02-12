@@ -46,7 +46,7 @@ package_managers:
 
     pyproject:
       when: fs.fileExists("pyproject.toml")
-      maybe: [poetry, pip]
+      maybe: [poetry, pip, uv]
 
     poetry:
       when: fs.fileExists("poetry.lock")
