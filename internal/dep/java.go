@@ -20,15 +20,13 @@ type javaManager struct {
 	path string
 
 	initOnce sync.Once
-	mu       sync.Mutex
-	deps     map[string]Dependency
+	deps     []Dependency
 }
 
 func newJavaManager(fsys fs.FS, path string) Manager {
 	return &javaManager{
 		fsys: fsys,
 		path: path,
-		deps: make(map[string]Dependency),
 	}
 }
 
@@ -55,25 +53,19 @@ func (m *javaManager) parse() error {
 		if err != nil {
 			return err
 		}
-		var deps = make(map[string]Dependency)
 		if project.Parent.GroupID != "" {
-			deps[project.Parent.GroupID+":"+project.Parent.ArtifactID] = Dependency{
+			m.deps = append(m.deps, Dependency{
 				Vendor:  project.Parent.GroupID,
 				Name:    project.Parent.GroupID + ":" + project.Parent.ArtifactID,
 				Version: project.Parent.Version,
-			}
+			})
 		}
 		for _, dep := range project.Dependencies.Dependency {
-			deps[dep.GroupID+":"+dep.ArtifactID] = Dependency{
+			m.deps = append(m.deps, Dependency{
 				Vendor:  dep.GroupID,
 				Name:    dep.GroupID + ":" + dep.ArtifactID,
 				Version: dep.Version,
-			}
-		}
-		m.mu.Lock()
-		defer m.mu.Unlock()
-		for k, v := range deps {
-			m.deps[k] = v
+			})
 		}
 		return nil
 	})
@@ -91,14 +83,12 @@ func (m *javaManager) parse() error {
 		if err != nil {
 			return err
 		}
-		m.mu.Lock()
-		defer m.mu.Unlock()
 		for k, v := range reqs {
 			vnd, parts := "", strings.SplitN(k, ":", 2)
 			if len(parts) == 2 {
 				vnd = parts[0]
 			}
-			m.deps[k] = Dependency{Vendor: vnd, Name: k, Version: v}
+			m.deps = append(m.deps, Dependency{Vendor: vnd, Name: k, Version: v})
 		}
 		return nil
 	})
@@ -116,14 +106,12 @@ func (m *javaManager) parse() error {
 		if err != nil {
 			return err
 		}
-		m.mu.Lock()
-		defer m.mu.Unlock()
 		for k, v := range reqs {
 			vnd, parts := "", strings.SplitN(k, ":", 2)
 			if len(parts) == 2 {
 				vnd = parts[0]
 			}
-			m.deps[k] = Dependency{Vendor: vnd, Name: k, Version: v}
+			m.deps = append(m.deps, Dependency{Vendor: vnd, Name: k, Version: v})
 		}
 		return nil
 	})
@@ -132,8 +120,8 @@ func (m *javaManager) parse() error {
 
 func (m *javaManager) Find(pattern string) []Dependency {
 	var deps []Dependency
-	for name, dep := range m.deps {
-		if wildcard.Match(pattern, name) {
+	for _, dep := range m.deps {
+		if wildcard.Match(pattern, dep.Name) {
 			deps = append(deps, dep)
 		}
 	}
@@ -141,8 +129,12 @@ func (m *javaManager) Find(pattern string) []Dependency {
 }
 
 func (m *javaManager) Get(name string) (Dependency, bool) {
-	dep, ok := m.deps[name]
-	return dep, ok
+	for _, dep := range m.deps {
+		if name == dep.Name {
+			return dep, true
+		}
+	}
+	return Dependency{}, false
 }
 
 type mavenDependency struct {
