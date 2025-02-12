@@ -36,8 +36,20 @@ func AllFileFunctions() []cel.EnvOption {
 		FileExists(),
 		FileGlob(),
 		FileIsDir(),
+		FilePath(),
 		FileRead(),
 	}
+}
+
+func FilePath() cel.EnvOption {
+	FuncDocs["path"] = FuncDoc{
+		Comment: "Get the current file path",
+		Args:    []ArgDoc{{"fs", ""}},
+	}
+
+	return fsReturnsStringErr("path", func(fsWrapper filesystemWrapper) (string, error) {
+		return fsWrapper.Path, nil
+	})
 }
 
 func FileExists() cel.EnvOption {

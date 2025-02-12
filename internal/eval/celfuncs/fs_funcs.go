@@ -6,6 +6,28 @@ import (
 	"github.com/google/cel-go/common/types/ref"
 )
 
+func fsReturnsStringErr(name string, f func(filesystemWrapper) (string, error)) cel.EnvOption {
+	return cel.Function(name,
+		cel.MemberOverload(
+			fsVariable+"."+name,
+			[]*cel.Type{cel.DynType},
+			cel.StringType,
+			cel.UnaryBinding(func(val ref.Val) ref.Val {
+				fsWrapper, ok := val.Value().(filesystemWrapper)
+				if !ok {
+					return types.NewErr("invalid receiver type %T, expected filesystemWrapper", val.Value())
+				}
+
+				res, err := f(fsWrapper)
+				if err != nil {
+					return types.WrapErr(err)
+				}
+				return types.String(res)
+			}),
+		),
+	)
+}
+
 func fsStringReturnsBoolErr(name string, f func(filesystemWrapper, string) (bool, error)) cel.EnvOption {
 	return cel.Function(name,
 		cel.MemberOverload(

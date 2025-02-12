@@ -123,7 +123,7 @@ func (c *FileCache) Save() error {
 }
 
 func cleanExpr(expr string) string {
-	return strings.ReplaceAll(expr, "\t", " ")
+	return strings.ReplaceAll(strings.ReplaceAll(expr, "\n", " "), "\t", " ")
 }
 
 func (c *FileCache) load(r io.Reader) error {

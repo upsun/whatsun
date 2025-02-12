@@ -4,8 +4,13 @@ frameworks:
   max_depth: 5
   max_nested_depth: 1
   rules:
+
+    # Detect Drupal by looking for drupal/core Composer requirements.
+    # But exclude Drupal modules and themes that themselves require drupal/core.
     drupal:
-      when: fs.depExists("php", "drupal/core") || fs.depExists("php", "drupal/core-recommended")
+      when: >
+        !fs.path().contains("modules/") && !fs.path().contains("themes/") &&
+        (fs.depExists("php", "drupal/core") || fs.depExists("php", "drupal/core-recommended"))
       then: drupal
       with:
         major_version: parseVersion(fs.depVersion("php", "drupal/core")).major
