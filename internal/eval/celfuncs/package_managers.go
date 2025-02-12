@@ -48,22 +48,32 @@ func DepVersion() cel.EnvOption {
 	})
 }
 
-var managerCache sync.Map
+type managerCacheKey struct {
+	managerType string
+	fsID        uintptr
+	path        string
+}
+
+var managerCache struct {
+	cache map[managerCacheKey]dep.Manager
+	mu    sync.Mutex
+}
 
 func depGetCachedManager(managerType string, fsWrapper filesystemWrapper) (dep.Manager, error) {
-	cacheKey := struct {
-		managerType string
-		fsID        uintptr
-		path        string
-	}{managerType, fsWrapper.ID, fsWrapper.Path}
-	if manager, ok := managerCache.Load(cacheKey); ok {
-		return manager.(dep.Manager), nil
+	managerCache.mu.Lock()
+	defer managerCache.mu.Unlock()
+	cacheKey := managerCacheKey{managerType: managerType, fsID: fsWrapper.ID, path: fsWrapper.Path}
+	if manager, ok := managerCache.cache[cacheKey]; ok {
+		return manager, nil
 	}
 	m, err := dep.GetManager(managerType, fsWrapper.FS, fsWrapper.Path)
 	if err != nil {
 		return nil, err
 	}
-	managerCache.Store(cacheKey, m)
+	if managerCache.cache == nil {
+		managerCache.cache = make(map[managerCacheKey]dep.Manager)
+	}
+	managerCache.cache[cacheKey] = m
 	return m, nil
 }
 
