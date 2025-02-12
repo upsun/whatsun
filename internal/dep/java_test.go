@@ -22,6 +22,7 @@ implementation 'com.fasterxml.jackson.core:jackson-databind:2.12.5'
 
 	m, err := dep.GetManager(dep.ManagerTypeJava, fsys, ".")
 	require.NoError(t, err)
+	require.NoError(t, m.Init())
 
 	toFind := []struct {
 		pattern      string
@@ -34,9 +35,7 @@ implementation 'com.fasterxml.jackson.core:jackson-databind:2.12.5'
 		}}},
 	}
 	for _, c := range toFind {
-		deps, err := m.Find(c.pattern)
-		require.NoError(t, err)
-		assert.Equal(t, c.dependencies, deps)
+		assert.Equal(t, c.dependencies, m.Find(c.pattern))
 	}
 
 	toGet := []struct {
@@ -70,6 +69,8 @@ func TestGradleKTS(t *testing.T) {
 	m, err := dep.GetManager(dep.ManagerTypeJava, fsys, ".")
 	require.NoError(t, err)
 
+	require.NoError(t, m.Init())
+
 	toFind := []struct {
 		pattern      string
 		dependencies []dep.Dependency
@@ -93,8 +94,7 @@ func TestGradleKTS(t *testing.T) {
 		}},
 	}
 	for _, c := range toFind {
-		deps, err := m.Find(c.pattern)
-		require.NoError(t, err)
+		deps := m.Find(c.pattern)
 		slices.SortFunc(deps, func(a, b dep.Dependency) int {
 			return strings.Compare(a.Name, b.Name)
 		})
@@ -185,6 +185,7 @@ func TestMaven(t *testing.T) {
 
 	m, err := dep.GetManager(dep.ManagerTypeJava, fsys, ".")
 	require.NoError(t, err)
+	require.NoError(t, m.Init())
 
 	toFind := []struct {
 		pattern      string
@@ -211,8 +212,7 @@ func TestMaven(t *testing.T) {
 		}},
 	}
 	for _, c := range toFind {
-		deps, err := m.Find(c.pattern)
-		require.NoError(t, err)
+		deps := m.Find(c.pattern)
 		slices.SortFunc(deps, func(a, b dep.Dependency) int {
 			return strings.Compare(a.Name, b.Name)
 		})

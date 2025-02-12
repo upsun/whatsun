@@ -11,6 +11,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/IGLOU-EU/go-wildcard/v2"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -18,20 +19,25 @@ type javaManager struct {
 	fsys fs.FS
 	path string
 
-	mu   sync.Mutex
-	deps map[string]Dependency
+	initOnce sync.Once
+	mu       sync.Mutex
+	deps     map[string]Dependency
 }
 
-func newJavaManager(fsys fs.FS, path string) (Manager, error) {
-	m := &javaManager{
+func newJavaManager(fsys fs.FS, path string) Manager {
+	return &javaManager{
 		fsys: fsys,
 		path: path,
 		deps: make(map[string]Dependency),
 	}
-	if err := m.parse(); err != nil {
-		return nil, err
-	}
-	return m, nil
+}
+
+func (m *javaManager) Init() error {
+	var err error
+	m.initOnce.Do(func() {
+		err = m.parse()
+	})
+	return err
 }
 
 func (m *javaManager) parse() error {
@@ -124,19 +130,14 @@ func (m *javaManager) parse() error {
 	return eg.Wait()
 }
 
-func (m *javaManager) Find(pattern string) ([]Dependency, error) {
-	matches, err := matchDependencyKey(m.deps, pattern)
-	if err != nil {
-		return nil, err
+func (m *javaManager) Find(pattern string) []Dependency {
+	var deps []Dependency
+	for name, dep := range m.deps {
+		if wildcard.Match(pattern, name) {
+			deps = append(deps, dep)
+		}
 	}
-	if len(matches) == 0 {
-		return nil, nil
-	}
-	var deps = make([]Dependency, len(matches))
-	for i, match := range matches {
-		deps[i] = m.deps[match]
-	}
-	return deps, nil
+	return deps
 }
 
 func (m *javaManager) Get(name string) (Dependency, bool) {

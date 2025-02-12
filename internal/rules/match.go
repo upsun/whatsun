@@ -2,6 +2,9 @@ package rules
 
 import (
 	"fmt"
+	"runtime"
+
+	"golang.org/x/sync/errgroup"
 )
 
 // Matcher is the matching engine.
@@ -19,15 +22,23 @@ type Matcher struct {
 
 func (f *Matcher) Match(eval func(condition string) (bool, error)) ([]Match, error) {
 	var s store
+	eg := errgroup.Group{}
+	eg.SetLimit(runtime.GOMAXPROCS(0))
 	for name, rule := range f.Rules {
-		match, err := eval(rule.When)
-		if err != nil {
-			return nil, fmt.Errorf("failed to eval rule %s, condition `%s`: %w", name, rule.When, err)
-		}
-		if match {
-			rule.Name = name
-			s.Add(&rule)
-		}
+		eg.Go(func() error {
+			match, err := eval(rule.When)
+			if err != nil {
+				return fmt.Errorf("failed to eval rule %s, condition `%s`: %w", name, rule.When, err)
+			}
+			if match {
+				rule.Name = name
+				s.Add(&rule)
+			}
+			return nil
+		})
+	}
+	if err := eg.Wait(); err != nil {
+		return nil, err
 	}
 
 	return s.List()

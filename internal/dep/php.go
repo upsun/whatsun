@@ -4,6 +4,9 @@ import (
 	"errors"
 	"io/fs"
 	"strings"
+	"sync"
+
+	"github.com/IGLOU-EU/go-wildcard/v2"
 )
 
 type phpManager struct {
@@ -12,6 +15,8 @@ type phpManager struct {
 
 	composerJSON composerJSON
 	composerLock composerLock
+
+	initOnce sync.Once
 }
 
 type composerJSON struct {
@@ -25,56 +30,52 @@ type composerLock struct {
 	} `json:"packages"`
 }
 
-func newPHPManager(fsys fs.FS, path string) (Manager, error) {
-	m := &phpManager{
+func newPHPManager(fsys fs.FS, path string) Manager {
+	return &phpManager{
 		fsys: fsys,
 		path: path,
 	}
-	if err := m.parse(); err != nil {
-		return nil, err
-	}
-	return m, nil
 }
 
-func (m *phpManager) parse() error {
-	if err := parseJSON(m.fsys, m.path, "composer.json", &m.composerJSON); err != nil {
-		if errors.Is(err, fs.ErrNotExist) {
-			return nil
+func (m *phpManager) Init() error {
+	var err error
+	m.initOnce.Do(func() {
+		err = parseJSON(m.fsys, m.path, "composer.json", &m.composerJSON)
+		if err != nil {
+			if errors.Is(err, fs.ErrNotExist) {
+				err = nil
+			}
+			return
 		}
-		return err
-	}
-	if err := parseJSON(m.fsys, m.path, "composer.lock", &m.composerLock); err != nil {
-		if errors.Is(err, fs.ErrNotExist) {
-			return nil
+		err = parseJSON(m.fsys, m.path, "composer.lock", &m.composerLock)
+		if err != nil {
+			if errors.Is(err, fs.ErrNotExist) {
+				err = nil
+			}
+			return
 		}
-		return err
-	}
-	return nil
+	})
+	return err
 }
 
-func (m *phpManager) Find(pattern string) ([]Dependency, error) {
-	matches, err := matchDependencyKey(m.composerJSON.Require, pattern)
-	if err != nil {
-		return nil, err
-	}
-	if len(matches) == 0 {
-		return nil, nil
-	}
-	var deps = make([]Dependency, 0, len(matches))
-	for _, match := range matches {
-		parts := strings.SplitN(match, "/", 2)
-		vendor, name := "", match
-		if len(parts) == 2 {
-			vendor = parts[0]
+func (m *phpManager) Find(pattern string) []Dependency {
+	var deps []Dependency
+	for name, constraint := range m.composerJSON.Require {
+		if wildcard.Match(pattern, name) {
+			parts := strings.SplitN(name, "/", 2)
+			var vendor string
+			if len(parts) == 2 {
+				vendor = parts[0]
+			}
+			deps = append(deps, Dependency{
+				Vendor:     vendor,
+				Name:       name,
+				Constraint: constraint,
+				Version:    m.getLockedVersion(name),
+			})
 		}
-		deps = append(deps, Dependency{
-			Vendor:     vendor,
-			Name:       name,
-			Constraint: m.composerJSON.Require[match],
-			Version:    m.getLockedVersion(match),
-		})
 	}
-	return deps, nil
+	return deps
 }
 
 func (m *phpManager) getLockedVersion(packageName string) string {

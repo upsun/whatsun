@@ -82,6 +82,9 @@ func depVersion(managerType string, fsWrapper filesystemWrapper, name string) (s
 	if err != nil {
 		return "", err
 	}
+	if err := m.Init(); err != nil {
+		return "", err
+	}
 	d, _ := m.Get(name)
 	return d.Version, nil
 }
@@ -91,9 +94,8 @@ func depExists(managerType string, fsWrapper filesystemWrapper, pattern string) 
 	if err != nil {
 		return false, err
 	}
-	deps, err := m.Find(pattern)
-	if err != nil {
+	if err := m.Init(); err != nil {
 		return false, err
 	}
-	return len(deps) > 0, nil
+	return len(m.Find(pattern)) > 0, nil
 }

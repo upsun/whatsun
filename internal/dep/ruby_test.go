@@ -27,6 +27,8 @@ gem 'nokogiri', '>= 1.10', '< 2.0'`),
 	m, err := dep.GetManager(dep.ManagerTypeRuby, fsys, ".")
 	require.NoError(t, err)
 
+	require.NoError(t, m.Init())
+
 	toFind := []struct {
 		pattern      string
 		dependencies []dep.Dependency
@@ -39,8 +41,7 @@ gem 'nokogiri', '>= 1.10', '< 2.0'`),
 		}}},
 	}
 	for _, c := range toFind {
-		deps, err := m.Find(c.pattern)
-		require.NoError(t, err)
+		deps := m.Find(c.pattern)
 		assert.Equal(t, c.dependencies, deps)
 	}
 

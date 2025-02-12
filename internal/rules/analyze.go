@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/google/cel-go/common/types"
 
@@ -64,6 +65,7 @@ func (a *Analyzer) evalWithInput(input any) func(string) (bool, error) {
 func (a *Analyzer) applyRuleset(rs *Ruleset, fsys fs.FS, root string) (map[string][]Report, error) {
 	matcher := &Matcher{rs.Rules}
 	var dirReports = make(map[string][]Report)
+
 	err := fs.WalkDir(fsys, root, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -98,9 +100,15 @@ func (a *Analyzer) applyRuleset(rs *Ruleset, fsys fs.FS, root string) (map[strin
 			}
 			if len(matches) > 0 {
 				var reports = make([]Report, len(matches))
+				wg := sync.WaitGroup{}
+				wg.Add(len(matches))
 				for i, m := range matches {
-					reports[i] = matchToReport(a.evaluator, input, rs.Rules, m)
+					go func() {
+						reports[i] = matchToReport(a.evaluator, input, rs.Rules, m)
+						wg.Done()
+					}()
 				}
+				wg.Wait()
 				dirReports[path] = reports
 				if rs.MaxNestedDepth != 0 && depth >= rs.MaxNestedDepth {
 					return filepath.SkipDir

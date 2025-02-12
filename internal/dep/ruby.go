@@ -8,25 +8,33 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
+
+	"github.com/IGLOU-EU/go-wildcard/v2"
 )
 
 type rubyManager struct {
 	fsys fs.FS
 	path string
 
+	initOnce sync.Once
 	required map[string]string
 	resolved map[string]string
 }
 
-func newRubyManager(fsys fs.FS, path string) (Manager, error) {
-	m := &rubyManager{
+func newRubyManager(fsys fs.FS, path string) Manager {
+	return &rubyManager{
 		fsys: fsys,
 		path: path,
 	}
-	if err := m.parse(); err != nil {
-		return nil, err
-	}
-	return m, nil
+}
+
+func (m *rubyManager) Init() error {
+	var err error
+	m.initOnce.Do(func() {
+		err = m.parse()
+	})
+	return err
 }
 
 func (m *rubyManager) parse() error {
@@ -65,24 +73,19 @@ func (m *rubyManager) Get(name string) (Dependency, bool) {
 	}, true
 }
 
-func (m *rubyManager) Find(pattern string) ([]Dependency, error) {
-	matches, err := matchDependencyKey(m.required, pattern)
-	if err != nil {
-		return nil, err
+func (m *rubyManager) Find(pattern string) []Dependency {
+	var deps []Dependency
+	for name, constraint := range m.required {
+		if wildcard.Match(pattern, name) {
+			v, _ := m.resolved[name]
+			deps = append(deps, Dependency{
+				Name:       name,
+				Constraint: constraint,
+				Version:    v,
+			})
+		}
 	}
-	if len(matches) == 0 {
-		return nil, nil
-	}
-	var deps = make([]Dependency, 0, len(matches))
-	for _, match := range matches {
-		v, _ := m.resolved[match]
-		deps = append(deps, Dependency{
-			Name:       match,
-			Constraint: m.required[match],
-			Version:    v,
-		})
-	}
-	return deps, nil
+	return deps
 }
 
 var gemPatt = regexp.MustCompile(`^gem\s+['"]([a-zA-Z0-9_-]+)['"](,\s*['"]([^'"]+)['"])?`)

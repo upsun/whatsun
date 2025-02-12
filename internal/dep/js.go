@@ -4,12 +4,16 @@ import (
 	"errors"
 	"io/fs"
 	"strings"
+	"sync"
+
+	"github.com/IGLOU-EU/go-wildcard/v2"
 )
 
 type jsManager struct {
 	fsys fs.FS
 	path string
 
+	initOnce        sync.Once
 	packageJSON     packageJSON
 	packageLockJSON packageLockJSON
 }
@@ -25,15 +29,19 @@ type packageLockJSON struct {
 }
 
 // TODO can any repetition be avoided between jsManager and phpManager?
-func newJSManager(fsys fs.FS, path string) (Manager, error) {
-	m := &jsManager{
+func newJSManager(fsys fs.FS, path string) Manager {
+	return &jsManager{
 		fsys: fsys,
 		path: path,
 	}
-	if err := m.parse(); err != nil {
-		return nil, err
-	}
-	return m, nil
+}
+
+func (m *jsManager) Init() error {
+	var err error
+	m.initOnce.Do(func() {
+		err = m.parse()
+	})
+	return err
 }
 
 func (m *jsManager) parse() error {
@@ -52,27 +60,22 @@ func (m *jsManager) parse() error {
 	return nil
 }
 
-func (m *jsManager) Find(pattern string) ([]Dependency, error) {
-	matches, err := matchDependencyKey(m.packageJSON.Dependencies, pattern)
-	if err != nil {
-		return nil, err
-	}
-	if len(matches) == 0 {
-		return nil, nil
-	}
-	var deps = make([]Dependency, 0, len(matches))
-	for _, match := range matches {
-		parts := strings.SplitN(match, "/", 2)
-		vendor, name := "", match
-		if len(parts) == 2 {
-			vendor = parts[0]
+func (m *jsManager) Find(pattern string) []Dependency {
+	var deps []Dependency
+	for name := range m.packageJSON.Dependencies {
+		if wildcard.Match(pattern, name) {
+			parts := strings.SplitN(name, "/", 2)
+			var vendor string
+			if len(parts) == 2 {
+				vendor = parts[0]
+			}
+			deps = append(deps, Dependency{
+				Vendor: vendor,
+				Name:   name,
+			})
 		}
-		deps = append(deps, Dependency{
-			Vendor: vendor,
-			Name:   name,
-		})
 	}
-	return deps, nil
+	return deps
 }
 
 func (m *jsManager) getLockedVersion(packageName string) string {

@@ -22,6 +22,8 @@ pandas!=1.3.0`)},
 	m, err := dep.GetManager(dep.ManagerTypePython, fsys, ".")
 	require.NoError(t, err)
 
+	require.NoError(t, m.Init())
+
 	toFind := []struct {
 		pattern      string
 		dependencies []dep.Dependency
@@ -32,9 +34,7 @@ pandas!=1.3.0`)},
 		{"flask", nil},
 	}
 	for _, c := range toFind {
-		deps, err := m.Find(c.pattern)
-		require.NoError(t, err)
-		assert.Equal(t, c.dependencies, deps)
+		assert.Equal(t, c.dependencies, m.Find(c.pattern))
 	}
 
 	toGet := []struct {
@@ -63,6 +63,7 @@ numpy = "==1.21.0"`)},
 
 	m, err := dep.GetManager(dep.ManagerTypePython, fsys, ".")
 	require.NoError(t, err)
+	require.NoError(t, m.Init())
 
 	cases := []struct {
 		pattern      string
@@ -72,9 +73,7 @@ numpy = "==1.21.0"`)},
 		{"numpy", []dep.Dependency{{Name: "numpy", Constraint: "==1.21.0"}}},
 	}
 	for _, c := range cases {
-		deps, err := m.Find(c.pattern)
-		require.NoError(t, err)
-		assert.Equal(t, c.dependencies, deps)
+		assert.Equal(t, c.dependencies, m.Find(c.pattern))
 	}
 }
 
@@ -92,6 +91,7 @@ func TestParsePyprojectTOML(t *testing.T) {
 
 	m, err := dep.GetManager(dep.ManagerTypePython, fsys, ".")
 	require.NoError(t, err)
+	require.NoError(t, m.Init())
 
 	cases := []struct {
 		pattern      string
@@ -103,8 +103,6 @@ func TestParsePyprojectTOML(t *testing.T) {
 		{"pydantic", []dep.Dependency{{Name: "pydantic", Constraint: "^2.10.5"}}},
 	}
 	for _, c := range cases {
-		deps, err := m.Find(c.pattern)
-		require.NoError(t, err)
-		assert.Equal(t, c.dependencies, deps)
+		assert.Equal(t, c.dependencies, m.Find(c.pattern))
 	}
 }

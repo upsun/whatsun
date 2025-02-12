@@ -32,6 +32,8 @@ func TestPHP(t *testing.T) {
 	m, err := dep.GetManager(dep.ManagerTypePHP, fsys, ".")
 	require.NoError(t, err)
 
+	require.NoError(t, m.Init())
+
 	toFind := []struct {
 		pattern      string
 		dependencies []dep.Dependency
@@ -44,8 +46,7 @@ func TestPHP(t *testing.T) {
 		}}},
 	}
 	for _, c := range toFind {
-		deps, err := m.Find(c.pattern)
-		require.NoError(t, err)
+		deps := m.Find(c.pattern)
 		assert.Equal(t, c.dependencies, deps)
 	}
 

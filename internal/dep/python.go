@@ -4,30 +4,38 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	"github.com/BurntSushi/toml"
 	"io"
 	"io/fs"
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
+
+	"github.com/BurntSushi/toml"
+	"github.com/IGLOU-EU/go-wildcard/v2"
 )
 
 type pythonManager struct {
 	fsys fs.FS
 	path string
 
+	initOnce     sync.Once
 	requirements map[string]string
 }
 
-func newPythonManager(fsys fs.FS, path string) (Manager, error) {
-	m := &pythonManager{
+func newPythonManager(fsys fs.FS, path string) Manager {
+	return &pythonManager{
 		fsys: fsys,
 		path: path,
 	}
-	if err := m.parse(); err != nil {
-		return nil, err
-	}
-	return m, nil
+}
+
+func (m *pythonManager) Init() error {
+	var err error
+	m.initOnce.Do(func() {
+		err = m.parse()
+	})
+	return err
 }
 
 func (m *pythonManager) parseFile(filename string, parseFunc func(io.Reader) (map[string]string, error)) error {
@@ -65,22 +73,17 @@ func (m *pythonManager) parse() error {
 	return nil
 }
 
-func (m *pythonManager) Find(pattern string) ([]Dependency, error) {
-	matches, err := matchDependencyKey(m.requirements, pattern)
-	if err != nil {
-		return nil, err
+func (m *pythonManager) Find(pattern string) []Dependency {
+	var deps []Dependency
+	for name, constraint := range m.requirements {
+		if wildcard.Match(pattern, name) {
+			deps = append(deps, Dependency{
+				Name:       name,
+				Constraint: constraint,
+			})
+		}
 	}
-	if len(matches) == 0 {
-		return nil, nil
-	}
-	var deps = make([]Dependency, 0, len(matches))
-	for _, match := range matches {
-		deps = append(deps, Dependency{
-			Name:       match,
-			Constraint: m.requirements[match],
-		})
-	}
-	return deps, nil
+	return deps
 }
 
 func (m *pythonManager) Get(name string) (Dependency, bool) {

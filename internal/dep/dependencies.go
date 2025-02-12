@@ -3,7 +3,6 @@ package dep
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/IGLOU-EU/go-wildcard/v2"
 	"io/fs"
 	"path/filepath"
 )
@@ -25,11 +24,18 @@ type Dependency struct {
 }
 
 type Manager interface {
+	// Init collects data for the manager: parsing files, etc.
+	// Implementations may be run multiple times: they should ensure they only read files once.
+	Init() error
+
+	// Get finds a specific dependency by name.
 	Get(name string) (Dependency, bool)
-	Find(pattern string) ([]Dependency, error)
+
+	// Find looks for dependencies using a wildcard pattern.
+	Find(pattern string) []Dependency
 }
 
-var managerFuncs = map[string]func(fs.FS, string) (Manager, error){
+var managerFuncs = map[string]func(fs.FS, string) Manager{
 	ManagerTypeGo:         newGoManager,
 	ManagerTypeJava:       newJavaManager,
 	ManagerTypeJavaScript: newJSManager,
@@ -38,35 +44,13 @@ var managerFuncs = map[string]func(fs.FS, string) (Manager, error){
 	ManagerTypeRuby:       newRubyManager,
 }
 
+// GetManager returns a dependency manager for the given type, filesystem and path.
+// The caller must then use Manager.Init to ensure files are parsed, when necessary.
 func GetManager(managerType string, fsys fs.FS, path string) (Manager, error) {
 	if managerFunc, ok := managerFuncs[managerType]; ok {
-		manager, err := managerFunc(fsys, path)
-		if err != nil {
-			return nil, err
-		}
-		return manager, nil
+		return managerFunc(fsys, path), nil
 	}
 	return nil, fmt.Errorf("manager type not supported: %s", managerType)
-}
-
-// matchDependencyKey returns a value if a key is found in a map, or an empty string.
-// The key can contain "*" as a wildcard.
-// It returns all the matching keys.
-func matchDependencyKey[M ~map[string]V, V any](m M, key string) ([]string, error) {
-	if m == nil {
-		return nil, nil
-	}
-	if _, ok := m[key]; ok {
-		return []string{key}, nil
-	}
-
-	var matches = make([]string, 0, len(m))
-	for k := range m {
-		if wildcard.Match(key, k) {
-			matches = append(matches, k)
-		}
-	}
-	return matches, nil
 }
 
 func parseJSON(fsys fs.FS, path, filename string, dest any) error {
