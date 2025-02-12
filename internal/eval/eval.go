@@ -34,7 +34,7 @@ func NewEvaluator(cnf *Config) (*Evaluator, error) {
 	return &Evaluator{celEnv: celEnv, cache: cache}, nil
 }
 
-func (e *Evaluator) Eval(expr string) (ref.Val, error) {
+func (e *Evaluator) Eval(expr string, input any) (ref.Val, error) {
 	var ast *cel.Ast
 	if e.cache != nil {
 		if cached, ok := e.cache.Get(expr); ok {
@@ -49,7 +49,7 @@ func (e *Evaluator) Eval(expr string) (ref.Val, error) {
 		ast = a
 	}
 
-	return e.eval(ast)
+	return e.eval(ast, input)
 }
 
 func (e *Evaluator) CompileAndCache(expr string) (*cel.Ast, error) {
@@ -65,7 +65,7 @@ func (e *Evaluator) CompileAndCache(expr string) (*cel.Ast, error) {
 	return a, nil
 }
 
-func (e *Evaluator) eval(ast *cel.Ast) (ref.Val, error) {
+func (e *Evaluator) eval(ast *cel.Ast, input any) (ref.Val, error) {
 	var prg cel.Program
 	if v, ok := e.programCache.Load(ast); ok {
 		prg = v.(cel.Program)
@@ -78,7 +78,7 @@ func (e *Evaluator) eval(ast *cel.Ast) (ref.Val, error) {
 		e.programCache.Store(ast, prg)
 	}
 
-	out, _, err := prg.Eval(map[string]any{})
+	out, _, err := prg.Eval(input)
 	return out, err
 }
 

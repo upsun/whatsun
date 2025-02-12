@@ -1,7 +1,6 @@
 package dep_test
 
 import (
-	"io/fs"
 	"testing"
 	"testing/fstest"
 
@@ -12,25 +11,25 @@ import (
 )
 
 func TestPHP(t *testing.T) {
-	var fsys fs.FS = &fstest.MapFS{
+	fsys := fstest.MapFS{
 		"composer.json": {Data: []byte(`{
     		"name": "test/test",
 			"require": {
 		        "php": ">=8.2",
 				"symfony/framework-bundle": "^7.2"
-			}
-		}`)},
+			}}`),
+		},
 		"composer.lock": {Data: []byte(`{
     		"packages": [
 				{
 					"name": "symfony/framework-bundle",
             		"version": "v7.2.3"
 				}
-			]
-		}`)},
+			]}`),
+		},
 	}
 
-	m, err := dep.GetManager(dep.ManagerTypePHP, &fsys, ".")
+	m, err := dep.GetManager(dep.ManagerTypePHP, fsys, ".")
 	require.NoError(t, err)
 
 	toFind := []struct {

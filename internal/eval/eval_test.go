@@ -39,14 +39,14 @@ func TestEval(t *testing.T) {
 	cache, err := eval.NewFileCacheWithContent(exprCache, cachePath)
 	require.NoError(t, err)
 
-	evFS := &fsys
 	var options []cel.EnvOption
-	options = append(options, celfuncs.AllFileFunctions(evFS, nil)...)
-	options = append(options, celfuncs.AllPackageManagerFunctions(evFS, nil)...)
+	options = append(options, celfuncs.FilesystemVariable())
+	options = append(options, celfuncs.AllFileFunctions()...)
+	options = append(options, celfuncs.AllPackageManagerFunctions()...)
 	options = append(
 		options,
-		celfuncs.JSONQueryStringCELFunction(),
-		celfuncs.VersionParse(),
+		celfuncs.JQ(),
+		celfuncs.ParseVersion(),
 	)
 
 	cnf := &eval.Config{EnvOptions: options, Cache: cache}
@@ -55,67 +55,67 @@ func TestEval(t *testing.T) {
 	require.NoError(t, err)
 
 	ev := func(e *eval.Evaluator, expr string) ref.Val {
-		val, err := e.Eval(expr)
+		val, err := e.Eval(expr, celfuncs.FilesystemInput(fsys, "."))
 		require.NoError(t, err)
 		return val
 	}
 
-	t.Run("file.exists", func(t *testing.T) {
-		assert.Equal(t, types.Bool(true), ev(e, `file.exists("foo")`))
-		assert.Equal(t, types.Bool(true), ev(e, `file.glob("fo*").size() > 0`))
-		assert.Equal(t, types.Bool(false), ev(e, `file.exists("bar")`))
-		assert.Equal(t, types.Bool(true), ev(e, `file.exists("package.json")`))
-		assert.Equal(t, types.Bool(true), ev(e, `file.exists("subdir")`))
+	t.Run("fs.fileExists", func(t *testing.T) {
+		assert.Equal(t, types.Bool(true), ev(e, `fs.fileExists("foo")`))
+		assert.Equal(t, types.Bool(true), ev(e, `fs.glob("fo*").size() > 0`))
+		assert.Equal(t, types.Bool(false), ev(e, `fs.fileExists("bar")`))
+		assert.Equal(t, types.Bool(true), ev(e, `fs.fileExists("package.json")`))
+		assert.Equal(t, types.Bool(true), ev(e, `fs.fileExists("subdir")`))
 
 		// Ensure the same expression can run again (probably from cache).
-		assert.Equal(t, types.Bool(true), ev(e, `file.exists("foo")`))
+		assert.Equal(t, types.Bool(true), ev(e, `fs.fileExists("foo")`))
 	})
 
-	t.Run("file.exists after changes", func(t *testing.T) {
+	t.Run("fs.fileExists after changes", func(t *testing.T) {
 		// Ensure file rename affects the result.
 		require.NoError(t, os.Rename(filepath.Join(testDir, "foo"), filepath.Join(testDir, "bar")))
-		assert.Equal(t, types.Bool(false), ev(e, `file.exists("foo")`))
-		assert.Equal(t, types.Bool(true), ev(e, `file.exists("bar")`))
+		assert.Equal(t, types.Bool(false), ev(e, `fs.fileExists("foo")`))
+		assert.Equal(t, types.Bool(true), ev(e, `fs.fileExists("bar")`))
 
 		// Ensure file deletion affects the result.
 		require.NoError(t, os.Remove(filepath.Join(testDir, "bar")))
-		assert.Equal(t, types.Bool(false), ev(e, `file.exists("bar")`))
+		assert.Equal(t, types.Bool(false), ev(e, `fs.fileExists("bar")`))
 	})
 
-	t.Run("file.contains", func(t *testing.T) {
-		assert.Equal(t, types.Bool(true), ev(e, `file.contains("package.json", "expressjs")`))
-		assert.Equal(t, types.Bool(false), ev(e, `file.contains("package.json", "next")`))
+	t.Run("fs.fileContains", func(t *testing.T) {
+		assert.Equal(t, types.Bool(true), ev(e, `fs.fileContains("package.json", "expressjs")`))
+		assert.Equal(t, types.Bool(false), ev(e, `fs.fileContains("package.json", "next")`))
 
-		_, err := e.Eval(`file.contains("nonexistent.json", "test")`)
+		_, err := e.Eval(`fs.fileContains("nonexistent.json", "test")`, celfuncs.FilesystemInput(fsys, "."))
 		// TODO why is this not fs.ErrNotExist ?
 		assert.ErrorContains(t, err, "no such file")
 	})
 
-	t.Run("file.isDir", func(t *testing.T) {
-		assert.Equal(t, types.Bool(false), ev(e, `file.isDir("foo")`))
-		assert.Equal(t, types.Bool(true), ev(e, `file.isDir("subdir")`))
-		assert.Equal(t, types.Bool(false), ev(e, `file.isDir("nonexistent")`))
+	t.Run("fs.isDir", func(t *testing.T) {
+		assert.Equal(t, types.Bool(false), ev(e, `fs.isDir("foo")`))
+		assert.Equal(t, types.Bool(true), ev(e, `fs.isDir("subdir")`))
+		assert.Equal(t, types.Bool(false), ev(e, `fs.isDir("nonexistent")`))
 	})
 
-	t.Run("json", func(t *testing.T) {
+	t.Run("jq", func(t *testing.T) {
 		assert.Equal(t, types.String("github:expressjs/express"),
-			ev(e, `json.queryString(file.read("package.json"), ".dependencies.express")`))
+			ev(e, `jq(fs.read("package.json"), ".dependencies.express")`))
 	})
 
 	t.Run("package_managers", func(t *testing.T) {
-		assert.Equal(t, types.Bool(false), ev(e, `dep.has("php", "drupal/core")`))
-		assert.Equal(t, types.Bool(true), ev(e, `dep.has("php", "symfony/framework-bundle")`))
-		assert.Equal(t, types.Bool(true), ev(e, `dep.has("php", "symfony/*")`))
-		assert.Equal(t, types.String("3.0.0"), ev(e, `dep.getVersion("php", "psr/cache")`))
-		assert.Equal(t, types.String(""), ev(e, `dep.getVersion("php", "drupal/core")`))
-		assert.Equal(t, types.Bool(true), ev(e, `dep.has("js", "express")`))
+		assert.Equal(t, types.Bool(false), ev(e, `fs.depExists("php", "drupal/core")`))
+		assert.Equal(t, types.Bool(true), ev(e, `fs.depExists("php", "symfony/framework-bundle")`))
+		assert.Equal(t, types.Bool(true), ev(e, `fs.depExists("php", "symfony/*")`))
+		assert.Equal(t, types.String("3.0.0"), ev(e, `fs.depVersion("php", "psr/cache")`))
+		assert.Equal(t, types.String(""), ev(e, `fs.depVersion("php", "drupal/core")`))
+		assert.Equal(t, types.Bool(true), ev(e, `fs.depExists("js", "express")`))
 	})
 
-	t.Run("version.parse", func(t *testing.T) {
-		assert.Equal(t, types.String("v7.2.3"), ev(e, `dep.getVersion("php", "symfony/framework-bundle")`))
-		assert.Equal(t, types.String("7"), ev(e, `version.parse(dep.getVersion("php", "symfony/framework-bundle")).major`))
-		assert.Equal(t, types.String("2"), ev(e, `version.parse(dep.getVersion("php", "symfony/framework-bundle")).minor`))
-		assert.Equal(t, types.String("3"), ev(e, `version.parse(dep.getVersion("php", "symfony/framework-bundle")).patch`))
+	t.Run("parseVersion", func(t *testing.T) {
+		assert.Equal(t, types.String("v7.2.3"), ev(e, `fs.depVersion("php", "symfony/framework-bundle")`))
+		assert.Equal(t, types.String("7"), ev(e, `parseVersion(fs.depVersion("php", "symfony/framework-bundle")).major`))
+		assert.Equal(t, types.String("2"), ev(e, `parseVersion(fs.depVersion("php", "symfony/framework-bundle")).minor`))
+		assert.Equal(t, types.String("3"), ev(e, `parseVersion(fs.depVersion("php", "symfony/framework-bundle")).patch`))
 	})
 
 	// Ensure the file cache can be saved.
@@ -130,8 +130,8 @@ func TestEval(t *testing.T) {
 
 	// Run old and new expressions after cache reload.
 	t.Run("after_cache_reload", func(t *testing.T) {
-		assert.Equal(t, types.Bool(true), ev(e, `file.exists("package.json")`))
-		assert.Equal(t, types.Bool(false), ev(e, `file.exists("bar")`))
+		assert.Equal(t, types.Bool(true), ev(e, `fs.fileExists("package.json")`))
+		assert.Equal(t, types.Bool(false), ev(e, `fs.fileExists("bar")`))
 	})
 }
 

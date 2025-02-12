@@ -1,7 +1,6 @@
 package dep_test
 
 import (
-	"io/fs"
 	"testing"
 	"testing/fstest"
 
@@ -12,16 +11,20 @@ import (
 )
 
 func TestRuby(t *testing.T) {
-	var fsys fs.FS = &fstest.MapFS{
-		"Gemfile": {Data: []byte(`gem 'rails', '~> 6.1'
+	fsys := fstest.MapFS{
+		"Gemfile": {
+			Data: []byte(`gem 'rails', '~> 6.1'
 gem "puma"
-gem 'nokogiri', '>= 1.10', '< 2.0'`)},
-		"Gemfile.lock": {Data: []byte(`    rails (6.1.4.1)
+gem 'nokogiri', '>= 1.10', '< 2.0'`),
+		},
+		"Gemfile.lock": {
+			Data: []byte(`    rails (6.1.4.1)
     puma (5.3.2)
-    nokogiri (1.11.3)`)},
+    nokogiri (1.11.3)`),
+		},
 	}
 
-	m, err := dep.GetManager(dep.ManagerTypeRuby, &fsys, ".")
+	m, err := dep.GetManager(dep.ManagerTypeRuby, fsys, ".")
 	require.NoError(t, err)
 
 	toFind := []struct {

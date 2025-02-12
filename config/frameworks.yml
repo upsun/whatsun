@@ -2,234 +2,234 @@
 # TODO complete these rules
 frameworks:
   max_depth: 5
-  max_nested_depth: 1
+  max_nested_depth: 3
   rules:
     drupal:
-      when: dep.has("php", "drupal/core") || dep.has("php", "drupal/core-recommended")
+      when: fs.depExists("php", "drupal/core") || fs.depExists("php", "drupal/core-recommended")
       then: drupal
       with:
-        major_version: version.parse(dep.getVersion("php", "drupal/core")).major
+        major_version: parseVersion(fs.depVersion("php", "drupal/core")).major
       exclusive: true
       group: php
 
     # The drupal/drupal package represents Drupal 7.
     drupal7-composer:
-      when: dep.has("php", "drupal/drupal")
+      when: fs.depExists("php", "drupal/drupal")
       then: drupal
       with:
-        major_version: version.parse(dep.getVersion("php", "drupal/drupal")).major
+        major_version: parseVersion(fs.depVersion("php", "drupal/drupal")).major
       exclusive: true
       group: php
 
     drupal-direct:
-      when: file.exists("index.php") && file.contains("index.php", "drupal_bootstrap(DRUPAL_BOOTSTRAP_FULL);")
+      when: fs.fileExists("index.php") && fs.fileContains("index.php", "drupal_bootstrap(DRUPAL_BOOTSTRAP_FULL);")
       then: drupal
       group: php
 
     symfony-project:
-      when: dep.has("php", "symfony/*") && json.queryString(file.read("composer.json"), ".type") == "project"
+      when: fs.depExists("php", "symfony/*") && jq(fs.read("composer.json"), ".type") == "project"
       maybe: [symfony]
       group: php
 
     symfony-framework:
-      when: dep.has("php", "symfony/framework-bundle")
+      when: fs.depExists("php", "symfony/framework-bundle")
       then: symfony
       with:
-        major_version: version.parse(dep.getVersion("php", "symfony/framework-bundle")).major
+        major_version: parseVersion(fs.depVersion("php", "symfony/framework-bundle")).major
       group: php
       exclusive: true
 
     laravel-framework:
-      when: dep.has("php", "laravel/framework")
+      when: fs.depExists("php", "laravel/framework")
       then: laravel
       with:
-        major_version: version.parse(dep.getVersion("php", "laravel/framework")).major
+        major_version: parseVersion(fs.depVersion("php", "laravel/framework")).major
       group: php
       exclusive: true
 
     cakephp:
-      when: dep.has("php", "cakephp/cakephp")
+      when: fs.depExists("php", "cakephp/cakephp")
       then: cakephp
       with:
-        version: version.parse(dep.getVersion("php", "cakephp/cakephp"))
+        version: parseVersion(fs.depVersion("php", "cakephp/cakephp"))
       group: php
       exclusive: true
 
     laminas:
-      when: dep.has("php", "laminas/laminas-mvc")
+      when: fs.depExists("php", "laminas/laminas-mvc")
       then: laminas
       with:
-        version: version.parse(dep.getVersion("php", "laminas/laminas-mvc"))
+        version: parseVersion(fs.depVersion("php", "laminas/laminas-mvc"))
       group: php
       exclusive: true
 
     codeigniter:
-      when: dep.has("php", "codeigniter4/framework")
+      when: fs.depExists("php", "codeigniter4/framework")
       then: codeigniter
       with:
-        major_version: version.parse(dep.getVersion("php", "codeigniter4/framework")).major
+        major_version: parseVersion(fs.depVersion("php", "codeigniter4/framework")).major
       group: php
       exclusive: true
 
     wordpress:
-      when: file.exists("wp-config.php") || dep.has("php", "wordpress/wordpress")
+      when: fs.fileExists("wp-config.php") || fs.depExists("php", "wordpress/wordpress")
       then: wordpress
       with:
-        version: version.parse(dep.getVersion("php", "wordpress/wordpress"))
+        version: parseVersion(fs.depVersion("php", "wordpress/wordpress"))
       group: php
       exclusive: true
 
     express:
-      when: dep.has("js", "express")
+      when: fs.depExists("js", "express")
       then: express
       with:
-        version: version.parse(dep.getVersion("js", "express"))
+        version: parseVersion(fs.depVersion("js", "express"))
       group: js
 
     gatsby:
-      when: file.exists("gatsby-config.js") || dep.has("js", "gatsby")
+      when: fs.fileExists("gatsby-config.js") || fs.depExists("js", "gatsby")
       then: gatsby
       with:
-        version: version.parse(dep.getVersion("js", "gatsby"))
+        version: parseVersion(fs.depVersion("js", "gatsby"))
       group: js
       exclusive: true
 
     strapi:
-      when: file.exists("strapi-config.json") || dep.has("js", "@strapi/strapi")
+      when: fs.fileExists("strapi-config.json") || fs.depExists("js", "@strapi/strapi")
       then: strapi
       with:
-        version: version.parse(dep.getVersion("js", "@strapi/strapi"))
+        version: parseVersion(fs.depVersion("js", "@strapi/strapi"))
       group: js
       exclusive: true
 
     nestjs:
-      when: dep.has("js", "@nestjs/core")
+      when: fs.depExists("js", "@nestjs/core")
       then: nestjs
       with:
-        version: version.parse(dep.getVersion("js", "@nestjs/core"))
+        version: parseVersion(fs.depVersion("js", "@nestjs/core"))
       group: js
       exclusive: true
 
     nextjs:
-      when: dep.has("js", "next")
+      when: fs.depExists("js", "next")
       then: nextjs
       with:
-        version: version.parse(dep.getVersion("js", "next"))
+        version: parseVersion(fs.depVersion("js", "next"))
       group: js
       exclusive: true
 
     svelte-kit:
-      when: dep.has("js", "@sveltejs/kit")
+      when: fs.depExists("js", "@sveltejs/kit")
       then: svelte-kit
       with:
-        version: version.parse(dep.getVersion("js", "@sveltejs/kit"))
+        version: parseVersion(fs.depVersion("js", "@sveltejs/kit"))
       group: js
       exclusive: true
 
     reactjs:
-      when: dep.has("js", "react")
+      when: fs.depExists("js", "react")
       then: reactjs
       with:
-        version: version.parse(dep.getVersion("js", "react"))
+        version: parseVersion(fs.depVersion("js", "react"))
       group: js
 
     vuejs:
-      when: dep.has("js", "vue")
+      when: fs.depExists("js", "vue")
       then: vuejs
       with:
-        version: version.parse(dep.getVersion("js", "vue"))
+        version: parseVersion(fs.depVersion("js", "vue"))
       group: js
       exclusive: true
 
     magento:
-      when: dep.has("php", "magento/magento-composer-installer")
+      when: fs.depExists("php", "magento/magento-composer-installer")
       then: magento
       exclusive: true
       group: php
 
     gin:
-      when: dep.has("go", "github.com/gin-gonic/gin")
+      when: fs.depExists("go", "github.com/gin-gonic/gin")
       then: gin
       with:
-        version: version.parse(dep.getVersion("go", "github.com/gin-gonic/gin"))
+        version: parseVersion(fs.depVersion("go", "github.com/gin-gonic/gin"))
       group: go
 
     fiber:
-      when: dep.has("go", "github.com/gofiber/fiber*")
+      when: fs.depExists("go", "github.com/gofiber/fiber*")
       then: fiber
       with:
-        version: version.parse(dep.getVersion("go", "github.com/gofiber/fiber/v2"))
+        version: parseVersion(fs.depVersion("go", "github.com/gofiber/fiber/v2"))
       group: go
 
     echo:
-      when: dep.has("go", "github.com/labstack/echo*")
+      when: fs.depExists("go", "github.com/labstack/echo*")
       then: echo
       with:
-        version: version.parse(dep.getVersion("go", "github.com/labstack/echo/v4"))
+        version: parseVersion(fs.depVersion("go", "github.com/labstack/echo/v4"))
       group: go
 
     flask:
-      when: dep.has("python", "flask")
+      when: fs.depExists("python", "flask")
       then: flask
       group: python
 
     pyramid:
-      when: dep.has("python", "pyramid")
+      when: fs.depExists("python", "pyramid")
       then: pyramid
       group: python
 
     fastapi:
-      when: dep.has("python", "fastapi")
+      when: fs.depExists("python", "fastapi")
       then: fastapi
       group: python
 
     tornado:
-      when: dep.has("python", "tornado")
+      when: fs.depExists("python", "tornado")
       then: tornado
       group: python
 
     django:
-      when: dep.has("python", "django")
+      when: fs.depExists("python", "django")
       then: django
       group: python
       exclusive: true
 
     rails:
-      when: dep.has("ruby", "rails")
+      when: fs.depExists("ruby", "rails")
       then: rails
       with:
-        version: dep.getVersion("ruby", "rails")
+        version: fs.depVersion("ruby", "rails")
       group: ruby
       exclusive: true
 
     jekyll:
-      when: dep.has("ruby", "jekyll")
+      when: fs.depExists("ruby", "jekyll")
       then: jekyll
       with:
-        version: dep.getVersion("ruby", "jekyll")
+        version: fs.depVersion("ruby", "jekyll")
       group: ruby
       exclusive: true
 
     sinatra:
-      when: dep.has("ruby", "sinatra")
+      when: fs.depExists("ruby", "sinatra")
       then: sinatra
       with:
-        version: dep.getVersion("ruby", "sinatra")
+        version: fs.depVersion("ruby", "sinatra")
       group: ruby
       exclusive: true
 
     spring-boot:
-      when: dep.has("java", "org.springframework.boot:*")
+      when: fs.depExists("java", "org.springframework.boot:*")
       then: spring-boot
       with:
-        version: version.parse(dep.getVersion("java", "org.springframework.boot:spring-boot-starter-parent"))
+        version: parseVersion(fs.depVersion("java", "org.springframework.boot:spring-boot-starter-parent"))
       group: java
       exclusive: true
 
     quarkus:
-      when: dep.has("java", "io.quarkus:*")
+      when: fs.depExists("java", "io.quarkus:*")
       then: quarkus
       with:
-        version: version.parse(dep.getVersion("java", "io.quarkus:quarkus-rest"))
+        version: parseVersion(fs.depVersion("java", "io.quarkus:quarkus-rest"))
       group: java
       exclusive: true

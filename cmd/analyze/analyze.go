@@ -28,8 +28,8 @@ func main() {
 		defer pprof.StopCPUProfile()
 	}
 	path := "."
-	if flag.NArg() > 1 {
-		path = flag.Arg(1)
+	if flag.NArg() > 0 {
+		path = flag.Arg(0)
 	}
 	absPath, err := filepath.Abs(path)
 	if err != nil {
@@ -47,7 +47,7 @@ func main() {
 	}
 	start := time.Now()
 
-	result, err := analyzer.Analyze(context.TODO(), os.DirFS(absPath))
+	result, err := analyzer.Analyze(context.TODO(), os.DirFS(absPath), ".")
 	if err != nil {
 		log.Fatal(err)
 	}

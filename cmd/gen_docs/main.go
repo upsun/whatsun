@@ -26,8 +26,7 @@ func main() {
 	defer f.Close()
 
 	// Make the CEL environment.
-	root := "."
-	celOptions := rules.DefaultEnvOptions(os.DirFS("."), &root)
+	celOptions := rules.DefaultEnvOptions()
 	env, err := cel.NewEnv(celOptions...)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -56,14 +55,25 @@ func GenerateDocs(w io.Writer, env *cel.Env) error {
 	categories := []string{"Custom functions", "Built-in functions", "Operators"}
 	perCategory := make(map[string]string, len(categories))
 
+	emptyCELEnv, err := cel.NewEnv()
+	if err != nil {
+		return err
+	}
+	isCustom := func(name string) bool {
+		for k := range emptyCELEnv.Functions() {
+			if k == name {
+				return false
+			}
+		}
+		return true
+	}
+
 	for _, name := range sortedNames {
 		f := functions[name]
 
-		// TODO find a better way to determine custom functions
-		isCustom := strings.Contains(name, ".")
 		isOperator := name[0] == '_' || strings.HasSuffix(name, "_")
 		category := "Built-in functions"
-		if isCustom {
+		if isCustom(name) {
 			category = "Custom functions"
 		} else if isOperator {
 			category = "Operators"
@@ -150,6 +160,6 @@ func GenerateDocs(w io.Writer, env *cel.Env) error {
 		b.WriteString(perCategory[category])
 	}
 
-	_, err := fmt.Fprint(w, b.String())
+	_, err = fmt.Fprint(w, b.String())
 	return err
 }

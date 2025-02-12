@@ -12,7 +12,7 @@ example-ruleset:
   max_nested_depth: 0 # Stop searching if a result is found after this level
   rules:
     example-rule:
-      when: file.exists("Dockerfile")
+      when: fs.fileExists("Dockerfile")
       then: docker
 ```
 

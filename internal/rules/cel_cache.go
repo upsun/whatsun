@@ -2,8 +2,6 @@ package rules
 
 import (
 	_ "embed"
-	"os"
-
 	"what/internal/eval"
 )
 
@@ -17,8 +15,7 @@ func WarmCache(filename string) error {
 		return err
 	}
 
-	root := "."
-	celOptions := DefaultEnvOptions(os.DirFS("."), &root)
+	celOptions := DefaultEnvOptions()
 	ev, err := eval.NewEvaluator(&eval.Config{Cache: cache, EnvOptions: celOptions})
 	if err != nil {
 		return err

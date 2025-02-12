@@ -1,7 +1,7 @@
 package celfuncs
 
 import (
-	"io/fs"
+	"sync"
 
 	"github.com/google/cel-go/cel"
 
@@ -9,48 +9,66 @@ import (
 )
 
 // AllPackageManagerFunctions returns CEL functions for reading package manager dependencies in an fs.FS filesystem.
-func AllPackageManagerFunctions(fsys *fs.FS, root *string) []cel.EnvOption {
-	if root == nil {
-		dot := "."
-		root = &dot
-	}
+// This can only be used alongside the FilesystemVariable option.
+func AllPackageManagerFunctions() []cel.EnvOption {
 	return []cel.EnvOption{
-		DepHas(fsys, root),
-		DepGetVersion(fsys, root),
+		DepExists(),
+		DepVersion(),
 	}
 }
 
-func DepHas(fsys *fs.FS, root *string) cel.EnvOption {
-	FuncDocs["dep.has"] = FuncDoc{
+func DepExists() cel.EnvOption {
+	FuncDocs["depExists"] = FuncDoc{
 		Comment:     "Check if a project has a dependency",
 		Description: "This supports a few package management tools: more may be added later.",
 		Args: []ArgDoc{
+			{"fs", "The filesystem wrapper"},
 			{"managerType", "The manager type (`go`, `js` or `php`)"},
 			{"pattern", "The dependency name, accepting `*` as a wildcard"},
 		},
 	}
-	return stringStringReturnsBoolErr("dep.has", func(manager, pattern string) (bool, error) {
-		return depExists(manager, fsys, *root, pattern)
+	return fsStringStringReturnsBoolErr("depExists", func(fsWrapper filesystemWrapper, manager, pattern string) (bool, error) {
+		return depExists(manager, fsWrapper, pattern)
 	})
 }
 
-func DepGetVersion(fsys *fs.FS, root *string) cel.EnvOption {
-	FuncDocs["dep.getVersion"] = FuncDoc{
+func DepVersion() cel.EnvOption {
+	FuncDocs["depVersion"] = FuncDoc{
 		Comment:     "Find the version of a project dependency",
 		Description: "This returns an empty string if the dependency is not found.",
 		Args: []ArgDoc{
+			{"fs", "The filesystem wrapper"},
 			{"managerType", "The manager type (`go`, `js` or `php`)"},
 			{"name", "The dependency name"},
 		},
 	}
 
-	return stringStringReturnsStringErr("dep.getVersion", func(manager, name string) (string, error) {
-		return depVersion(manager, fsys, *root, name)
+	return fsStringStringReturnsStringErr("depVersion", func(fsWrapper filesystemWrapper, manager, name string) (string, error) {
+		return depVersion(manager, fsWrapper, name)
 	})
 }
 
-func depVersion(managerType string, fsys *fs.FS, path, name string) (string, error) {
-	m, err := dep.GetManager(managerType, fsys, path)
+var managerCache sync.Map
+
+func depGetCachedManager(managerType string, fsWrapper filesystemWrapper) (dep.Manager, error) {
+	cacheKey := struct {
+		managerType string
+		fsID        uintptr
+		path        string
+	}{managerType, fsWrapper.ID, fsWrapper.Path}
+	if manager, ok := managerCache.Load(cacheKey); ok {
+		return manager.(dep.Manager), nil
+	}
+	m, err := dep.GetManager(managerType, fsWrapper.FS, fsWrapper.Path)
+	if err != nil {
+		return nil, err
+	}
+	managerCache.Store(cacheKey, m)
+	return m, nil
+}
+
+func depVersion(managerType string, fsWrapper filesystemWrapper, name string) (string, error) {
+	m, err := depGetCachedManager(managerType, fsWrapper)
 	if err != nil {
 		return "", err
 	}
@@ -58,8 +76,8 @@ func depVersion(managerType string, fsys *fs.FS, path, name string) (string, err
 	return d.Version, nil
 }
 
-func depExists(managerType string, fsys *fs.FS, path, pattern string) (bool, error) {
-	m, err := dep.GetManager(managerType, fsys, path)
+func depExists(managerType string, fsWrapper filesystemWrapper, pattern string) (bool, error) {
+	m, err := depGetCachedManager(managerType, fsWrapper)
 	if err != nil {
 		return false, err
 	}

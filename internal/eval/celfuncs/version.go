@@ -7,15 +7,13 @@ import (
 	"github.com/google/cel-go/cel"
 )
 
-// VersionParse defines a CEL function to split a semantic version into major, minor and patch keys.
-func VersionParse() cel.EnvOption {
-	FuncDocs["version.parse"] = FuncDoc{
+func ParseVersion() cel.EnvOption {
+	FuncDocs["parseVersion"] = FuncDoc{
 		Comment: "Parse a semantic version into major, minor and patch components",
 		Args:    []ArgDoc{{"version", ""}},
 	}
 
-	return stringReturnsMapErr("version.parse", func(s string) (map[string]string, error) {
-
+	return stringReturnsMapErr("parseVersion", func(s string) (map[string]string, error) {
 		v, err := semver.NewVersion(s)
 		if err != nil {
 			return nil, fmt.Errorf("invalid version number: %s", s)

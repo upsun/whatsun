@@ -3,6 +3,7 @@ package rules
 import (
 	"fmt"
 	"slices"
+	"sort"
 	"strings"
 	"sync"
 )
@@ -17,7 +18,7 @@ type store struct {
 	mutex sync.RWMutex
 }
 
-func (s *store) List(report func(rules []*Rule) any) ([]Match, error) {
+func (s *store) List() ([]Match, error) {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 	if len(s.is) == 0 && len(s.maybe) == 0 {
@@ -51,7 +52,7 @@ func (s *store) List(report func(rules []*Rule) any) ([]Match, error) {
 		if m, ok := s.maybe[result]; ok {
 			rules = append(rules, m...)
 		}
-		matches = append(matches, Match{Result: result, Report: report(rules), Sure: true})
+		matches = append(matches, Match{Result: result, Rules: ruleNames(rules), Sure: true})
 	}
 
 	// Add the remaining "maybe" values.
@@ -70,7 +71,7 @@ func (s *store) List(report func(rules []*Rule) any) ([]Match, error) {
 			}
 		}
 		if !hasConflict {
-			matches = append(matches, Match{Result: result, Report: report(rules)})
+			matches = append(matches, Match{Result: result, Rules: ruleNames(rules)})
 		}
 	}
 
@@ -80,6 +81,15 @@ func (s *store) List(report func(rules []*Rule) any) ([]Match, error) {
 	})
 
 	return matches, nil
+}
+
+func ruleNames(rules []*Rule) []string {
+	names := make([]string, len(rules))
+	for i, r := range rules {
+		names[i] = r.Name
+	}
+	sort.Strings(names)
+	return names
 }
 
 func (s *store) Add(rule *Rule) {

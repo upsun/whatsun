@@ -3,83 +3,83 @@ package_managers:
   max_depth: 2
   rules:
     npm-lockfile:
-      when: file.exists("package-lock.json")
+      when: fs.fileExists("package-lock.json")
       then: npm
       group: js
       exclusive: true
     yarn-lockfile:
-      when: file.exists("yarn.lock")
+      when: fs.fileExists("yarn.lock")
       then: yarn
       group: js
       exclusive: true
     meteor:
-      when: file.exists(".meteor/packages")
+      when: fs.fileExists(".meteor/packages")
       then: meteor
       group: js
       exclusive: true
     pnpm:
-      when: file.exists("pnpm-lock.yaml") || file.exists("pnpm-workspace.yaml")
+      when: fs.fileExists("pnpm-lock.yaml") || fs.fileExists("pnpm-workspace.yaml")
       then: pnpm
       group: js
       exclusive: true
     bun:
-      when: file.exists("bun.lock") || file.exists("bun.lockb")
+      when: fs.fileExists("bun.lock") || fs.fileExists("bun.lockb")
       then: bun
       group: js
       exclusive: true
     js-packages:
-      when: file.exists("package.json")
+      when: fs.fileExists("package.json")
       maybe: [npm, pnpm, yarn, bun]
       group: js
 
     composer:
-      when: file.exists("composer.json")
+      when: fs.fileExists("composer.json")
       then: composer
 
     pip:
-      when: file.exists("requirements.txt")
+      when: fs.fileExists("requirements.txt")
       then: pip
 
     pipenv:
-      when: file.exists("Pipfile")
+      when: fs.fileExists("Pipfile")
       then: pipenv
 
     pyproject:
-      when: file.exists("pyproject.toml")
+      when: fs.fileExists("pyproject.toml")
       maybe: [poetry, pip]
 
     poetry:
-      when: file.exists("poetry.lock")
+      when: fs.fileExists("poetry.lock")
       then: poetry
 
     bundler:
-      when: file.glob("Gemfile*").size() > 0
+      when: fs.glob("Gemfile*").size() > 0
       then: bundler
 
     gomod:
-      when: file.exists("go.mod") || file.exists("go.sum")
+      when: fs.fileExists("go.mod") || fs.fileExists("go.sum")
       then: gomod
 
     cargo:
-      when: file.exists("Cargo.toml")
+      when: fs.fileExists("Cargo.toml")
       then: cargo
 
     maven:
-      when: file.exists("pom.xml")
+      when: fs.fileExists("pom.xml")
       then: maven
 
     gradle:
-      when: file.exists("build.gradle") || file.exists("build.gradle.kts")
+      when: fs.fileExists("build.gradle") || fs.fileExists("build.gradle.kts")
       then: gradle
 
     nuget:
-      when: file.exists("packages.lock.json")
+      when: fs.fileExists("packages.lock.json")
       then: nuget
 
     mix:
-      when: file.exists("mix.exs")
+      when: fs.fileExists("mix.exs")
       then: mix
 
     quicklisp:
-      when: file.isDir("quicklisp")
+      when: fs.isDir("quicklisp")
       then: quicklisp

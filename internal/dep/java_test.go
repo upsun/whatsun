@@ -1,7 +1,6 @@
 package dep_test
 
 import (
-	"io/fs"
 	"slices"
 	"strings"
 	"testing"
@@ -14,14 +13,14 @@ import (
 )
 
 func TestGradle(t *testing.T) {
-	var fsys fs.FS = fstest.MapFS{
+	fsys := fstest.MapFS{
 		"build.gradle": {Data: []byte(`
 implementation 'org.apache.commons:commons-lang3:3.12.0'
 implementation 'com.fasterxml.jackson.core:jackson-databind:2.12.5'
 		`)},
 	}
 
-	m, err := dep.GetManager(dep.ManagerTypeJava, &fsys, ".")
+	m, err := dep.GetManager(dep.ManagerTypeJava, fsys, ".")
 	require.NoError(t, err)
 
 	toFind := []struct {
@@ -60,7 +59,7 @@ implementation 'com.fasterxml.jackson.core:jackson-databind:2.12.5'
 }
 
 func TestGradleKTS(t *testing.T) {
-	var fsys fs.FS = &fstest.MapFS{
+	fsys := fstest.MapFS{
 		"build.gradle.kts": {Data: []byte(`dependencies {
     implementation("org.codehaus.groovy:groovy:3.0.5")
     implementation("org.codehaus.groovy:groovy-json:3.0.5")
@@ -68,7 +67,7 @@ func TestGradleKTS(t *testing.T) {
 }`)},
 	}
 
-	m, err := dep.GetManager(dep.ManagerTypeJava, &fsys, ".")
+	m, err := dep.GetManager(dep.ManagerTypeJava, fsys, ".")
 	require.NoError(t, err)
 
 	toFind := []struct {
@@ -122,7 +121,7 @@ func TestGradleKTS(t *testing.T) {
 }
 
 func TestMaven(t *testing.T) {
-	var fsys fs.FS = &fstest.MapFS{
+	fsys := fstest.MapFS{
 		"pom.xml": {Data: []byte(`
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -184,7 +183,7 @@ func TestMaven(t *testing.T) {
 		`)},
 	}
 
-	m, err := dep.GetManager(dep.ManagerTypeJava, &fsys, ".")
+	m, err := dep.GetManager(dep.ManagerTypeJava, fsys, ".")
 	require.NoError(t, err)
 
 	toFind := []struct {

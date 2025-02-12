@@ -10,17 +10,16 @@ import (
 	"github.com/itchyny/gojq"
 )
 
-// JSONQueryStringCELFunction defines a CEL function `json.queryString(b, expr) -> string`.
-func JSONQueryStringCELFunction() cel.EnvOption {
-	FuncDocs["json.queryString"] = FuncDoc{
-		Comment: "Query a byte string (e.g. file contents) using JQ",
+func JQ() cel.EnvOption {
+	FuncDocs["jq"] = FuncDoc{
+		Comment: "Query JSON bytes (e.g. file contents) using JQ",
 		Args: []ArgDoc{
 			{"contents", ""},
 			{"query", ""},
 		},
 	}
 
-	return bytesStringReturnsStringErr("json.queryString", jq)
+	return bytesStringReturnsStringErr("jq", jq)
 }
 
 func jq(b []byte, expr string) (string, error) {

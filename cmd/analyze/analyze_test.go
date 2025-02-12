@@ -31,7 +31,7 @@ func TestAnalyze(t *testing.T) {
 
 		// Ignored due to depth or nesting.
 		"another-app/nested/composer.lock":          &fstest.MapFile{},
-		"some/deep/path/containing/a/composer.json": &fstest.MapFile{},
+		"some/deep/path/containing/a/composer.json": &fstest.MapFile{Data: []byte("{}")},
 
 		// Detected without having a package manager.
 		"configured-app/.platform.app.yaml": &fstest.MapFile{},
@@ -49,43 +49,44 @@ func TestAnalyze(t *testing.T) {
 	rulesAnalyzer, err := rules.NewAnalyzer()
 	require.NoError(t, err)
 
-	result, err := rulesAnalyzer.Analyze(context.Background(), testFs)
+	result, err := rulesAnalyzer.Analyze(context.Background(), testFs, ".")
 	require.NoError(t, err)
 
-	assert.EqualValues(t, []rules.Match{{
-		Result: "composer", Report: []rules.Report{{Rule: "composer"}}, Sure: true},
+	assert.EqualValues(t, []rules.Report{{
+		Result: "composer", Rules: []string{"composer"}, Sure: true},
 	}, result["package_managers"].Directories["."])
 
-	assert.EqualValues(t, []rules.Match{
-		{Result: "bun", Report: []rules.Report{{Rule: "js-packages"}}},
-		{Result: "npm", Report: []rules.Report{{Rule: "js-packages"}}},
-		{Result: "pnpm", Report: []rules.Report{{Rule: "js-packages"}}},
-		{Result: "yarn", Report: []rules.Report{{Rule: "js-packages"}}},
+	assert.EqualValues(t, []rules.Report{
+		{Result: "bun", Rules: []string{"js-packages"}},
+		{Result: "npm", Rules: []string{"js-packages"}},
+		{Result: "pnpm", Rules: []string{"js-packages"}},
+		{Result: "yarn", Rules: []string{"js-packages"}},
 	}, result["package_managers"].Directories["ambiguous"])
 
-	assert.EqualValues(t, []rules.Match{{
-		Result: "npm", Report: []rules.Report{{Rule: "npm-lockfile"}}, Sure: true},
+	assert.EqualValues(t, []rules.Report{
+		{Result: "npm", Rules: []string{"npm-lockfile"}, Sure: true},
 	}, result["package_managers"].Directories["another-app"])
 
-	assert.EqualValues(t, []rules.Match{{
-		Result: "symfony", Report: []rules.Report{
-			{Rule: "symfony-framework", With: map[string]string{"major_version": "7"}},
-		}, Sure: true},
-	}, result["frameworks"].Directories["."])
+	assert.EqualValues(t, []rules.Report{{
+		Result: "symfony",
+		Rules:  []string{"symfony-framework"},
+		With:   map[string]string{"major_version": "7"},
+		Sure:   true,
+	}}, result["frameworks"].Directories["."])
 
 	// A conflict will report an error without failing the whole ruleset.
 	var conflictErr error
-	var meteorMatches = make([]rules.Match, 0, len(result["package_managers"].Directories["meteor"])-1)
-	for _, res := range result["package_managers"].Directories["meteor"] {
-		if res.Err != nil {
-			conflictErr = res.Err
+	var meteorMatches = make([]rules.Report, 0, len(result["package_managers"].Directories["meteor"])-1)
+	for _, report := range result["package_managers"].Directories["meteor"] {
+		if report.Err != nil {
+			conflictErr = report.Err
 		} else {
-			meteorMatches = append(meteorMatches, res)
+			meteorMatches = append(meteorMatches, report)
 		}
 	}
 	assert.ErrorContains(t, conflictErr, "conflict found in group js")
-	assert.EqualValues(t, []rules.Match{
-		{Result: "meteor", Report: []rules.Report{{Rule: "meteor"}}, Sure: true},
-		{Result: "npm", Report: []rules.Report{{Rule: "npm-lockfile"}}, Sure: true},
+	assert.EqualValues(t, []rules.Report{
+		{Result: "meteor", Rules: []string{"meteor"}, Sure: true},
+		{Result: "npm", Rules: []string{"npm-lockfile"}, Sure: true},
 	}, meteorMatches)
 }

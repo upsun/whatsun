@@ -12,7 +12,7 @@ import (
 func TestMatch(t *testing.T) {
 	ruleMap := map[string]rules.Rule{
 		"a":   {When: "a", Then: "a"},
-		"aaa": {Name: "aaa_rule", When: "aaa", Then: "a", Exclusive: true},
+		"aaa": {When: "aaa", Then: "a", Exclusive: true},
 		"ab":  {When: "ab", Maybe: []string{"a", "b"}},
 		"bc":  {When: "bc", Maybe: []string{"b", "c"}},
 	}
@@ -27,7 +27,7 @@ func TestMatch(t *testing.T) {
 			name: "is_direct",
 			data: []string{"a", "x", "y"},
 			expect: []rules.Match{
-				{Result: "a", Sure: true, Report: []string{"when: a"}},
+				{Result: "a", Sure: true, Rules: []string{"a"}},
 			},
 		},
 		{
@@ -38,16 +38,16 @@ func TestMatch(t *testing.T) {
 			name: "combine_is_maybe",
 			data: []string{"a", "ab", "bc"},
 			expect: []rules.Match{
-				{Result: "a", Sure: true, Report: []string{"when: a", "when: ab"}},
-				{Result: "b", Sure: false, Report: []string{"when: ab", "when: bc"}},
-				{Result: "c", Sure: false, Report: []string{"when: bc"}},
+				{Result: "a", Sure: true, Rules: []string{"a", "ab"}},
+				{Result: "b", Sure: false, Rules: []string{"ab", "bc"}},
+				{Result: "c", Sure: false, Rules: []string{"bc"}},
 			},
 		},
 		{
 			name: "combine_is_not_maybe",
 			data: []string{"aaa", "bc"},
 			expect: []rules.Match{
-				{Result: "a", Sure: true, Report: []string{"aaa_rule"}},
+				{Result: "a", Sure: true, Rules: []string{"aaa"}},
 			},
 		},
 	}

@@ -7,15 +7,17 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
 
+	"github.com/google/cel-go/common/types"
+
 	"what/internal/eval"
+	"what/internal/eval/celfuncs"
 )
 
 type Analyzer struct {
-	config map[string]Ruleset
-	cache  eval.Cache
+	config    map[string]Ruleset
+	evaluator *eval.Evaluator
 }
 
 func NewAnalyzer() (*Analyzer, error) {
@@ -23,76 +25,46 @@ func NewAnalyzer() (*Analyzer, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Analyzer{cache: cache, config: Config}, nil
-}
-
-func (a *Analyzer) Analyze(_ context.Context, fsys fs.FS) (Results, error) {
-	dot := "."
-	evRoot := &dot
-	celOptions := DefaultEnvOptions(fsys, evRoot)
-
-	ev, err := eval.NewEvaluator(&eval.Config{Cache: a.cache, EnvOptions: celOptions})
+	ev, err := eval.NewEvaluator(&eval.Config{Cache: cache, EnvOptions: DefaultEnvOptions()})
 	if err != nil {
 		return nil, err
 	}
+	return &Analyzer{evaluator: ev, config: Config}, nil
+}
 
+func (a *Analyzer) Analyze(_ context.Context, fsys fs.FS, root string) (Results, error) {
 	var results = make(Results, len(a.config))
 	for name, rs := range a.config {
-		res, err := a.applyRuleset(&rs, fsys, ev, evRoot)
+		res, err := a.applyRuleset(&rs, fsys, root)
 		if err != nil {
 			return nil, err
 		}
-		results[name] = res
+		results[name] = Result{Directories: res}
 	}
 
-	return results, err
+	return results, nil
 }
 
-type Results map[string]Result
-
-func (r Results) String() string {
-	if r == nil {
-		return "[no results]"
-	}
-
-	names := make([]string, 0, len(r))
-	for name := range r {
-		names = append(names, name)
-	}
-	sort.Strings(names)
-
-	s := ""
-	for _, name := range names {
-		s += fmt.Sprintf("\nRuleset: %s", name)
-		res := r[name]
-		if len(res.Directories) == 0 {
-			s += "\n[No results]\n"
-			continue
+func (a *Analyzer) evalWithInput(input any) func(string) (bool, error) {
+	return func(condition string) (bool, error) {
+		val, err := a.evaluator.Eval(condition, input)
+		if err != nil {
+			return false, err
 		}
-		s += "\nPath\tMatches\n"
-		lines := make([]string, 0, len(res.Directories))
-		for dir, matches := range res.Directories {
-			lines = append(lines, fmt.Sprintf("%s\t%+v", dir, matches))
+
+		asBool := val.ConvertToType(types.BoolType)
+		if types.IsError(asBool) {
+			return false, fmt.Errorf("%v", asBool)
 		}
-		sort.Strings(lines)
-		s += strings.Join(lines, "\n")
-		s += "\n"
+
+		return bool(asBool.(types.Bool)), nil
 	}
-
-	return strings.TrimRight(s, "\n")
 }
 
-type Result struct {
-	Directories map[string][]Match
-}
-
-func (a *Analyzer) applyRuleset(rs *Ruleset, fsys fs.FS, ev *eval.Evaluator, evRoot *string) (Result, error) {
-	var (
-		result  = Result{Directories: make(map[string][]Match)}
-		evFunc  = evalFunc(ev)
-		matcher = &Matcher{Rules: rs.Rules, Report: reportFunc(ev)}
-	)
-	err := fs.WalkDir(fsys, ".", func(path string, d fs.DirEntry, err error) error {
+func (a *Analyzer) applyRuleset(rs *Ruleset, fsys fs.FS, root string) (map[string][]Report, error) {
+	matcher := &Matcher{rs.Rules}
+	var dirReports = make(map[string][]Report)
+	err := fs.WalkDir(fsys, root, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -119,16 +91,20 @@ func (a *Analyzer) applyRuleset(rs *Ruleset, fsys fs.FS, ev *eval.Evaluator, evR
 		}
 
 		if d.IsDir() {
-			*evRoot = path
-			m, err := matcher.Match(evFunc)
+			input := celfuncs.FilesystemInput(fsys, path)
+			matches, err := matcher.Match(a.evalWithInput(input))
 			if err != nil {
 				return fmt.Errorf("in directory %s: %w", path, err)
 			}
-			if len(m) > 0 {
-				result.Directories[path] = append(result.Directories[path], m...)
-			}
-			if rs.MaxNestedDepth != 0 && depth >= rs.MaxNestedDepth {
-				return filepath.SkipDir
+			if len(matches) > 0 {
+				var reports = make([]Report, len(matches))
+				for i, m := range matches {
+					reports[i] = matchToReport(a.evaluator, input, rs.Rules, m)
+				}
+				dirReports[path] = reports
+				if rs.MaxNestedDepth != 0 && depth >= rs.MaxNestedDepth {
+					return filepath.SkipDir
+				}
 			}
 		}
 
@@ -138,10 +114,5 @@ func (a *Analyzer) applyRuleset(rs *Ruleset, fsys fs.FS, ev *eval.Evaluator, evR
 		return nil
 	})
 
-	return result, err
-}
-
-type Report struct {
-	Rule string
-	With map[string]string
+	return dirReports, err
 }

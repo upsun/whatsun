@@ -3,7 +3,6 @@ package rules
 import (
 	"fmt"
 	"runtime"
-	"sort"
 
 	"golang.org/x/sync/errgroup"
 )
@@ -18,15 +17,10 @@ import (
 // rules into a useful summary (this defaults to a list of conditions, via
 // DefaultReportFunc).
 type Matcher struct {
-	Rules  map[string]Rule
-	Report func([]*Rule) any
+	Rules map[string]Rule
 }
 
 func (f *Matcher) Match(eval func(condition string) (bool, error)) ([]Match, error) {
-	if f.Report == nil {
-		f.Report = DefaultReportFunc
-	}
-
 	eg := errgroup.Group{}
 	eg.SetLimit(runtime.GOMAXPROCS(0))
 	var s store
@@ -37,6 +31,7 @@ func (f *Matcher) Match(eval func(condition string) (bool, error)) ([]Match, err
 				return fmt.Errorf("failed to eval rule %s, condition `%s`: %w", name, rule.When, err)
 			}
 			if match {
+				rule.Name = name
 				s.Add(&rule)
 			}
 			return nil
@@ -46,25 +41,12 @@ func (f *Matcher) Match(eval func(condition string) (bool, error)) ([]Match, err
 		return nil, err
 	}
 
-	return s.List(f.Report)
+	return s.List()
 }
 
 type Match struct {
 	Result string
 	Sure   bool
-	Report any
 	Err    error
-}
-
-func DefaultReportFunc(rules []*Rule) any {
-	report := make([]string, 0, len(rules))
-	for _, rule := range rules {
-		if rule.Name != "" {
-			report = append(report, rule.Name)
-		} else if rule.When != "" {
-			report = append(report, "when: "+rule.When)
-		}
-	}
-	sort.Strings(report)
-	return report
+	Rules  []string
 }
