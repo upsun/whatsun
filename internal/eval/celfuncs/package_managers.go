@@ -1,6 +1,8 @@
 package celfuncs
 
 import (
+	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/google/cel-go/cel"
@@ -17,13 +19,17 @@ func AllPackageManagerFunctions() []cel.EnvOption {
 	}
 }
 
+func managerTypeComment() string {
+	return fmt.Sprintf("The manager type (one of: `%s`)", strings.Join(dep.AllManagerTypes, "`, `"))
+}
+
 func DepExists() cel.EnvOption {
 	FuncDocs["depExists"] = FuncDoc{
 		Comment:     "Check if a project has a dependency",
 		Description: "This supports a few package management tools: more may be added later.",
 		Args: []ArgDoc{
 			{"fs", "The filesystem wrapper"},
-			{"managerType", "The manager type (`go`, `js` or `php`)"},
+			{"managerType", managerTypeComment()},
 			{"pattern", "The dependency name, accepting `*` as a wildcard"},
 		},
 	}
@@ -38,7 +44,7 @@ func DepVersion() cel.EnvOption {
 		Description: "This returns an empty string if the dependency is not found.",
 		Args: []ArgDoc{
 			{"fs", "The filesystem wrapper"},
-			{"managerType", "The manager type (`go`, `js` or `php`)"},
+			{"managerType", managerTypeComment()},
 			{"name", "The dependency name"},
 		},
 	}

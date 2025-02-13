@@ -12,7 +12,7 @@ This supports a few package management tools: more may be added later.
 
 * `<fs dyn>.depExists(managerType string, pattern string)` -> `bool`
     - `fs`: The filesystem wrapper
-    - `managerType`: The manager type (`go`, `js` or `php`)
+    - `managerType`: The manager type (one of: `go`, `java`, `js`, `php`, `python`, `ruby`)
     - `pattern`: The dependency name, accepting `*` as a wildcard
 
 ### `depVersion`
@@ -22,7 +22,7 @@ This returns an empty string if the dependency is not found.
 
 * `<fs dyn>.depVersion(managerType string, name string)` -> `string`
     - `fs`: The filesystem wrapper
-    - `managerType`: The manager type (`go`, `js` or `php`)
+    - `managerType`: The manager type (one of: `go`, `java`, `js`, `php`, `python`, `ruby`)
     - `name`: The dependency name
 
 ### `fileContains`
@@ -54,6 +54,11 @@ Query JSON bytes (e.g. file contents) using JQ.
 Parse a semantic version into major, minor and patch components.
 
 * `parseVersion(version string)` -> `map(string, string)`
+
+### `path`
+Get the current file path.
+
+* `<fs dyn>.path()` -> `string`
 
 ### `read`
 Read a file.

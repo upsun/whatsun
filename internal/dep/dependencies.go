@@ -8,13 +8,17 @@ import (
 )
 
 const (
-	ManagerTypePHP        = "php"
-	ManagerTypeJavaScript = "js"
 	ManagerTypeGo         = "go"
+	ManagerTypeJava       = "java"
+	ManagerTypeJavaScript = "js"
+	ManagerTypePHP        = "php"
 	ManagerTypePython     = "python"
 	ManagerTypeRuby       = "ruby"
-	ManagerTypeJava       = "java"
 )
+
+var AllManagerTypes = []string{
+	ManagerTypeGo, ManagerTypeJava, ManagerTypeJavaScript, ManagerTypePHP, ManagerTypePython, ManagerTypeRuby,
+}
 
 type Dependency struct {
 	Vendor     string // The vendor, if any.
