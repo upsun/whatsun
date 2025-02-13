@@ -14,10 +14,11 @@ const (
 	ManagerTypePHP        = "php"
 	ManagerTypePython     = "python"
 	ManagerTypeRuby       = "ruby"
+	ManagerTypeRust       = "rust"
 )
 
 var AllManagerTypes = []string{
-	ManagerTypeGo, ManagerTypeJava, ManagerTypeJavaScript, ManagerTypePHP, ManagerTypePython, ManagerTypeRuby,
+	ManagerTypeGo, ManagerTypeJava, ManagerTypeJavaScript, ManagerTypePHP, ManagerTypePython, ManagerTypeRuby, ManagerTypeRust,
 }
 
 type Dependency struct {
@@ -46,6 +47,7 @@ var managerFuncs = map[string]func(fs.FS, string) Manager{
 	ManagerTypePHP:        newPHPManager,
 	ManagerTypePython:     newPythonManager,
 	ManagerTypeRuby:       newRubyManager,
+	ManagerTypeRust:       newRustManager,
 }
 
 // GetManager returns a dependency manager for the given type, filesystem and path.

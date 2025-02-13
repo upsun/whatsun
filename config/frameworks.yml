@@ -238,3 +238,11 @@ frameworks:
         version: parseVersion(fs.depVersion("java", "io.quarkus:quarkus-rest"))
       group: java
       exclusive: true
+
+    rocket:
+      when: fs.depExists("rust", "rocket")
+      then: rocket
+      with:
+        version: parseVersion(fs.depVersion("rust", "rocket"))
+      group: rust
+      exclusive: true
