@@ -39,18 +39,23 @@ package_managers:
     pip:
       when: fs.fileExists("requirements.txt")
       then: pip
+      group: python
 
     pipenv:
       when: fs.fileExists("Pipfile")
       then: pipenv
+      group: python
 
     pyproject:
       when: fs.fileExists("pyproject.toml")
       maybe: [poetry, pip, uv]
+      group: python
 
     poetry:
       when: fs.fileExists("poetry.lock")
       then: poetry
+      exclusive: true
+      group: python
 
     bundler:
       when: fs.glob("Gemfile*").size() > 0
