@@ -85,7 +85,7 @@ frameworks:
       exclusive: true
 
     express:
-      when: fs.depExists("js", "express")
+      when: fs.isDir("node_modules/express") || fs.depExists("js", "express")
       then: express
       with:
         version: parseVersion(fs.depVersion("js", "express"))
@@ -132,14 +132,14 @@ frameworks:
       exclusive: true
 
     reactjs:
-      when: fs.depExists("js", "react")
+      when: fs.isDir("node_modules/react") || fs.depExists("js", "react")
       then: reactjs
       with:
         version: parseVersion(fs.depVersion("js", "react"))
       group: js
 
     vuejs:
-      when: fs.depExists("js", "vue")
+      when: fs.isDir("node_modules/vue") || fs.depExists("js", "vue")
       then: vuejs
       with:
         version: parseVersion(fs.depVersion("js", "vue"))
