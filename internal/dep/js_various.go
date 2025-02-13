@@ -13,9 +13,8 @@ type jsManager struct {
 	fsys fs.FS
 	path string
 
-	initOnce        sync.Once
-	packageJSON     packageJSON
-	packageLockJSON packageLockJSON
+	initOnce sync.Once
+	deps     map[string]Dependency
 }
 
 type packageJSON struct {
@@ -44,61 +43,62 @@ func (m *jsManager) Init() error {
 	return err
 }
 
+func (m *jsManager) vendorName(name string) string {
+	if strings.Contains(name, "/") {
+		parts := strings.SplitN(name, "/", 2)
+		return parts[0]
+	}
+	return ""
+}
+
 func (m *jsManager) parse() error {
-	if err := parseJSON(m.fsys, m.path, "package.json", &m.packageJSON); err != nil {
+	var manifest packageJSON
+	if err := parseJSON(m.fsys, m.path, "package.json", &manifest); err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
 			return nil
 		}
 		return err
 	}
-	if err := parseJSON(m.fsys, m.path, "package-lock.json", &m.packageLockJSON); err != nil {
+
+	m.deps = map[string]Dependency{}
+	for name, constraint := range manifest.Dependencies {
+		m.deps[name] = Dependency{Constraint: constraint, Name: name, Vendor: m.vendorName(name)}
+	}
+
+	var locked packageLockJSON
+	if err := parseJSON(m.fsys, m.path, "package-lock.json", &locked); err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
 			return nil
 		}
 		return err
 	}
+	for name, pkg := range locked.Packages {
+		if !strings.HasPrefix(name, "node_modules/") {
+			continue
+		}
+		name = strings.TrimPrefix(name, "node_modules/")
+		if d, ok := m.deps[name]; ok {
+			d.Version = pkg.Version
+			m.deps[name] = d
+		} else {
+			m.deps[name] = Dependency{Name: name, Version: pkg.Version, Vendor: m.vendorName(name)}
+		}
+	}
+
 	return nil
 }
 
 func (m *jsManager) Find(pattern string) []Dependency {
 	var deps []Dependency
-	for name := range m.packageJSON.Dependencies {
+	for name, dep := range m.deps {
 		if wildcard.Match(pattern, name) {
-			parts := strings.SplitN(name, "/", 2)
-			var vendor string
-			if len(parts) == 2 {
-				vendor = parts[0]
-			}
-			deps = append(deps, Dependency{
-				Vendor: vendor,
-				Name:   name,
-			})
+			deps = append(deps, dep)
 		}
 	}
 	return deps
 }
 
-func (m *jsManager) getLockedVersion(packageName string) string {
-	if pkg, ok := m.packageLockJSON.Packages["node_modules/"+packageName]; ok {
-		return pkg.Version
-	}
-	return ""
-}
-
 func (m *jsManager) Get(name string) (Dependency, bool) {
-	constraint, ok := m.packageJSON.Dependencies[name]
-	if !ok {
-		return Dependency{}, false
-	}
-	var vendor string
-	if strings.Contains(name, "/") {
-		parts := strings.SplitN(name, "/", 2)
-		vendor = parts[0]
-	}
-	return Dependency{
-		Name:       name,
-		Vendor:     vendor,
-		Constraint: constraint,
-		Version:    m.getLockedVersion(name),
-	}, true
+	dep, ok := m.deps[name]
+	return dep, ok
 }

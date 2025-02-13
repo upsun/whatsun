@@ -13,10 +13,10 @@ import (
 	"what/internal/dep"
 )
 
-//go:embed testdata/Cargo_.toml
+//go:embed testdata/rust_cargo/Cargo_.toml
 var testCargoTOML []byte
 
-//go:embed testdata/Cargo_.lock
+//go:embed testdata/rust_cargo/Cargo_.lock
 var testCargoLock []byte
 
 func TestParseCargoTOMLAndLock(t *testing.T) {
