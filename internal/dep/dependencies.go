@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io/fs"
 	"path/filepath"
+
+	"gopkg.in/yaml.v3"
 )
 
 const (
@@ -66,6 +68,18 @@ func parseJSON(fsys fs.FS, path, filename string, dest any) error {
 	}
 	defer f.Close()
 	if err := json.NewDecoder(f).Decode(dest); err != nil {
+		return fmt.Errorf("failed to parse %s: %w", filepath.Join(path, filename), err)
+	}
+	return nil
+}
+
+func parseYAML(fsys fs.FS, path, filename string, dest any) error {
+	f, err := fsys.Open(filepath.Join(path, filename))
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	if err := yaml.NewDecoder(f).Decode(dest); err != nil {
 		return fmt.Errorf("failed to parse %s: %w", filepath.Join(path, filename), err)
 	}
 	return nil

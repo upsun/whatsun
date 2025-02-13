@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/IGLOU-EU/go-wildcard/v2"
+	"gopkg.in/yaml.v3"
 )
 
 type jsManager struct {
@@ -25,6 +26,10 @@ type packageLockJSON struct {
 	Packages map[string]struct {
 		Version string `json:"version"`
 	} `json:"Packages"`
+}
+
+type pnpmLockYAML struct {
+	Packages map[string]yaml.Node `yaml:"packages"`
 }
 
 // TODO can any repetition be avoided between jsManager and phpManager?
@@ -66,10 +71,7 @@ func (m *jsManager) parse() error {
 	}
 
 	var locked packageLockJSON
-	if err := parseJSON(m.fsys, m.path, "package-lock.json", &locked); err != nil {
-		if errors.Is(err, fs.ErrNotExist) {
-			return nil
-		}
+	if err := parseJSON(m.fsys, m.path, "package-lock.json", &locked); err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return err
 	}
 	for name, pkg := range locked.Packages {
@@ -82,6 +84,24 @@ func (m *jsManager) parse() error {
 			m.deps[name] = d
 		} else {
 			m.deps[name] = Dependency{Name: name, Version: pkg.Version, Vendor: m.vendorName(name)}
+		}
+	}
+
+	var pnpmLocked pnpmLockYAML
+	if err := parseYAML(m.fsys, m.path, "pnpm-lock.yaml", &pnpmLocked); err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return err
+	}
+	for nameVersion := range pnpmLocked.Packages {
+		parts := strings.Split(nameVersion, "@")
+		if len(parts) != 2 {
+			continue
+		}
+		name, version := parts[0], parts[1]
+		if d, ok := m.deps[name]; ok {
+			d.Version = version
+			m.deps[name] = d
+		} else {
+			m.deps[name] = Dependency{Name: name, Version: version, Vendor: m.vendorName(name)}
 		}
 	}
 
