@@ -37,7 +37,8 @@ func TestAnalyze(t *testing.T) {
 		"configured-app/.platform.app.yaml": &fstest.MapFile{},
 
 		// Ambiguous: Bun, NPM, PNPM, or Yarn.
-		"ambiguous/package.json": &fstest.MapFile{Data: []byte("{}")},
+		// No lockfile so generates an error getting the version.
+		"ambiguous/package.json": &fstest.MapFile{Data: []byte(`{"dependencies":{"gatsby":"^5.14.1"}}`)},
 
 		// Meteor and NPM directory ("conflicting").
 		"meteor/.meteor":           &fstest.MapFile{Mode: fs.ModeDir},
@@ -54,37 +55,44 @@ func TestAnalyze(t *testing.T) {
 
 	assert.EqualValues(t, []rules.Report{{
 		Result: "composer", Rules: []string{"composer"}, Sure: true},
-	}, result["package_managers"].Directories["."])
+	}, result["package_managers"].Paths["."])
 
 	assert.EqualValues(t, []rules.Report{
 		{Result: "bun", Rules: []string{"js-packages"}},
 		{Result: "npm", Rules: []string{"js-packages"}},
 		{Result: "pnpm", Rules: []string{"js-packages"}},
 		{Result: "yarn", Rules: []string{"js-packages"}},
-	}, result["package_managers"].Directories["ambiguous"])
+	}, result["package_managers"].Paths["ambiguous"])
+
+	assert.EqualValues(t, []rules.Report{
+		{Result: "gatsby", Sure: true, Rules: []string{"gatsby"}, With: map[string]rules.Metadata{
+			"version": {Error: "empty version number"},
+		}},
+	}, result["frameworks"].Paths["ambiguous"])
 
 	assert.EqualValues(t, []rules.Report{
 		{Result: "npm", Rules: []string{"npm-lockfile"}, Sure: true},
-	}, result["package_managers"].Directories["another-app"])
+	}, result["package_managers"].Paths["another-app"])
 
 	assert.EqualValues(t, []rules.Report{{
 		Result: "symfony",
 		Rules:  []string{"symfony-framework"},
-		With:   map[string]string{"major_version": "7"},
+		With:   map[string]rules.Metadata{"major_version": {Value: "7"}},
 		Sure:   true,
-	}}, result["frameworks"].Directories["."])
+	}}, result["frameworks"].Paths["."])
 
 	// A conflict will report an error without failing the whole ruleset.
-	var conflictErr error
-	var meteorMatches = make([]rules.Report, 0, len(result["package_managers"].Directories["meteor"])-1)
-	for _, report := range result["package_managers"].Directories["meteor"] {
-		if report.Err != nil {
-			conflictErr = report.Err
+	var conflictErr string
+	var meteorMatches = make([]rules.Report, 0, len(result["package_managers"].Paths["meteor"])-1)
+	for _, report := range result["package_managers"].Paths["meteor"] {
+		if report.Error != "" {
+			conflictErr = report.Error
 		} else {
 			meteorMatches = append(meteorMatches, report)
 		}
 	}
-	assert.ErrorContains(t, conflictErr, "conflict found in group js")
+	assert.Contains(t, conflictErr, "conflict found in group js")
+
 	assert.EqualValues(t, []rules.Report{
 		{Result: "meteor", Rules: []string{"meteor"}, Sure: true},
 		{Result: "npm", Rules: []string{"npm-lockfile"}, Sure: true},

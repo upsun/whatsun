@@ -40,7 +40,7 @@ func (a *Analyzer) Analyze(_ context.Context, fsys fs.FS, root string) (Results,
 		if err != nil {
 			return nil, err
 		}
-		results[name] = Result{Directories: res}
+		results[name] = Result{Paths: res}
 	}
 
 	return results, nil
