@@ -116,7 +116,7 @@ frameworks:
       exclusive: true
 
     nextjs:
-      when: fs.depExists("js", "next")
+      when: fs.fileExists("next.config.js") || fs.depExists("js", "next")
       then: nextjs
       with:
         version: parseVersion(fs.depVersion("js", "next"))
