@@ -8,6 +8,7 @@ require (
 	github.com/Masterminds/semver/v3 v3.3.1
 	github.com/google/cel-go v0.23.2
 	github.com/itchyny/gojq v0.12.17
+	github.com/tidwall/jsonc v0.3.2
 	golang.org/x/mod v0.23.0
 	golang.org/x/sync v0.10.0
 	google.golang.org/genproto/googleapis/api v0.0.0-20240826202546-f6391c0de4c7

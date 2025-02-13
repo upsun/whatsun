@@ -32,6 +32,10 @@ type pnpmLockYAML struct {
 	Packages map[string]yaml.Node `yaml:"packages"`
 }
 
+type bunLock struct {
+	Packages map[string][]any `json:"packages"`
+}
+
 // TODO can any repetition be avoided between jsManager and phpManager?
 func newJSManager(fsys fs.FS, path string) Manager {
 	return &jsManager{
@@ -97,6 +101,31 @@ func (m *jsManager) parse() error {
 			continue
 		}
 		name, version := parts[0], parts[1]
+		if d, ok := m.deps[name]; ok {
+			d.Version = version
+			m.deps[name] = d
+		} else {
+			m.deps[name] = Dependency{Name: name, Version: version, Vendor: m.vendorName(name)}
+		}
+	}
+
+	var bunLocked bunLock
+	if err := parseJSONC(m.fsys, m.path, "bun.lock", &bunLocked); err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return err
+	}
+	for name, info := range bunLocked.Packages {
+		if len(info) == 0 {
+			continue
+		}
+		first, ok := info[0].(string)
+		if !ok {
+			continue
+		}
+		parts := strings.Split(first, "@")
+		if len(parts) != 2 {
+			continue
+		}
+		version := parts[1]
 		if d, ok := m.deps[name]; ok {
 			d.Version = version
 			m.deps[name] = d

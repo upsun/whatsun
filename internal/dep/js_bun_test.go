@@ -12,17 +12,17 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-//go:embed testdata/js_pnpm/package_.json
-var testPNPMPackageJSON []byte
+//go:embed testdata/js_bun/package_.json
+var testBunPackageJSON []byte
 
-//go:embed testdata/js_pnpm/pnpm-lock_.yaml
-var testPNPMLock []byte
+//go:embed testdata/js_bun/bun_.lock
+var testBunLock []byte
 
-func TestPNPM(t *testing.T) {
-	// This example was generated with: `pnpm install strapi`
+func TestBun(t *testing.T) {
+	// This example was generated with: `bun install vue`
 	fsys := fstest.MapFS{
-		"package.json":   {Data: testPNPMPackageJSON},
-		"pnpm-lock.yaml": {Data: testPNPMLock},
+		"package.json": {Data: testBunPackageJSON},
+		"bun.lock":     {Data: testBunLock},
 	}
 
 	m, err := dep.GetManager(dep.ManagerTypeJavaScript, fsys, ".")
@@ -33,10 +33,10 @@ func TestPNPM(t *testing.T) {
 		pattern      string
 		dependencies []dep.Dependency
 	}{
-		{"strapi", []dep.Dependency{{
-			Name:       "strapi",
-			Constraint: "^3.6.11",
-			Version:    "3.6.11",
+		{"vue", []dep.Dependency{{
+			Name:       "vue",
+			Constraint: "^3.5.13",
+			Version:    "3.5.13",
 		}}},
 	}
 	for _, c := range cases {

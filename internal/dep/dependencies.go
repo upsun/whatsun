@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"path/filepath"
 
+	"github.com/tidwall/jsonc"
 	"gopkg.in/yaml.v3"
 )
 
@@ -68,7 +69,18 @@ func parseJSON(fsys fs.FS, path, filename string, dest any) error {
 	}
 	defer f.Close()
 	if err := json.NewDecoder(f).Decode(dest); err != nil {
-		return fmt.Errorf("failed to parse %s: %w", filepath.Join(path, filename), err)
+		return fmt.Errorf("failed to parse %s as JSON: %w", filepath.Join(path, filename), err)
+	}
+	return nil
+}
+
+func parseJSONC(fsys fs.FS, path, filename string, dest any) error {
+	b, err := fs.ReadFile(fsys, filepath.Join(path, filename))
+	if err != nil {
+		return err
+	}
+	if err := json.Unmarshal(jsonc.ToJSONInPlace(b), dest); err != nil {
+		return fmt.Errorf("failed to parse %s as JSONC: %w", filepath.Join(path, filename), err)
 	}
 	return nil
 }
@@ -80,7 +92,7 @@ func parseYAML(fsys fs.FS, path, filename string, dest any) error {
 	}
 	defer f.Close()
 	if err := yaml.NewDecoder(f).Decode(dest); err != nil {
-		return fmt.Errorf("failed to parse %s: %w", filepath.Join(path, filename), err)
+		return fmt.Errorf("failed to parse %s as YAML: %w", filepath.Join(path, filename), err)
 	}
 	return nil
 }
