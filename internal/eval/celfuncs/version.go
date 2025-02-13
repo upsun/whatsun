@@ -14,6 +14,9 @@ func ParseVersion() cel.EnvOption {
 	}
 
 	return stringReturnsMapErr("parseVersion", func(s string) (map[string]string, error) {
+		if s == "" {
+			return nil, fmt.Errorf("empty version number")
+		}
 		v, err := semver.NewVersion(s)
 		if err != nil {
 			return nil, fmt.Errorf("invalid version number: %s", s)
