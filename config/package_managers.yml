@@ -73,8 +73,15 @@ package_managers:
       then: gradle
 
     nuget:
-      when: fs.fileExists("packages.lock.json")
+      when: fs.fileExists("packages.config")
       then: nuget
+      group: dotnet
+      exclusive: true
+
+    msbuild:
+      when: fs.glob("*.csproj").size() > 0
+      then: msbuild
+      group: dotnet
 
     mix:
       when: fs.fileExists("mix.exs")
