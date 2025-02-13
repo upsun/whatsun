@@ -248,3 +248,8 @@ frameworks:
         version: parseVersion(fs.depVersion("rust", "rocket"))
       group: rust
       exclusive: true
+
+    hugo-build-lock:
+      when: fs.fileExists(".hugo_build.lock")
+      then: hugo
+      group: static
