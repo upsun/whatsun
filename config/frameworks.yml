@@ -261,3 +261,9 @@ frameworks:
       when: fs.fileExists(".hugo_build.lock")
       then: hugo
       group: static
+
+    phoenix:
+      when: fs.depExists("elixir", "phoenix")
+      then: phoenix
+      with:
+        version: fs.depVersion("elixir", "phoenix")
