@@ -58,27 +58,28 @@ func TestAnalyze(t *testing.T) {
 	}, result["package_managers"].Paths["."])
 
 	assert.EqualValues(t, []rules.Report{
-		{Result: "bun", Rules: []string{"js-packages"}},
-		{Result: "npm", Rules: []string{"js-packages"}},
-		{Result: "pnpm", Rules: []string{"js-packages"}},
-		{Result: "yarn", Rules: []string{"js-packages"}},
+		{Result: "bun", Rules: []string{"js-packages"}, Groups: []string{"js"}},
+		{Result: "npm", Rules: []string{"js-packages"}, Groups: []string{"js"}},
+		{Result: "pnpm", Rules: []string{"js-packages"}, Groups: []string{"js"}},
+		{Result: "yarn", Rules: []string{"js-packages"}, Groups: []string{"js"}},
 	}, result["package_managers"].Paths["ambiguous"])
 
 	assert.EqualValues(t, []rules.Report{
 		{Result: "gatsby", Sure: true, Rules: []string{"gatsby"}, With: map[string]rules.Metadata{
-			"version": {Error: "empty version number"},
-		}},
+			"version": {Value: ""}, // When no version number is available.
+		}, Groups: []string{"js"}},
 	}, result["frameworks"].Paths["ambiguous"])
 
 	assert.EqualValues(t, []rules.Report{
-		{Result: "npm", Rules: []string{"npm-lockfile"}, Sure: true},
+		{Result: "npm", Rules: []string{"npm-lockfile"}, Sure: true, Groups: []string{"js"}},
 	}, result["package_managers"].Paths["another-app"])
 
 	assert.EqualValues(t, []rules.Report{{
 		Result: "symfony",
 		Rules:  []string{"symfony-framework"},
-		With:   map[string]rules.Metadata{"major_version": {Value: "7"}},
+		With:   map[string]rules.Metadata{"version": {Value: "7.2.3"}},
 		Sure:   true,
+		Groups: []string{"php"},
 	}}, result["frameworks"].Paths["."])
 
 	// A conflict will report an error without failing the whole ruleset.
@@ -94,7 +95,7 @@ func TestAnalyze(t *testing.T) {
 	assert.Contains(t, conflictErr, "conflict found in group js")
 
 	assert.EqualValues(t, []rules.Report{
-		{Result: "meteor", Rules: []string{"meteor"}, Sure: true},
-		{Result: "npm", Rules: []string{"npm-lockfile"}, Sure: true},
+		{Result: "meteor", Rules: []string{"meteor"}, Sure: true, Groups: []string{"js"}},
+		{Result: "npm", Rules: []string{"npm-lockfile"}, Sure: true, Groups: []string{"js"}},
 	}, meteorMatches)
 }

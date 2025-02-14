@@ -3,7 +3,225 @@
 frameworks:
   max_depth: 5
   rules:
+    # TODO include a "base framework" concept? many of the following are based on Symfony
+    grav: # Grav CMS. See: https://github.com/getgrav/grav
+      when: fs.depExists("php", "getgrav/grav")
+      then: grav
+      with:
+        version: fs.depVersion("php", "getgrav/grav")
+      exclusive: true
+      group: php
 
+    bolt: # Bolt CMS. See: https://github.com/bolt/core
+      when: fs.depExists("php", "bolt/core")
+      then: bolt
+      with:
+        version: fs.depVersion("php", "bolt/core")
+      exclusive: true
+      group: php
+
+    kunstmaan-cms: # Kunstmaan CMS. See: https://github.com/Kunstmaan/KunstmaanBundlesCMS
+      when: fs.depExists("php", "kunstmaan/*")
+      then: kunstmaan-cms
+      exclusive: true
+      group: php
+
+    concrete-cms: # Concrete CMS. See: https://github.com/concretecms/concretecms
+      when: fs.depExists("php", "concretecms/*")
+      then: concrete-cms
+      exclusive: true
+      group: php
+
+    silverstripe-cms: # Silverstripe CMS. See: https://github.com/silverstripe/silverstripe-cms
+      when: fs.depExists("php", "silverstripe/cms")
+      then: silverstripe-cms
+      with:
+        version: fs.depVersion("php", "bolt/common")
+      exclusive: true
+      group: php
+
+    roadiz: # Roadiz CMS. See: https://github.com/roadiz
+      when: fs.depExists("php", "roadiz/*")
+      then: roadiz
+      with:
+        version: fs.depVersion("php", "roadiz/core-bundle")
+      exclusive: true
+      group: php
+
+    contao: # Contao CMS. See: https://github.com/contao/contao
+      when: fs.depExists("php", "contao/contao")
+      then: contao
+      with:
+        version: fs.depVersion("php", "contao/contao")
+      exclusive: true
+      group: php
+
+    picocms: # Pico CMS. See: https://github.com/picocms/Pico
+      when: fs.depExists("php", "picocms/pico")
+      then: picocms
+      with:
+        version: fs.depVersion("php", "picocms/pico")
+      exclusive: true
+      group: php
+
+    uvdesk: # UVDesk Community Helpdesk. See: https://github.com/uvdesk/core-framework
+      when: fs.depExists("php", "uvdesk/core-framework")
+      then: uvdesk
+      with:
+        version: fs.depVersion("php", "uvdesk/core-framework")
+      exclusive: true
+      group: php
+
+    craftcms: # Craft CMS. See: https://github.com/craftcms/cms
+      when: fs.depExists("php", "craftcms/cms")
+      then: craftcms
+      with:
+        version: fs.depVersion("php", "craftcms/cms")
+      exclusive: true
+      group: php
+
+    neos: # Neos CMS. See: https://docs.neos.io/
+      when: fs.depExists("php", "neos/neos")
+      then: neos
+      with:
+        version: fs.depVersion("php", "neos/neos")
+      exclusive: true
+      group: php
+
+    typo3: # TYPO3 CMS. See: https://typo3.org/
+      when: fs.depExists("php", "typo3/core") || fs.depExists("php", "typo3/cms*")
+      then: typo3
+      with:
+        version: fs.depVersion("php", "typo3/core")
+      exclusive: true
+      group: php
+
+    joomla: # Joomla CMS. See: https://joomla.org
+      when: fs.depExists("php", "joomla/application")
+      then: joomla
+      with:
+        version: fs.depVersion("php", "joomla/application")
+      exclusive: true
+      group: php
+
+    sulu: # Sulu CMS. See: https://sulu.io
+      when: fs.depExists("php", "sulu/sulu")
+      then: sulu
+      with:
+        version: fs.depVersion("php", "sulu/sulu")
+      exclusive: true
+      group: php
+
+    pimcore: # Pimcore. See: https://pimcore.com/
+      when: fs.depExists("php", "pimcore/pimcore")
+      then: pimcore
+      with:
+        version: fs.depVersion("php", "pimcore/pimcore")
+      exclusive: true
+      group: php
+
+    ibexa: # Ibexa DXP. See: https://www.ibexa.co/
+      when: fs.depExists("php", "ibexa/core") || fs.depExists("php", "ezsystems/*")
+      then: ibexa
+      with:
+        version: fs.depVersion("php", "ibexa/core")
+      exclusive: true
+      group: php
+
+    mautic: # Mautic: Open Source Marketing Automation Software. See: https://mautic.org/
+      when: fs.depExists("php", "mautic/mautic")
+      then: mautic
+      with:
+        version: fs.depVersion("php", "mautic/mautic")
+      exclusive: true
+      group: php
+
+    woocommerce: # WooCommerce (WordPress-based eCommerce framework). See: https://woocommerce.com/
+      when: fs.isDir("wp-content/plugins/woocommerce") || fs.depExists("php", "woocommerce/*")
+      then: woocommerce
+      group: php
+
+    sylius: # Sylius: Open Source Headless eCommerce Platform. See: https://sylius.com/
+      when: fs.depExists("php", "sylius/sylius")
+      then: sylius
+      with:
+        version: fs.depVersion("php", "sylius/sylius")
+      exclusive: true
+      group: php
+
+    spryker: # Spryker: Digital Commerce Platform. See: https://spryker.com/
+      when: fs.depExists("php", "spryker/*")
+      then: sylius
+      with:
+        version: fs.depVersion("php", "spryker-feature/spryker-core")
+      exclusive: true
+      group: php
+
+    thelia: # Thelia eCommerce framework. See: https://thelia.net
+      when: fs.depExists("php", "thelia/thelia")
+      then: thelia
+      with:
+        version: fs.depVersion("php", "thelia/thelia")
+      exclusive: true
+      group: php
+
+    aimeos: # Aimeos eCommerce framework (based on Laravel). See: https://aimeos.org
+      when: fs.depExists("php", "aimeos/aimeos-core")
+      then: aimeos
+      with:
+        version: fs.depVersion("php", "aimeos/aimeos-core")
+      exclusive: true
+      group: php
+
+    oro-commerce: # OroCommerce. See: https://github.com/oroinc/orocommerce
+      when: fs.depExists("php", "oro/commerce")
+      then: oro-commerce
+      with:
+        version: fs.depVersion("php", "oro/commerce")
+      exclusive: true
+      group: php
+
+    shopware: # Shopware eCommerce platform. See: https://shopware.com
+      when: fs.depExists("php", "shopware/core")
+      then: shopware
+      with:
+        version: fs.depVersion("php", "shopware/core")
+      exclusive: true
+      group: php
+
+    prestashop: # PrestaShop eCommerce platform. See: https://github.com/PrestaShop/PrestaShop
+      when: fs.depExists("php", "prestashop/prestashop")
+      then: prestashop
+      with:
+        version: fs.depVersion("php", "prestashop/prestashop")
+      exclusive: true
+      group: php
+
+    akeneo: # Akeneo PIM. See: https://akeneo.com
+      when: fs.depExists("php", "akeneo/*")
+      then: akeneo
+      with:
+        version: fs.depVersion("php", "akeneo/pim-community-standard")
+      exclusive: true
+      group: php
+
+    api-platform: # API Platform. See: https://github.com/api-platform
+      when: fs.depExists("php", "api-platform/core")
+      then: api-platform
+      with:
+        version: fs.depVersion("php", "api-platform/core")
+      exclusive: true
+      group: php
+
+    yii2: # Yii 2. See: https://github.com/yiisoft/yii2
+      when: fs.depExists("php", "yiisoft/yii2")
+      then: yii2
+      with:
+        version: fs.depVersion("php", "yiisoft/yii2")
+      exclusive: true
+      group: php
+
+    # Drupal (modern versions, installed via Composer).
     # Detect Drupal by looking for drupal/core Composer requirements.
     # But exclude Drupal modules and themes that themselves require drupal/core.
     drupal:
@@ -12,24 +230,26 @@ frameworks:
         (fs.depExists("php", "drupal/core") || fs.depExists("php", "drupal/core-recommended"))
       then: drupal
       with:
-        major_version: parseVersion(fs.depVersion("php", "drupal/core")).major
+        version: fs.depVersion("php", "drupal/core")
       exclusive: true
       group: php
 
-    # The drupal/drupal package represents Drupal 7.
+    # Drupal 7 (legacy version 7, installed via Composer).
     drupal7-composer:
       when: fs.depExists("php", "drupal/drupal")
       then: drupal
       with:
-        major_version: parseVersion(fs.depVersion("php", "drupal/drupal")).major
+        version: fs.depVersion("php", "drupal/drupal")
       exclusive: true
       group: php
 
+    # Drupal (detection when installed without Composer).
     drupal-direct:
       when: fs.fileExists("index.php") && fs.fileContains("index.php", "drupal_bootstrap(DRUPAL_BOOTSTRAP_FULL);")
       then: drupal
       group: php
 
+    # Any Composer "project" requiring a Symfony dependency.
     symfony-project:
       when: fs.depExists("php", "symfony/*") && jq(fs.read("composer.json"), ".type") == "project"
       maybe: [symfony]
@@ -39,7 +259,7 @@ frameworks:
       when: fs.depExists("php", "symfony/framework-bundle")
       then: symfony
       with:
-        major_version: parseVersion(fs.depVersion("php", "symfony/framework-bundle")).major
+        version: fs.depVersion("php", "symfony/framework-bundle")
       group: php
       exclusive: true
 
@@ -47,7 +267,7 @@ frameworks:
       when: fs.depExists("php", "laravel/framework")
       then: laravel
       with:
-        major_version: parseVersion(fs.depVersion("php", "laravel/framework")).major
+        version: fs.depVersion("php", "laravel/framework")
       group: php
       exclusive: true
 
@@ -55,7 +275,7 @@ frameworks:
       when: fs.depExists("php", "cakephp/cakephp")
       then: cakephp
       with:
-        version: parseVersion(fs.depVersion("php", "cakephp/cakephp"))
+        version: fs.depVersion("php", "cakephp/cakephp")
       group: php
       exclusive: true
 
@@ -63,7 +283,7 @@ frameworks:
       when: fs.depExists("php", "laminas/laminas-mvc")
       then: laminas
       with:
-        version: parseVersion(fs.depVersion("php", "laminas/laminas-mvc"))
+        version: fs.depVersion("php", "laminas/laminas-router")
       group: php
       exclusive: true
 
@@ -71,7 +291,7 @@ frameworks:
       when: fs.depExists("php", "codeigniter4/framework")
       then: codeigniter
       with:
-        major_version: parseVersion(fs.depVersion("php", "codeigniter4/framework")).major
+        version: fs.depVersion("php", "codeigniter4/framework")
       group: php
       exclusive: true
 
@@ -79,7 +299,7 @@ frameworks:
       when: fs.fileExists("wp-config.php") || fs.depExists("php", "wordpress/wordpress")
       then: wordpress
       with:
-        version: parseVersion(fs.depVersion("php", "wordpress/wordpress"))
+        version: fs.depVersion("php", "wordpress/wordpress")
       group: php
       exclusive: true
 
@@ -87,14 +307,14 @@ frameworks:
       when: fs.isDir("node_modules/express") || fs.depExists("js", "express")
       then: express
       with:
-        version: parseVersion(fs.depVersion("js", "express"))
+        version: fs.depVersion("js", "express")
       group: js
 
     gatsby:
       when: fs.fileExists("gatsby-config.js") || fs.depExists("js", "gatsby")
       then: gatsby
       with:
-        version: parseVersion(fs.depVersion("js", "gatsby"))
+        version: fs.depVersion("js", "gatsby")
       group: js
       exclusive: true
 
@@ -102,7 +322,7 @@ frameworks:
       when: fs.fileExists("strapi-config.json") || fs.depExists("js", "@strapi/strapi")
       then: strapi
       with:
-        version: parseVersion(fs.depVersion("js", "@strapi/strapi"))
+        version: fs.depVersion("js", "@strapi/strapi")
       group: js
       exclusive: true
 
@@ -110,7 +330,7 @@ frameworks:
       when: fs.depExists("js", "@nestjs/core")
       then: nestjs
       with:
-        version: parseVersion(fs.depVersion("js", "@nestjs/core"))
+        version: fs.depVersion("js", "@nestjs/core")
       group: js
       exclusive: true
 
@@ -118,7 +338,7 @@ frameworks:
       when: fs.fileExists("next.config.js") || fs.depExists("js", "next")
       then: nextjs
       with:
-        version: parseVersion(fs.depVersion("js", "next"))
+        version: fs.depVersion("js", "next")
       group: js
       exclusive: true
 
@@ -126,7 +346,7 @@ frameworks:
       when: fs.depExists("js", "@sveltejs/kit")
       then: svelte-kit
       with:
-        version: parseVersion(fs.depVersion("js", "@sveltejs/kit"))
+        version: fs.depVersion("js", "@sveltejs/kit")
       group: js
       exclusive: true
 
@@ -143,7 +363,7 @@ frameworks:
       when: fs.isDir("node_modules/vue") || fs.depExists("js", "vue")
       then: vuejs
       with:
-        version: parseVersion(fs.depVersion("js", "vue"))
+        version: fs.depVersion("js", "vue")
       group: js
       exclusive: true
 
@@ -155,9 +375,35 @@ frameworks:
       group: js
       exclusive: true
 
+    shopsys: # Shopsys Platform (eCommerce framework). See: https://github.com/shopsys/shopsys
+      when: fs.depExists("js", "shopsys")
+      then: shopsys
+      with:
+        version: fs.depVersion("js", "shopsys")
+      exclusive: true
+      group: js
+
+    directus: # Directus SQL API and dashboard. See: https://github.com/directus/directus
+      when: fs.depExists("js", "directus")
+      then: directus
+      with:
+        version: fs.depVersion("js", "directus")
+      exclusive: true
+      group: js
+
+    hono:
+      when: fs.depExists("js", "hono")
+      then: hono
+      with:
+        version: fs.depVersion("js", "hono")
+      group: js
+      exclusive: true
+
     magento:
-      when: fs.depExists("php", "magento/magento-composer-installer")
+      when: fs.depExists("php", "magento/*")
       then: magento
+      with:
+        version: fs.depVersion("php", "magento/magento-composer-installer")
       exclusive: true
       group: php
 
@@ -165,21 +411,21 @@ frameworks:
       when: fs.depExists("go", "github.com/gin-gonic/gin")
       then: gin
       with:
-        version: parseVersion(fs.depVersion("go", "github.com/gin-gonic/gin"))
+        version: fs.depVersion("go", "github.com/gin-gonic/gin")
       group: go
 
     fiber:
       when: fs.depExists("go", "github.com/gofiber/fiber*")
       then: fiber
       with:
-        version: parseVersion(fs.depVersion("go", "github.com/gofiber/fiber/v2"))
+        version: fs.depVersion("go", "github.com/gofiber/fiber/v2")
       group: go
 
     echo:
       when: fs.depExists("go", "github.com/labstack/echo*")
       then: echo
       with:
-        version: parseVersion(fs.depVersion("go", "github.com/labstack/echo/v4"))
+        version: fs.depVersion("go", "github.com/labstack/echo/v4")
       group: go
 
     flask:
@@ -205,6 +451,11 @@ frameworks:
     django:
       when: fs.depExists("python", "django")
       then: django
+      group: python
+
+    wagtail: # Wagtail CMS. See: https://wagtail.org
+      when: fs.depExists("python", "wagtail")
+      then: wagtail
       group: python
       exclusive: true
 
@@ -236,7 +487,7 @@ frameworks:
       when: fs.depExists("java", "org.springframework.boot:*")
       then: spring-boot
       with:
-        version: parseVersion(fs.depVersion("java", "org.springframework.boot:spring-boot-starter-parent"))
+        version: fs.depVersion("java", "org.springframework.boot:spring-boot-starter-parent")
       group: java
       exclusive: true
 
@@ -244,7 +495,15 @@ frameworks:
       when: fs.depExists("java", "io.quarkus:*")
       then: quarkus
       with:
-        version: parseVersion(fs.depVersion("java", "io.quarkus:quarkus-rest"))
+        version: fs.depVersion("java", "io.quarkus:quarkus-rest")
+      group: java
+      exclusive: true
+
+    jfinal:
+      when: fs.depExists("java", "com.jfinal:jfinal")
+      then: jfinal
+      with:
+        version: fs.depVersion("java", "com.jfinal:jfinal")
       group: java
       exclusive: true
 
@@ -252,7 +511,7 @@ frameworks:
       when: fs.depExists("rust", "rocket")
       then: rocket
       with:
-        version: parseVersion(fs.depVersion("rust", "rocket"))
+        version: fs.depVersion("rust", "rocket")
       group: rust
       exclusive: true
 

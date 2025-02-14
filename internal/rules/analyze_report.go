@@ -54,6 +54,7 @@ type Report struct {
 	Sure   bool                `json:"sure,omitempty"`
 	Error  string              `json:"error,omitempty"`
 	Rules  []string            `json:"rules,omitempty"`
+	Groups []string            `json:"groups,omitempty"`
 	With   map[string]Metadata `json:"with,omitempty"`
 }
 
@@ -72,11 +73,15 @@ func matchToReport(ev *eval.Evaluator, input any, rules map[string]Rule, match M
 		rep.Error = match.Err.Error()
 	}
 
+	var groupMap = make(map[string]struct{})
 	var reports []Report
 	for i, ruleName := range match.Rules {
 		rule, ok := rules[ruleName]
 		if !ok {
 			continue
+		}
+		if rule.Group != "" {
+			groupMap[rule.Group] = struct{}{}
 		}
 		rep.Rules[i] = rule.Name
 		if len(rule.With) == 0 {
@@ -95,7 +100,23 @@ func matchToReport(ev *eval.Evaluator, input any, rules map[string]Rule, match M
 		}
 		reports = append(reports, rep)
 	}
+	rep.Groups = sortedMapKeys(groupMap)
 	slices.Sort(rep.Rules)
 
 	return rep
+}
+
+func sortedMapKeys(m map[string]struct{}) []string {
+	if len(m) == 0 {
+		return nil
+	}
+
+	var s = make([]string, len(m))
+	i := 0
+	for k := range m {
+		s[i] = k
+		i++
+	}
+	sort.Strings(s)
+	return s
 }

@@ -23,7 +23,7 @@ Each rule may contain the keys:
 |-----------|-----------------|:---------:|----------------------------------------------------------------------------------------------|
 | when      | string          |    yes    | The condition (always a CEL expression, for now)                                             |
 | then      | string          |           | A known result (if any). This excludes any `maybe` results for the same subject (directory). |
-| maybe     | list of strings |           | Possible results                                                                             |
+| maybe     | list of strings |           | Possible results (either `then` or `maybe` is required).                                     |
 | not       | list of strings |           | Specific results to exclude                                                                  |
 | with      | map of strings  |           | Extra data to include in the report (always CEL expressions, for now)                        |
 | group     | string          |           | A group in which to apply exclusions                                                         |
