@@ -148,6 +148,14 @@ frameworks:
       group: js
       exclusive: true
 
+    vite:
+      when: fs.fileExists("vite.config.ts") || fs.depExists("js", "vite")
+      then: vite
+      with:
+        version: fs.depVersion("js", "vite")
+      group: js
+      exclusive: true
+
     magento:
       when: fs.depExists("php", "magento/magento-composer-installer")
       then: magento

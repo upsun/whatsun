@@ -18,15 +18,15 @@ example-ruleset:
 
 Each rule may contain the keys:
 
-| Key       | Type            | Required? | Description                                      |
-|-----------|-----------------|:---------:|--------------------------------------------------|
-| when      | string          |    yes    | The condition (always a CEL expression, for now) |
-| then      | string          |           | A known result (if any)                          |
-| maybe     | list of strings |           | Possible results                                 |
-| not       | list of strings |           | Specific results to exclude                      |
-| with      | map of strings  |           | Extra data to include in the report              |
-| group     | string          |           | A group in which to apply exclusions             |
-| exclusive | bool            |           | Exclude all other results in this group          |
+| Key       | Type            | Required? | Description                                                                                  |
+|-----------|-----------------|:---------:|----------------------------------------------------------------------------------------------|
+| when      | string          |    yes    | The condition (always a CEL expression, for now)                                             |
+| then      | string          |           | A known result (if any). This excludes any `maybe` results for the same subject (directory). |
+| maybe     | list of strings |           | Possible results                                                                             |
+| not       | list of strings |           | Specific results to exclude                                                                  |
+| with      | map of strings  |           | Extra data to include in the report                                                          |
+| group     | string          |           | A group in which to apply exclusions                                                         |
+| exclusive | bool            |           | Exclude all other `exclusive` or `maybe` results in this group                               |
 
 Rules and rulesets are not applied in any particular order.
 
