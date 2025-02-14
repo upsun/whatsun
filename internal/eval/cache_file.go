@@ -122,9 +122,7 @@ func (c *FileCache) Save() error {
 	return err
 }
 
-func cleanExpr(expr string) string {
-	return strings.ReplaceAll(strings.ReplaceAll(expr, "\n", " "), "\t", " ")
-}
+var cleanExpr = strings.NewReplacer("\n", " ", "\t", " ").Replace
 
 func (c *FileCache) load(r io.Reader) error {
 	scanner := bufio.NewScanner(r)
