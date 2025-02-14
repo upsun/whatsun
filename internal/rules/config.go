@@ -18,8 +18,7 @@ type Ruleset struct {
 	Depends []string        `yaml:"depends"`
 	Rules   map[string]Rule `yaml:"rules"`
 
-	MaxDepth       int `yaml:"max_depth"`
-	MaxNestedDepth int `yaml:"max_nested_depth"`
+	MaxDepth int `yaml:"max_depth"`
 }
 
 type Rule struct {

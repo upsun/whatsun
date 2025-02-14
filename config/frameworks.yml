@@ -2,7 +2,6 @@
 # TODO complete these rules
 frameworks:
   max_depth: 5
-  max_nested_depth: 1
   rules:
 
     # Detect Drupal by looking for drupal/core Composer requirements.

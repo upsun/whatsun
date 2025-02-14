@@ -10,8 +10,7 @@ A named **ruleset** contains **rules** (keyed by name) and some other configurat
 
 ```yaml
 example-ruleset:
-  max_depth: 0 # Stop searching after the top level
-  max_nested_depth: 0 # Stop searching if a result is found after this level
+  max_depth: 0 # Stop searching after this level
   rules:
     example-rule:
       when: fs.fileExists("Dockerfile")

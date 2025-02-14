@@ -7,10 +7,12 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 
 	"github.com/google/cel-go/common/types"
+	"golang.org/x/sync/errgroup"
 
 	"what/internal/eval"
 	"what/internal/eval/celfuncs"
@@ -64,8 +66,8 @@ func (a *Analyzer) evalWithInput(input any) func(string) (bool, error) {
 
 func (a *Analyzer) applyRuleset(rs *Ruleset, fsys fs.FS, root string) (map[string][]Report, error) {
 	matcher := &Matcher{rs.Rules}
-	var dirReports = make(map[string][]Report)
 
+	var directoryPaths []string
 	err := fs.WalkDir(fsys, root, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -93,34 +95,45 @@ func (a *Analyzer) applyRuleset(rs *Ruleset, fsys fs.FS, root string) (map[strin
 		}
 
 		if d.IsDir() {
-			input := celfuncs.FilesystemInput(fsys, path)
-			matches, err := matcher.Match(a.evalWithInput(input))
-			if err != nil {
-				return fmt.Errorf("in directory %s: %w", path, err)
-			}
-			if len(matches) > 0 {
-				var reports = make([]Report, len(matches))
-				wg := sync.WaitGroup{}
-				wg.Add(len(matches))
-				for i, m := range matches {
-					go func() {
-						reports[i] = matchToReport(a.evaluator, input, rs.Rules, m)
-						wg.Done()
-					}()
-				}
-				wg.Wait()
-				dirReports[path] = reports
-				if rs.MaxNestedDepth != 0 && depth >= rs.MaxNestedDepth {
-					return filepath.SkipDir
-				}
-			}
+			directoryPaths = append(directoryPaths, path)
 		}
 
-		if depth >= rs.MaxDepth {
+		if depth >= min(rs.MaxDepth, 10) {
 			return filepath.SkipDir
 		}
 		return nil
 	})
+	if err != nil {
+		return nil, err
+	}
+
+	var dirReports = make(map[string][]Report)
+	var reportMux sync.Mutex
+
+	eg := errgroup.Group{}
+	eg.SetLimit(runtime.GOMAXPROCS(0))
+	for _, d := range directoryPaths {
+		eg.Go(func() error {
+			input := celfuncs.FilesystemInput(fsys, d)
+			matches, err := matcher.Match(a.evalWithInput(input))
+			if err != nil {
+				return fmt.Errorf("in directory %s: %w", d, err)
+			}
+			if len(matches) > 0 {
+				var reports = make([]Report, len(matches))
+				for i, m := range matches {
+					reports[i] = matchToReport(a.evaluator, input, rs.Rules, m)
+				}
+				reportMux.Lock()
+				dirReports[d] = reports
+				reportMux.Unlock()
+			}
+			return nil
+		})
+	}
+	if err := eg.Wait(); err != nil {
+		return nil, err
+	}
 
 	return dirReports, err
 }
