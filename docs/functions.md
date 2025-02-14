@@ -12,7 +12,7 @@ This supports a few package management tools: more may be added later.
 
 * `<fs dyn>.depExists(managerType string, pattern string)` -> `bool`
     - `fs`: The filesystem wrapper
-    - `managerType`: The manager type (one of: `go`, `java`, `js`, `php`, `python`, `ruby`, `rust`)
+    - `managerType`: The manager type (one of: `elixir`, `go`, `java`, `js`, `php`, `python`, `ruby`, `rust`)
     - `pattern`: The dependency name, accepting `*` as a wildcard
 
 ### `depVersion`
@@ -22,7 +22,7 @@ This returns an empty string if the dependency is not found.
 
 * `<fs dyn>.depVersion(managerType string, name string)` -> `string`
     - `fs`: The filesystem wrapper
-    - `managerType`: The manager type (one of: `go`, `java`, `js`, `php`, `python`, `ruby`, `rust`)
+    - `managerType`: The manager type (one of: `elixir`, `go`, `java`, `js`, `php`, `python`, `ruby`, `rust`)
     - `name`: The dependency name
 
 ### `fileContains`
