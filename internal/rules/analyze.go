@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-	"sync"
 
 	"github.com/google/cel-go/common/types"
 	"golang.org/x/sync/errgroup"
@@ -64,6 +63,11 @@ func (a *Analyzer) evalWithInput(input any) func(string) (bool, error) {
 	}
 }
 
+type dirReport struct {
+	Path   string
+	Report Report
+}
+
 func (a *Analyzer) applyRuleset(rs *Ruleset, fsys fs.FS, root string) (map[string][]Report, error) {
 	matcher := &Matcher{rs.Rules}
 
@@ -107,8 +111,7 @@ func (a *Analyzer) applyRuleset(rs *Ruleset, fsys fs.FS, root string) (map[strin
 		return nil, err
 	}
 
-	var dirReports = make(map[string][]Report)
-	var reportMux sync.Mutex
+	var dirReports []dirReport
 
 	eg := errgroup.Group{}
 	eg.SetLimit(runtime.GOMAXPROCS(0))
@@ -119,14 +122,11 @@ func (a *Analyzer) applyRuleset(rs *Ruleset, fsys fs.FS, root string) (map[strin
 			if err != nil {
 				return fmt.Errorf("in directory %s: %w", d, err)
 			}
-			if len(matches) > 0 {
-				var reports = make([]Report, len(matches))
-				for i, m := range matches {
-					reports[i] = matchToReport(a.evaluator, input, rs.Rules, m)
-				}
-				reportMux.Lock()
-				dirReports[d] = reports
-				reportMux.Unlock()
+			for _, m := range matches {
+				dirReports = append(dirReports, struct {
+					Path   string
+					Report Report
+				}{Path: d, Report: matchToReport(a.evaluator, input, rs.Rules, m)})
 			}
 			return nil
 		})
@@ -135,5 +135,10 @@ func (a *Analyzer) applyRuleset(rs *Ruleset, fsys fs.FS, root string) (map[strin
 		return nil, err
 	}
 
-	return dirReports, err
+	var reports = make(map[string][]Report, len(directoryPaths))
+	for _, r := range dirReports {
+		reports[r.Path] = append(reports[r.Path], r.Report)
+	}
+
+	return reports, err
 }
