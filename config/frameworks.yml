@@ -399,6 +399,21 @@ frameworks:
       group: js
       exclusive: true
 
+    fresh:
+      when: fs.fileExists("fresh.config.ts") || fs.depExists("js", "https://deno.land/x/fresh")
+      then: fresh
+      with:
+        version: fs.depVersion("js", "https://deno.land/x/fresh")
+      group: js
+      exclusive: true
+
+    # Deno TypeScript/JavaScript runtime.
+    # This is deliberately in both the "frameworks" and "package_managers" rulesets.
+    deno:
+      when: fs.fileExists("deno.json") || fs.fileExists("deno.lock")
+      then: deno
+      group: js
+
     magento:
       when: fs.depExists("php", "magento/*")
       then: magento
@@ -515,8 +530,8 @@ frameworks:
       group: rust
       exclusive: true
 
-    hugo-build-lock:
-      when: fs.fileExists(".hugo_build.lock")
+    hugo:
+      when: fs.fileExists("hugo.toml") || fs.fileExists("hugo.yaml") || fs.fileExists("hugo.json") || fs.fileExists(".hugo_build.lock")
       then: hugo
       group: static
 

@@ -23,6 +23,10 @@ type packageJSON struct {
 	Dependencies map[string]string `json:"dependencies"`
 }
 
+type denoJSON struct {
+	Imports map[string]string `json:"imports"`
+}
+
 type packageLockJSON struct {
 	// Version 1 (see https://docs.npmjs.com/cli/v11/configuring-npm/package-lock-json#dependencies)
 	Dependencies map[string]struct {
@@ -41,6 +45,15 @@ type pnpmLockYAML struct {
 
 type bunLock struct {
 	Packages map[string][]any `json:"packages"`
+}
+
+type denoLock struct {
+	JSR map[string]struct {
+		Version string `json:"version"`
+	} `json:"jsr"`
+	NPM map[string]struct {
+		Version string `json:"version"`
+	} `json:"npm"`
 }
 
 // TODO can any repetition be avoided between jsManager and phpManager?
@@ -67,20 +80,69 @@ func (m *jsManager) vendorName(name string) string {
 	return ""
 }
 
-var npmNameVersion = regexp.MustCompile(`^((?:@[\w-]+/)?[a-z0-9._](?:[a-z0-9\-.]*[a-z0-9]))?@([\dvx*]+(?:[-.](?:[\dx*]+|alpha|beta))*)`)
+var npmNameVersion = regexp.MustCompile(`^((?:jsr:|npm:)?(?:@[\w-]+/)?[a-z0-9._](?:[a-z0-9\-.]*[a-z0-9]))?@([\dvx*]+(?:[-.](?:[\dx*]+|alpha|beta))*)`)
+var denoPackageURL = regexp.MustCompile(`^(https://(?:deno\.land/x|esm\.sh)/[^/@]+)@([\dvx*]+(?:[-.](?:[\dx*]+|alpha|beta))*)/$`)
 
 func (m *jsManager) parse() error {
-	var manifest packageJSON
-	if err := parseJSON(m.fsys, m.path, "package.json", &manifest); err != nil {
-		if errors.Is(err, fs.ErrNotExist) {
-			return nil
+	var npmManifest packageJSON
+	var packageJSONExists bool
+	packageJSONErr := parseJSON(m.fsys, m.path, "package.json", &npmManifest)
+	if packageJSONErr != nil {
+		if !errors.Is(packageJSONErr, fs.ErrNotExist) {
+			return packageJSONErr
 		}
-		return err
+	} else {
+		packageJSONExists = true
+	}
+
+	var denoManifest denoJSON
+	var denoJSONExists bool
+	denoJSONErr := parseJSON(m.fsys, m.path, "deno.json", &denoManifest)
+	if denoJSONErr != nil {
+		if !errors.Is(denoJSONErr, fs.ErrNotExist) {
+			return denoJSONErr
+		}
+	} else {
+		denoJSONExists = true
+	}
+
+	if !packageJSONExists && !denoJSONExists {
+		return nil
 	}
 
 	m.deps = map[string]Dependency{}
-	for name, constraint := range manifest.Dependencies {
+	for name, constraint := range npmManifest.Dependencies {
 		m.deps[name] = Dependency{Constraint: constraint, Name: name, Vendor: m.vendorName(name)}
+	}
+
+	addDepVersion := func(nameVersion string) {
+		matches := npmNameVersion.FindStringSubmatch(nameVersion)
+		if len(matches) != 3 {
+			return
+		}
+		name, version := matches[1], matches[2]
+		if d, ok := m.deps[name]; ok {
+			d.Version = version
+			m.deps[name] = d
+		} else {
+			m.deps[name] = Dependency{Name: name, Version: version, Vendor: m.vendorName(name)}
+		}
+	}
+
+	for _, constraint := range denoManifest.Imports {
+		if strings.HasPrefix(constraint, "jsr:") || strings.HasPrefix(constraint, "npm:") {
+			addDepVersion(constraint)
+			continue
+		}
+		if matches := denoPackageURL.FindStringSubmatch(constraint); len(matches) == 3 {
+			name, version := matches[1], matches[2]
+			if d, ok := m.deps[name]; ok {
+				d.Version = version
+				m.deps[name] = d
+			} else {
+				m.deps[name] = Dependency{Name: name, Version: version}
+			}
+		}
 	}
 
 	var locked packageLockJSON
@@ -112,24 +174,14 @@ func (m *jsManager) parse() error {
 		return err
 	}
 	for nameVersion := range pnpmLocked.Packages {
-		matches := npmNameVersion.FindStringSubmatch(nameVersion)
-		if len(matches) != 3 {
-			continue
-		}
-		name, version := matches[1], matches[2]
-		if d, ok := m.deps[name]; ok {
-			d.Version = version
-			m.deps[name] = d
-		} else {
-			m.deps[name] = Dependency{Name: name, Version: version, Vendor: m.vendorName(name)}
-		}
+		addDepVersion(nameVersion)
 	}
 
 	var bunLocked bunLock
 	if err := parseJSONC(m.fsys, m.path, "bun.lock", &bunLocked); err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return err
 	}
-	for name, info := range bunLocked.Packages {
+	for _, info := range bunLocked.Packages {
 		if len(info) == 0 {
 			continue
 		}
@@ -137,17 +189,18 @@ func (m *jsManager) parse() error {
 		if !ok {
 			continue
 		}
-		matches := npmNameVersion.FindStringSubmatch(first)
-		if len(matches) != 3 {
-			continue
-		}
-		version := matches[2]
-		if d, ok := m.deps[name]; ok {
-			d.Version = version
-			m.deps[name] = d
-		} else {
-			m.deps[name] = Dependency{Name: name, Version: version, Vendor: m.vendorName(name)}
-		}
+		addDepVersion(first)
+	}
+
+	var denoLocked denoLock
+	if err := parseJSON(m.fsys, m.path, "deno.lock", &denoLocked); err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return err
+	}
+	for nameVersion := range denoLocked.JSR {
+		addDepVersion(nameVersion)
+	}
+	for nameVersion := range denoLocked.NPM {
+		addDepVersion(nameVersion)
 	}
 
 	return nil

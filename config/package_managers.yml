@@ -27,6 +27,10 @@ package_managers:
       then: bun
       group: js
       exclusive: true
+    deno:
+      when: fs.fileExists("deno.json") || fs.fileExists("deno.lock")
+      then: deno
+      group: js
     js-packages:
       when: fs.fileExists("package.json")
       maybe: [npm, pnpm, yarn, bun]
