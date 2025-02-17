@@ -3,6 +3,7 @@ package dep
 import (
 	"errors"
 	"io/fs"
+	"regexp"
 	"strings"
 	"sync"
 
@@ -53,12 +54,14 @@ func (m *jsManager) Init() error {
 }
 
 func (m *jsManager) vendorName(name string) string {
-	if strings.Contains(name, "/") {
+	if strings.HasPrefix(name, "@") && strings.Contains(name, "/") {
 		parts := strings.SplitN(name, "/", 2)
-		return parts[0]
+		return strings.TrimPrefix(parts[0], "@")
 	}
 	return ""
 }
+
+var npmNameVersion = regexp.MustCompile(`^((?:@[\w-]+/)?[a-z0-9._](?:[a-z0-9\-.]*[a-z0-9]))?@([\dvx*]+(?:[-.](?:[\dx*]+|alpha|beta))*)`)
 
 func (m *jsManager) parse() error {
 	var manifest packageJSON
@@ -79,10 +82,9 @@ func (m *jsManager) parse() error {
 		return err
 	}
 	for name, pkg := range locked.Packages {
-		if !strings.HasPrefix(name, "node_modules/") {
-			continue
+		if strings.HasPrefix(name, "node_modules/") {
+			name = strings.TrimPrefix(name, "node_modules/")
 		}
-		name = strings.TrimPrefix(name, "node_modules/")
 		if d, ok := m.deps[name]; ok {
 			d.Version = pkg.Version
 			m.deps[name] = d
@@ -96,11 +98,11 @@ func (m *jsManager) parse() error {
 		return err
 	}
 	for nameVersion := range pnpmLocked.Packages {
-		parts := strings.Split(nameVersion, "@")
-		if len(parts) != 2 {
+		matches := npmNameVersion.FindStringSubmatch(nameVersion)
+		if len(matches) != 3 {
 			continue
 		}
-		name, version := parts[0], parts[1]
+		name, version := matches[1], matches[2]
 		if d, ok := m.deps[name]; ok {
 			d.Version = version
 			m.deps[name] = d
@@ -121,11 +123,11 @@ func (m *jsManager) parse() error {
 		if !ok {
 			continue
 		}
-		parts := strings.Split(first, "@")
-		if len(parts) != 2 {
+		matches := npmNameVersion.FindStringSubmatch(first)
+		if len(matches) != 3 {
 			continue
 		}
-		version := parts[1]
+		version := matches[2]
 		if d, ok := m.deps[name]; ok {
 			d.Version = version
 			m.deps[name] = d

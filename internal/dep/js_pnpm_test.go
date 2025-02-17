@@ -33,10 +33,11 @@ func TestPNPM(t *testing.T) {
 		pattern      string
 		dependencies []dep.Dependency
 	}{
-		{"strapi", []dep.Dependency{{
-			Name:       "strapi",
-			Constraint: "^3.6.11",
-			Version:    "3.6.11",
+		{"@strapi/strapi", []dep.Dependency{{
+			Vendor:     "strapi",
+			Name:       "@strapi/strapi",
+			Constraint: "^5.10.2",
+			Version:    "5.10.2",
 		}}},
 	}
 	for _, c := range cases {

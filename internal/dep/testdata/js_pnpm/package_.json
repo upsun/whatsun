@@ -8,8 +8,8 @@
   },
   "keywords": [],
   "author": "",
-  "license": "MIT",
+  "license": "ISC",
   "dependencies": {
-    "strapi": "^3.6.11"
+    "@strapi/strapi": "^5.10.2"
   }
 }
