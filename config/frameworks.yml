@@ -372,8 +372,6 @@ frameworks:
       then: vite
       with:
         version: fs.depVersion("js", "vite")
-      group: js
-      exclusive: true
 
     shopsys: # Shopsys Platform (eCommerce framework). See: https://github.com/shopsys/shopsys
       when: fs.depExists("js", "shopsys")
@@ -399,7 +397,23 @@ frameworks:
       group: js
       exclusive: true
 
-    fresh:
+    fastify:
+      when: fs.depExists("js", "fastify")
+      then: fastify
+      with:
+        version: fs.depVersion("js", "fastify")
+      group: js
+      exclusive: true
+
+    ember:
+      when: fs.depExists("js", "ember-source") || fs.fileExists(".ember-cli.js")
+      then: ember
+      with:
+        version: fs.depVersion("js", "ember-source")
+      group: js
+      exclusive: true
+
+    fresh: # Deno Fresh. See: https://fresh.deno.dev/
       when: fs.fileExists("fresh.config.ts") || fs.depExists("js", "https://deno.land/x/fresh")
       then: fresh
       with:
@@ -413,6 +427,18 @@ frameworks:
       when: fs.fileExists("deno.json") || fs.fileExists("deno.lock")
       then: deno
       group: js
+
+    astro: # Astro framework / SSG. See: https://github.com/withastro/astro
+      when: fs.depExists("js", "astro")
+      then: astro
+      with:
+        version: fs.depVersion("js", "astro")
+      group: js
+      exclusive: true
+
+    nue: # Nue. See: https://nuejs.org/
+      when: fs.fileExists("site.yaml") && fs.fileContains("site.yaml", "https://json.schemastore.org/nuejs-site.json")
+      then: nue
 
     magento:
       when: fs.depExists("php", "magento/*")
@@ -441,6 +467,13 @@ frameworks:
       then: echo
       with:
         version: fs.depVersion("go", "github.com/labstack/echo/v4")
+      group: go
+
+    beego: # Beego framework. See: https://github.com/beego/beego
+      when: fs.depExists("go", "github.com/beego/beego*")
+      then: beego
+      with:
+        version: fs.depVersion("go", "github.com/beego/beego/v2")
       group: go
 
     flask:
@@ -504,6 +537,13 @@ frameworks:
       with:
         version: fs.depVersion("java", "org.springframework.boot:spring-boot-starter-parent")
       group: java
+
+    grails:
+      when: fs.depExists("java", "org.grails:*")
+      then: grails
+      with:
+        version: fs.depVersion("java", "org.grails:grails-core")
+      group: java
       exclusive: true
 
     quarkus:
@@ -522,11 +562,59 @@ frameworks:
       group: java
       exclusive: true
 
+    jooby: # Jooby framework. See: https://jooby.io/
+      when: fs.depExists("java", "io.jooby:jooby")
+      then: jooby
+      with:
+        version: fs.depVersion("java", "io.jooby:jooby")
+      group: java
+      exclusive: true
+
+    actix-web: # Actix Web. See: https://actix.rs/
+      when: fs.depExists("rust", "actix-web")
+      then: actix-web
+      with:
+        version: fs.depVersion("rust", "actix-web")
+      group: rust
+      exclusive: true
+
     rocket:
       when: fs.depExists("rust", "rocket")
       then: rocket
       with:
         version: fs.depVersion("rust", "rocket")
+      group: rust
+      exclusive: true
+
+    warp: # Warp framework. See: https://github.com/seanmonstar/warp
+      when: fs.depExists("rust", "warp")
+      then: warp
+      with:
+        version: fs.depVersion("rust", "warp")
+      group: rust
+      exclusive: true
+
+    dioxus: # Dioxus fullstack framework. See: https://dioxuslabs.com/
+      when: fs.depExists("rust", "dioxus")
+      then: dioxus
+      with:
+        version: fs.depVersion("rust", "dioxus")
+      group: rust
+      exclusive: true
+
+    yew: # Yew WebAssembly framework. See: https://github.com/yewstack/yew
+      when: fs.depExists("rust", "yew")
+      then: yew
+      with:
+        version: fs.depVersion("rust", "yew")
+      group: rust
+      exclusive: true
+
+    axum: # Axum framework. See: https://github.com/tokio-rs/axum
+      when: fs.depExists("rust", "axum")
+      then: axum
+      with:
+        version: fs.depVersion("rust", "axum")
       group: rust
       exclusive: true
 
