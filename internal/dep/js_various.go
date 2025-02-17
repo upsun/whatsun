@@ -24,6 +24,12 @@ type packageJSON struct {
 }
 
 type packageLockJSON struct {
+	// Version 1 (see https://docs.npmjs.com/cli/v11/configuring-npm/package-lock-json#dependencies)
+	Dependencies map[string]struct {
+		Version string `json:"version"`
+	} `json:"dependencies"`
+
+	// Versions 2 and 3
 	Packages map[string]struct {
 		Version string `json:"version"`
 	} `json:"Packages"`
@@ -80,6 +86,14 @@ func (m *jsManager) parse() error {
 	var locked packageLockJSON
 	if err := parseJSON(m.fsys, m.path, "package-lock.json", &locked); err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return err
+	}
+	for name, pkg := range locked.Dependencies {
+		if d, ok := m.deps[name]; ok {
+			d.Version = pkg.Version
+			m.deps[name] = d
+		} else {
+			m.deps[name] = Dependency{Name: name, Version: pkg.Version, Vendor: m.vendorName(name)}
+		}
 	}
 	for name, pkg := range locked.Packages {
 		if strings.HasPrefix(name, "node_modules/") {
