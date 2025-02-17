@@ -19,6 +19,7 @@ import (
 	"what/internal/eval"
 	"what/internal/eval/celfuncs"
 	"what/internal/fsgitignore"
+	"what/internal/searchfs"
 )
 
 type Analyzer struct {
@@ -40,6 +41,8 @@ func NewAnalyzer(ignore []string) (*Analyzer, error) {
 }
 
 func (a *Analyzer) Analyze(ctx context.Context, fsys fs.FS, root string) (Results, error) {
+	fsys = searchfs.New(fsys)
+
 	dirs, err := a.collectDirectories(ctx, fsys, root)
 	if err != nil {
 		return nil, err

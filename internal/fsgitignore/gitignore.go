@@ -56,7 +56,7 @@ func ParseIgnoreFiles(fsys fs.FS, path string) ([]gitignore.Pattern, error) {
 func parseIgnoreFile(fsys fs.FS, path string, ignoreFile string) (ps []gitignore.Pattern, err error) {
 	f, err := fsys.Open(filepath.Join(path, ignoreFile))
 	if err != nil {
-		if os.IsNotExist(err) {
+		if errors.Is(err, fs.ErrNotExist) {
 			return nil, nil
 		}
 		if errors.Is(err, syscall.ENOTDIR) {

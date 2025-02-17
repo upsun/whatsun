@@ -3,6 +3,7 @@ package eval_test
 import (
 	"embed"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"testing"
@@ -88,8 +89,7 @@ func TestEval(t *testing.T) {
 		assert.Equal(t, types.Bool(false), ev(e, `fs.fileContains("package.json", "next")`))
 
 		_, err := e.Eval(`fs.fileContains("nonexistent.json", "test")`, celfuncs.FilesystemInput(fsys, "."))
-		// TODO why is this not fs.ErrNotExist ?
-		assert.ErrorContains(t, err, "no such file")
+		assert.ErrorIs(t, err, fs.ErrNotExist)
 	})
 
 	t.Run("fs.isDir", func(t *testing.T) {
