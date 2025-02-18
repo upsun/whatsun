@@ -6,27 +6,22 @@ package_managers:
       when: fs.fileExists("package-lock.json")
       then: npm
       group: js
-      exclusive: true
     yarn-lockfile:
       when: fs.fileExists("yarn.lock")
       then: yarn
       group: js
-      exclusive: true
     meteor:
       when: fs.fileExists(".meteor/packages")
       then: meteor
       group: js
-      exclusive: true
     pnpm:
       when: fs.fileExists("pnpm-lock.yaml") || fs.fileExists("pnpm-workspace.yaml")
       then: pnpm
       group: js
-      exclusive: true
     bun:
       when: fs.fileExists("bun.lock") || fs.fileExists("bun.lockb")
       then: bun
       group: js
-      exclusive: true
     deno:
       when: fs.fileExists("deno.json") || fs.fileExists("deno.lock")
       then: deno
@@ -58,7 +53,6 @@ package_managers:
     poetry:
       when: fs.fileExists("poetry.lock")
       then: poetry
-      exclusive: true
       group: python
 
     bundler:
@@ -85,7 +79,6 @@ package_managers:
       when: fs.fileExists("packages.config")
       then: nuget
       group: dotnet
-      exclusive: true
 
     msbuild:
       when: fs.glob("*.csproj").size() > 0

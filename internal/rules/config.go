@@ -26,13 +26,11 @@ type Rule struct {
 
 	When  string   `yaml:"when"`
 	Then  string   `yaml:"then"`
-	Not   []string `yaml:"not"`
 	Maybe []string `yaml:"maybe"`
 
 	With map[string]string `yaml:"with"`
 
-	Group     string `yaml:"group"`
-	Exclusive bool   `yaml:"exclusive"`
+	Group string `yaml:"group"`
 }
 
 func init() {
