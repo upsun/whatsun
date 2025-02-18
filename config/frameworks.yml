@@ -223,7 +223,7 @@ frameworks:
     # Any Composer "project" requiring a Symfony dependency.
     symfony-project:
       when: fs.depExists("php", "symfony/*") && jq(fs.read("composer.json"), ".type") == "project"
-      maybe: [symfony]
+      maybe: symfony
       group: php
 
     symfony-framework:
@@ -386,7 +386,7 @@ frameworks:
       then: astro
       with:
         version: fs.depVersion("js", "astro")
-      group: js
+      groups: [js, static]
 
     nue: # Nue. See: https://nuejs.org/
       when: fs.fileExists("site.yaml") && fs.fileContains("site.yaml", "https://json.schemastore.org/nuejs-site.json")

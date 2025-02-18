@@ -19,13 +19,13 @@ example-ruleset:
 
 Each rule may contain the keys:
 
-| Key   | Type            | Required? | Description                                                                          |
-|-------|-----------------|:---------:|--------------------------------------------------------------------------------------|
-| when  | string          |    yes    | The condition (always a CEL expression, for now)                                     |
-| then  | string          |           | A known result (if any)                                                              |
-| maybe | list of strings |           | Possible results (either `then` or `maybe` is required)                              |
-| with  | map of strings  |           | Extra data to include in the report (always CEL expressions, for now)                |
-| group | string          |           | A group in which `then` results will exclude other `maybe` ones for the same subject |
+| Key   | Type                  | Required? | Description                                                           |
+|-------|-----------------------|:---------:|-----------------------------------------------------------------------|
+| when  | string                |    yes    | The condition (always a CEL expression, for now)                      |
+| then  | list or single string |           | Known result(s) (if any)                                              |
+| maybe | list or single string |           | Possible results (either `then` or `maybe` is required)               |
+| with  | map of strings        |           | Extra data to include in the report (always CEL expressions, for now) |
+| group | list or single string |           | Group(s) in which `then` results will exclude other `maybe` ones      |
 
 Rules and rulesets are not applied in any particular order.
 

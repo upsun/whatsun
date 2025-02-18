@@ -80,8 +80,8 @@ func matchToReport(ev *eval.Evaluator, input any, rules map[string]Rule, match M
 		if !ok {
 			continue
 		}
-		if rule.Group != "" {
-			groupMap[rule.Group] = struct{}{}
+		for _, g := range rule.GroupList {
+			groupMap[g] = struct{}{}
 		}
 		rep.Rules[i] = rule.Name
 		if len(rule.With) == 0 {

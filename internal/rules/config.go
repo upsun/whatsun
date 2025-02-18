@@ -24,13 +24,30 @@ type Ruleset struct {
 type Rule struct {
 	Name string `yaml:"name"`
 
-	When  string   `yaml:"when"`
-	Then  string   `yaml:"then"`
-	Maybe []string `yaml:"maybe"`
+	When  string           `yaml:"when"`
+	Then  yamlListOrString `yaml:"then"`
+	Maybe yamlListOrString `yaml:"maybe"`
 
 	With map[string]string `yaml:"with"`
 
-	Group string `yaml:"group"`
+	GroupList yamlListOrString `yaml:"group"`
+}
+
+type yamlListOrString []string
+
+func (l *yamlListOrString) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var s []string
+	if err := unmarshal(&s); err != nil {
+		var str string
+		err := unmarshal(&str)
+		if err != nil {
+			return err
+		}
+		*l = []string{str}
+	} else {
+		*l = s
+	}
+	return nil
 }
 
 func init() {

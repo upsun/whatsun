@@ -11,9 +11,9 @@ import (
 
 func TestMatch(t *testing.T) {
 	ruleMap := map[string]rules.Rule{
-		"a":   {When: "a", Then: "a", Group: "g"},
-		"aaa": {When: "aaa", Then: "a"},
-		"ab":  {When: "ab", Maybe: []string{"a", "b"}, Group: "g"},
+		"a":   {When: "a", Then: []string{"a"}, GroupList: []string{"g"}},
+		"aaa": {When: "aaa", Then: []string{"a"}},
+		"ab":  {When: "ab", Maybe: []string{"a", "b"}, GroupList: []string{"g"}},
 		"bc":  {When: "bc", Maybe: []string{"b", "c"}},
 	}
 

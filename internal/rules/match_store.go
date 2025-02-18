@@ -11,7 +11,7 @@ type store struct {
 	then  map[string][]*Rule
 	maybe map[string][]*Rule
 
-	thenByGroup map[string]string
+	thenByGroup map[string]map[string]struct{}
 
 	mutex sync.RWMutex
 }
@@ -25,10 +25,16 @@ func (s *store) List() ([]Match, error) {
 
 	// Validate and combine the lists.
 	var matches = make([]Match, 0, len(s.then)+len(s.maybe))
+	var groupsWithThen = make(map[string]struct{})
 
 	// Add the "then" values.
 	for result, rules := range s.then {
 		matches = append(matches, Match{Result: result, Rules: ruleNames(rules), Sure: true})
+		for _, rule := range rules {
+			for _, g := range rule.GroupList {
+				groupsWithThen[g] = struct{}{}
+			}
+		}
 	}
 
 	// Add the remaining "maybe" values, if there are no "then" values within the same group.
@@ -37,15 +43,18 @@ func (s *store) List() ([]Match, error) {
 			continue
 		}
 		var hasResultByGroup bool
-		for _, r := range rules {
-			if _, ok := s.thenByGroup[r.Group]; ok {
-				hasResultByGroup = true
-				break
+		for _, rule := range rules {
+			for _, g := range rule.GroupList {
+				if _, ok := s.thenByGroup[g]; ok {
+					hasResultByGroup = true
+					break
+				}
 			}
 		}
-		if !hasResultByGroup {
-			matches = append(matches, Match{Result: result, Rules: ruleNames(rules)})
+		if hasResultByGroup {
+			continue
 		}
+		matches = append(matches, Match{Result: result, Rules: ruleNames(rules)})
 	}
 
 	// Sort the list for consistent output.
@@ -78,16 +87,25 @@ func (s *store) Add(rule *Rule) {
 		}
 	}
 
-	if rule.Then != "" {
+	if len(rule.Then) > 0 {
 		if s.then == nil {
 			s.then = make(map[string][]*Rule)
 		}
-		s.then[rule.Then] = append(s.then[rule.Then], rule)
-		if rule.Group != "" {
+		for _, v := range rule.Then {
+			s.then[v] = append(s.then[v], rule)
+		}
+		if len(rule.GroupList) > 0 {
 			if s.thenByGroup == nil {
-				s.thenByGroup = make(map[string]string)
+				s.thenByGroup = make(map[string]map[string]struct{})
 			}
-			s.thenByGroup[rule.Group] = rule.Then
+			for _, g := range rule.GroupList {
+				if s.thenByGroup[g] == nil {
+					s.thenByGroup[g] = make(map[string]struct{})
+				}
+				for _, v := range rule.Then {
+					s.thenByGroup[g][v] = struct{}{}
+				}
+			}
 		}
 	}
 }
