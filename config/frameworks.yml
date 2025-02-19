@@ -381,8 +381,10 @@ frameworks:
       then: deno
       group: js
 
-    astro: # Astro framework / SSG. See: https://github.com/withastro/astro
-      when: fs.depExists("js", "astro")
+    # Astro framework / SSG. See: https://github.com/withastro/astro
+    # The config file is normally astro.config.mjs but could also have ts, js or cjs extensions.
+    astro:
+      when: fs.depExists("js", "astro") || fs.fileExists("astro.config.*s")
       then: astro
       with:
         version: fs.depVersion("js", "astro")
