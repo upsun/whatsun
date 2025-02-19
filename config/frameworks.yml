@@ -296,8 +296,10 @@ frameworks:
         version: fs.depVersion("js", "@nestjs/core")
       group: js
 
+    # Next.js. See: https://nextjs.org/docs
+    # Valid config files: next.config.js, next.config.ts, next.config.mjs
     nextjs:
-      when: fs.fileExists("next.config.js") || fs.depExists("js", "next")
+      when: fs.fileExists("next.config.*s") || fs.depExists("js", "next")
       then: nextjs
       with:
         version: fs.depVersion("js", "next")
