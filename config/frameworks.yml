@@ -339,6 +339,7 @@ frameworks:
       then: vite
       with:
         version: fs.depVersion("js", "vite")
+      group: js
 
     shopsys: # Shopsys Platform (eCommerce framework). See: https://github.com/shopsys/shopsys
       when: fs.depExists("js", "shopsys")
@@ -401,6 +402,7 @@ frameworks:
     nue: # Nue. See: https://nuejs.org/
       when: fs.fileExists("site.yaml") && fs.fileContains("site.yaml", "https://json.schemastore.org/nuejs-site.json")
       then: nue
+      group: [js, static]
 
     magento:
       when: fs.depExists("php", "magento/*")
@@ -568,12 +570,12 @@ frameworks:
     hugo:
       when: fs.fileExists("hugo.toml") || fs.fileExists("hugo.yaml") || fs.fileExists("hugo.json") || fs.fileExists(".hugo_build.lock")
       then: hugo
-      group: static
+      group: [go, static]
 
     redoc: # Redoc: Open source API documentation tool. See: https://redocly.com/docs/redoc
       when: fs.fileExists("redocly.yaml") || fs.fileExists(".redocly.yaml") || fs.fileExists("redoc-static.html")
       then: redoc
-      group: static
+      group: [js, static]
 
     # Eleventy static site generator. See: https://www.11ty.dev/
     # The config file, which is optional, could be any of .eleventy.js, eleventy.config.js, eleventy.config.mjs or eleventy.config.cjs.
@@ -596,3 +598,4 @@ frameworks:
       then: phoenix
       with:
         version: fs.depVersion("elixir", "phoenix")
+      group: elixir
