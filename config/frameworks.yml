@@ -567,6 +567,15 @@ frameworks:
       then: redoc
       group: static
 
+    # Eleventy static site generator. See: https://www.11ty.dev/
+    # The config file, which is optional, could be any of .eleventy.js, eleventy.config.js, eleventy.config.mjs or eleventy.config.cjs.
+    eleventy:
+      when: fs.fileExists(".eleventy.js") || fs.fileExists("eleventy.config.*s") || fs.depExists("js", "@11ty/eleventy")
+      then: eleventy
+      with:
+        version: fs.depVersion("js", "@11ty/eleventy")
+      group: [js, static]
+
     phoenix:
       when: fs.depExists("elixir", "phoenix")
       then: phoenix
