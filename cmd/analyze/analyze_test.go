@@ -27,7 +27,8 @@ func TestAnalyze(t *testing.T) {
 		"vendor/symfony": &fstest.MapFile{Mode: fs.ModeDir},
 
 		// Definitely NPM.
-		"another-app/package-lock.json": &fstest.MapFile{},
+		"another-app/package.json":      &fstest.MapFile{Data: []byte("{}")},
+		"another-app/package-lock.json": &fstest.MapFile{Data: []byte("{}")},
 
 		// Ignored due to depth or nesting.
 		"another-app/nested/composer.lock":          &fstest.MapFile{},
@@ -82,20 +83,8 @@ func TestAnalyze(t *testing.T) {
 		Groups: []string{"php"},
 	}}, result["frameworks"].Paths["."])
 
-	// A conflict will report an error without failing the whole ruleset.
-	var conflictErr string
-	var meteorMatches = make([]rules.Report, 0, len(result["package_managers"].Paths["meteor"])-1)
-	for _, report := range result["package_managers"].Paths["meteor"] {
-		if report.Error != "" {
-			conflictErr = report.Error
-		} else {
-			meteorMatches = append(meteorMatches, report)
-		}
-	}
-	assert.Contains(t, conflictErr, "conflict found in group js")
-
 	assert.EqualValues(t, []rules.Report{
 		{Result: "meteor", Rules: []string{"meteor"}, Sure: true, Groups: []string{"js"}},
 		{Result: "npm", Rules: []string{"npm-lockfile"}, Sure: true, Groups: []string{"js"}},
-	}, meteorMatches)
+	}, result["package_managers"].Paths["meteor"])
 }

@@ -1,7 +1,6 @@
 package rules
 
 import (
-	"fmt"
 	"slices"
 	"sort"
 	"strings"
@@ -9,11 +8,10 @@ import (
 )
 
 type store struct {
-	is    map[string][]*Rule
+	then  map[string][]*Rule
 	maybe map[string][]*Rule
-	not   map[string]struct{}
 
-	exclusiveByGroup map[string]string
+	thenByGroup map[string]map[string]struct{}
 
 	mutex sync.RWMutex
 }
@@ -21,58 +19,42 @@ type store struct {
 func (s *store) List() ([]Match, error) {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
-	if len(s.is) == 0 && len(s.maybe) == 0 {
+	if len(s.then) == 0 && len(s.maybe) == 0 {
 		return nil, nil
 	}
 
 	// Validate and combine the lists.
-	var matches = make([]Match, 0, len(s.is)+len(s.maybe))
+	var matches = make([]Match, 0, len(s.then)+len(s.maybe))
+	var groupsWithThen = make(map[string]struct{})
 
-	// Add the "is" values, checking for conflicts with "not", and merging
-	// rules with matching "maybe" values.
-	for result, rules := range s.is {
-		if _, conflicting := s.not[result]; conflicting {
-			return nil, fmt.Errorf("conflict found: %s", result)
+	// Add the "then" values.
+	for result, rules := range s.then {
+		matches = append(matches, Match{Result: result, Rules: ruleNames(rules), Sure: true})
+		for _, rule := range rules {
+			for _, g := range rule.GroupList {
+				groupsWithThen[g] = struct{}{}
+			}
 		}
-		for _, r := range rules {
-			if r.Exclusive {
-				if conflict, conflicting := s.exclusiveByGroup[r.Group]; conflicting && conflict != result {
-					// Report the error as a match, so that conflicts don't fail the whole analysis.
-					if r.Group != "" {
-						matches = append(matches, Match{
-							Err: fmt.Errorf("conflict found in group %s: %s vs %s", r.Group, result, conflict)})
-					} else {
-						matches = append(matches, Match{
-							Err: fmt.Errorf("conflict found: %s", result)})
-					}
-					continue
+	}
+
+	// Add the remaining "maybe" values, if there are no "then" values within the same group.
+	for result, rules := range s.maybe {
+		if _, exists := s.then[result]; exists {
+			continue
+		}
+		var hasResultByGroup bool
+		for _, rule := range rules {
+			for _, g := range rule.GroupList {
+				if _, ok := s.thenByGroup[g]; ok {
+					hasResultByGroup = true
+					break
 				}
 			}
 		}
-		if m, ok := s.maybe[result]; ok {
-			rules = append(rules, m...)
-		}
-		matches = append(matches, Match{Result: result, Rules: ruleNames(rules), Sure: true})
-	}
-
-	// Add the remaining "maybe" values.
-	for result, rules := range s.maybe {
-		if _, exists := s.is[result]; exists {
+		if hasResultByGroup {
 			continue
 		}
-		if _, conflicting := s.not[result]; conflicting {
-			continue
-		}
-		var hasConflict bool
-		for _, r := range rules {
-			if conflict, conflicting := s.exclusiveByGroup[r.Group]; conflicting && conflict != result {
-				hasConflict = true
-				break
-			}
-		}
-		if !hasConflict {
-			matches = append(matches, Match{Result: result, Rules: ruleNames(rules)})
-		}
+		matches = append(matches, Match{Result: result, Rules: ruleNames(rules)})
 	}
 
 	// Sort the list for consistent output.
@@ -96,15 +78,6 @@ func (s *store) Add(rule *Rule) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
-	if len(rule.Not) > 0 {
-		if s.not == nil {
-			s.not = make(map[string]struct{})
-		}
-		for _, v := range rule.Not {
-			s.not[v] = struct{}{}
-		}
-	}
-
 	if len(rule.Maybe) > 0 {
 		if s.maybe == nil {
 			s.maybe = make(map[string][]*Rule)
@@ -114,16 +87,25 @@ func (s *store) Add(rule *Rule) {
 		}
 	}
 
-	if rule.Then != "" {
-		if s.is == nil {
-			s.is = make(map[string][]*Rule)
+	if len(rule.Then) > 0 {
+		if s.then == nil {
+			s.then = make(map[string][]*Rule)
 		}
-		if rule.Exclusive {
-			if s.exclusiveByGroup == nil {
-				s.exclusiveByGroup = make(map[string]string)
+		for _, v := range rule.Then {
+			s.then[v] = append(s.then[v], rule)
+		}
+		if len(rule.GroupList) > 0 {
+			if s.thenByGroup == nil {
+				s.thenByGroup = make(map[string]map[string]struct{})
 			}
-			s.exclusiveByGroup[rule.Group] = rule.Then
+			for _, g := range rule.GroupList {
+				if s.thenByGroup[g] == nil {
+					s.thenByGroup[g] = make(map[string]struct{})
+				}
+				for _, v := range rule.Then {
+					s.thenByGroup[g][v] = struct{}{}
+				}
+			}
 		}
-		s.is[rule.Then] = append(s.is[rule.Then], rule)
 	}
 }

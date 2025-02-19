@@ -11,9 +11,9 @@ import (
 
 func TestMatch(t *testing.T) {
 	ruleMap := map[string]rules.Rule{
-		"a":   {When: "a", Then: "a"},
-		"aaa": {When: "aaa", Then: "a", Exclusive: true},
-		"ab":  {When: "ab", Maybe: []string{"a", "b"}},
+		"a":   {When: "a", Then: []string{"a"}, GroupList: []string{"g"}},
+		"aaa": {When: "aaa", Then: []string{"a"}},
+		"ab":  {When: "ab", Maybe: []string{"a", "b"}, GroupList: []string{"g"}},
 		"bc":  {When: "bc", Maybe: []string{"b", "c"}},
 	}
 
@@ -24,7 +24,7 @@ func TestMatch(t *testing.T) {
 		expectError bool
 	}{
 		{
-			name: "is_direct",
+			name: "then_direct",
 			data: []string{"a", "x", "y"},
 			expect: []rules.Match{
 				{Result: "a", Sure: true, Rules: []string{"a"}},
@@ -35,19 +35,19 @@ func TestMatch(t *testing.T) {
 			data: []string{"x", "y", "z"},
 		},
 		{
-			name: "combine_is_maybe",
-			data: []string{"a", "ab", "bc"},
+			name: "combine_then_maybe_grouped",
+			data: []string{"a", "ab"},
 			expect: []rules.Match{
-				{Result: "a", Sure: true, Rules: []string{"a", "ab"}},
-				{Result: "b", Sure: false, Rules: []string{"ab", "bc"}},
-				{Result: "c", Sure: false, Rules: []string{"bc"}},
+				{Result: "a", Sure: true, Rules: []string{"a"}},
 			},
 		},
 		{
-			name: "combine_is_not_maybe",
+			name: "combine_then_maybe_no_group",
 			data: []string{"aaa", "bc"},
 			expect: []rules.Match{
 				{Result: "a", Sure: true, Rules: []string{"aaa"}},
+				{Result: "b", Rules: []string{"bc"}},
+				{Result: "c", Rules: []string{"bc"}},
 			},
 		},
 	}
