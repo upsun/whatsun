@@ -80,7 +80,7 @@ func TestAnalyze(t *testing.T) {
 		Rules:  []string{"symfony-framework"},
 		With:   map[string]rules.Metadata{"version": {Value: "7.2.3"}},
 		Sure:   true,
-		Groups: []string{"php"},
+		Groups: []string{"php", "symfony"},
 	}}, result["frameworks"].Paths["."])
 
 	assert.EqualValues(t, []rules.Report{
