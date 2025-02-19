@@ -576,6 +576,13 @@ frameworks:
         version: fs.depVersion("js", "@11ty/eleventy")
       group: [js, static]
 
+    docusaurus: # Docusaurus static site generator. See: https://github.com/facebook/docusaurus
+      when: fs.fileExists("docusaurus.config.*s") || fs.depExists("js", "@docusaurus/core")
+      then: docusaurus
+      with:
+        version: fs.depVersion("js", "@docusaurus/core")
+      group: [js, static]
+
     phoenix:
       when: fs.depExists("elixir", "phoenix")
       then: phoenix
