@@ -623,6 +623,11 @@ frameworks:
       then: hugo
       group: static
 
+    redoc: # Redoc: Open source API documentation tool. See: https://redocly.com/docs/redoc
+      when: fs.fileExists("redocly.yaml") || fs.fileExists(".redocly.yaml") || fs.fileExists("redoc-static.html")
+      then: redoc
+      group: static
+
     phoenix:
       when: fs.depExists("elixir", "phoenix")
       then: phoenix
