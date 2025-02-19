@@ -305,6 +305,14 @@ frameworks:
         version: fs.depVersion("js", "next")
       group: js
 
+    # Nuxt. See: https://nuxt.com/
+    nuxt:
+      when: fs.fileExists("nuxt.config.ts") || fs.depExists("js", "nuxt")
+      then: nuxt
+      with:
+        version: fs.depVersion("js", "nuxt")
+      group: js
+
     svelte-kit:
       when: fs.depExists("js", "@sveltejs/kit")
       then: svelte-kit
