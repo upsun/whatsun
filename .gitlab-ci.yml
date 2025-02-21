@@ -1,6 +1,6 @@
 test:
   stage: test
-  image: cimg/go:1.23
+  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/cimg/go:1.24
   script:
     - go install honnef.co/go/tools/cmd/staticcheck@latest
     - make lint test-coverage
