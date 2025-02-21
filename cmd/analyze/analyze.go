@@ -19,6 +19,8 @@ import (
 )
 
 var cpuprofile = flag.String("cpuprofile", "", "Write CPU profile to a file")
+var heapprofile = flag.String("heapprofile", "", "Write heap profile to a file")
+var allocsprofile = flag.String("allocsprofile", "", "Write allocations profile to a file")
 var ignore = flag.String("ignore", "", "Comma-separated list of paths (or patterns) to ignore, adding to defaults")
 
 func main() {
@@ -28,11 +30,13 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
+		defer f.Close()
 		if err := pprof.StartCPUProfile(f); err != nil {
 			log.Fatal(err)
 		}
 		defer pprof.StopCPUProfile()
 	}
+
 	path := "."
 	if flag.NArg() > 0 {
 		path = flag.Arg(0)
@@ -100,6 +104,27 @@ func main() {
 			}
 		}
 		tbl.Render()
+	}
+
+	if heapprofile != nil && *heapprofile != "" {
+		f, err := os.Create(*heapprofile)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer f.Close()
+		if err := pprof.WriteHeapProfile(f); err != nil {
+			log.Fatal(err)
+		}
+	}
+	if allocsprofile != nil && *allocsprofile != "" {
+		f, err := os.Create(*allocsprofile)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer f.Close()
+		if err := pprof.Lookup("allocs").WriteTo(f, 0); err != nil {
+			log.Fatal(err)
+		}
 	}
 }
 

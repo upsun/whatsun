@@ -7,8 +7,10 @@ Build: `make build`
 Usage: `./what [path]`
 
 Options (these may change):
-* `-cpuprofile string`: Write CPU profile to a file
 * `-ignore string`: Comma-separated list of directory paths to ignore, adding to defaults
+* `-allocsprofile string`: Write allocations profile to a file
+* `-cpuprofile string`: Write CPU profile to a file
+* `-heapprofile string`: Write heap profile to a file
 
 Analysis rules are defined in YAML inside the [config](config) directory. See [docs/rules.md](docs/rules.md) for more information.
 
