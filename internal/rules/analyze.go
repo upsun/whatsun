@@ -60,7 +60,6 @@ func (a *Analyzer) collectDirectories(_ context.Context, fsys fs.FS, root string
 	if len(a.ignore) > 0 {
 		ignorePatterns = append(ignorePatterns, fsgitignore.ParsePatterns(a.ignore, fsgitignore.Split(root))...)
 	}
-	var gitIgnorePatterns []gitignore.Pattern
 	var directoryPaths []string
 	err := fs.WalkDir(fsys, root, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
@@ -76,14 +75,14 @@ func (a *Analyzer) collectDirectories(_ context.Context, fsys fs.FS, root string
 		if d.Name() == ".git" || d.Name() == "node_modules" {
 			return fs.SkipDir
 		}
-		if gitignore.NewMatcher(append(gitIgnorePatterns, ignorePatterns...)).Match(fsgitignore.Split(path), true) {
+		if gitignore.NewMatcher(ignorePatterns).Match(fsgitignore.Split(path), true) {
 			return fs.SkipDir
 		}
 		patterns, err := fsgitignore.ParseIgnoreFiles(fsys, path)
 		if err != nil {
 			return err
 		}
-		gitIgnorePatterns = append(gitIgnorePatterns, patterns...)
+		ignorePatterns = append(ignorePatterns, patterns...)
 		directoryPaths = append(directoryPaths, path)
 		return nil
 	})
