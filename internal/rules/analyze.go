@@ -117,22 +117,48 @@ type dirReport struct {
 
 // TODO: only use defaults if no gitignore files are in the parent tree
 var defaultIgnorePatterns = fsgitignore.ParsePatterns([]string{
-	"node_modules/",
+	// IDE directories
 	".idea/",
 	".vscode/",
+	".vs/",
+
+	// Local development tool directories
 	"/.ddev",
-	"venv/",
-	"virtualenv/",
-	".virtualenv/",
+
+	// Build tool directories
+	".build/",
+	"bower_components",
 	"elm-stuff/",
+	".workspace/",
+	"node_modules/",
+	".next",
+	".nuxt",
+
+	// Tests and fixtures
 	"tests/",
 	"testdata/",
 	"fixtures/",
 	"Fixtures/",
 	"__fixtures__/",
+
+	// Python
 	"__pycache__/",
-	".build/",
-	".workspace/",
+	"venv/",
+	"virtualenv/",
+	".virtualenv/",
+
+	// CI config
+	".github/",
+	".gitlab/",
+
+	// Version control (".git" is already excluded)
+	".hg/",
+	".svn/",
+	".bzr/",
+
+	// Misc.
+	".cache/",
+	"_asm/",
 
 	// TODO remove this when it can be parsed from e.g. composer.json
 	"vendor/",
@@ -153,7 +179,7 @@ func (a *Analyzer) applyRuleset(rs *Ruleset, fsys fs.FS, directoryPaths []string
 			matches, err := matcher.Match(func(rule *Rule) (bool, error) {
 				// TODO tidy this up
 				if len(rule.Ignore) > 0 {
-					if gitignore.NewMatcher(fsgitignore.ParsePatterns(rule.Ignore, nil)).Match(dirSplit, true) {
+					if gitignore.NewMatcher(fsgitignore.ParsePatterns(rule.Ignore, []string{})).Match(dirSplit, true) {
 						return false, nil
 					}
 				}
