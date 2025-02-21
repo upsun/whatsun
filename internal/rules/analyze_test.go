@@ -81,8 +81,8 @@ func TestAnalyze(t *testing.T) {
 	}
 
 	assert.EqualValues(t, []rules.Report{{
-		Result: "composer", Rules: []string{"composer"}, Sure: true},
-	}, result["package_managers"].Paths["."])
+		Result: "composer", Rules: []string{"composer"}, Sure: true, Groups: []string{"php"},
+	}}, result["package_managers"].Paths["."])
 
 	assert.EqualValues(t, []rules.Report{
 		{Result: "bun", Rules: []string{"js-packages"}, Groups: []string{"js"}},

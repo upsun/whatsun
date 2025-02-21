@@ -35,6 +35,7 @@ package_managers:
       then: composer
       ignore:
         - modules/
+      group: php
 
     pip:
       when: fs.fileExists("requirements.txt")
@@ -59,22 +60,27 @@ package_managers:
     bundler:
       when: fs.glob("Gemfile*").size() > 0
       then: bundler
+      group: ruby
 
     gomod:
       when: fs.fileExists("go.mod") || fs.fileExists("go.sum")
       then: gomod
+      group: go
 
     cargo:
       when: fs.fileExists("Cargo.toml")
       then: cargo
+      group: rust
 
     maven:
       when: fs.fileExists("pom.xml")
       then: maven
+      group: java
 
     gradle:
       when: fs.fileExists("build.gradle") || fs.fileExists("build.gradle.kts")
       then: gradle
+      group: java
 
     nuget:
       when: fs.fileExists("packages.config")
@@ -89,7 +95,9 @@ package_managers:
     mix:
       when: fs.fileExists("mix.exs")
       then: mix
+      group: elixir
 
     quicklisp:
       when: fs.isDir("quicklisp")
       then: quicklisp
+      group: lisp
