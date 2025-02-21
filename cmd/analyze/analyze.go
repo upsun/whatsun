@@ -41,11 +41,6 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	f, err := os.Open(absPath)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer f.Close()
 
 	ignoreSlice := strings.Split(*ignore, ",")
 
