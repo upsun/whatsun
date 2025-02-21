@@ -1,49 +1,13 @@
 package rules
 
 import (
-	"encoding/json"
-	"fmt"
 	"slices"
 	"sort"
-	"strings"
 
 	"what/internal/eval"
 )
 
 type Results map[string]Result
-
-func (r Results) String() string {
-	if r == nil {
-		return "[no results]"
-	}
-
-	names := make([]string, 0, len(r))
-	for name := range r {
-		names = append(names, name)
-	}
-	sort.Strings(names)
-
-	s := ""
-	for _, name := range names {
-		s += fmt.Sprintf("\nRuleset: %s", name)
-		res := r[name]
-		if len(res.Paths) == 0 {
-			s += "\n[No results]\n"
-			continue
-		}
-		s += "\nPath\tMatches\n"
-		lines := make([]string, 0, len(res.Paths))
-		for dir, matches := range res.Paths {
-			b, _ := json.Marshal(matches)
-			lines = append(lines, dir+"\t"+string(b))
-		}
-		sort.Strings(lines)
-		s += strings.Join(lines, "\n")
-		s += "\n"
-	}
-
-	return strings.TrimRight(s, "\n")
-}
 
 type Result struct {
 	Paths map[string][]Report `json:"directories"`

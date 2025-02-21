@@ -8,8 +8,11 @@ import (
 	"os"
 	"path/filepath"
 	"runtime/pprof"
+	"sort"
 	"strings"
 	"time"
+
+	"github.com/jedib0t/go-pretty/v6/table"
 
 	"what/internal/rules"
 )
@@ -51,11 +54,47 @@ func main() {
 	}
 	start := time.Now()
 
-	result, err := analyzer.Analyze(context.TODO(), os.DirFS(absPath), ".")
+	results, err := analyzer.Analyze(context.TODO(), os.DirFS(absPath), ".")
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	fmt.Fprintf(os.Stdout, "Received result in %s:\n", time.Since(start))
-	fmt.Fprintln(os.Stdout, result)
+
+	names := make([]string, 0, len(results))
+	for name := range results {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+
+	for _, name := range names {
+		fmt.Fprintln(os.Stdout, "\nRuleset:", name)
+		tbl := table.NewWriter()
+		tbl.SetOutputMirror(os.Stdout)
+		tbl.AppendHeader(table.Row{"Path", "Result", "Groups", "With"})
+
+		paths := make([]string, 0, len(results[name].Paths))
+		for path := range results[name].Paths {
+			paths = append(paths, path)
+		}
+		sort.Strings(paths)
+		for _, p := range paths {
+			for _, report := range results[name].Paths[p] {
+				if !report.Sure {
+					continue
+				}
+				var with string
+				if len(report.With) > 0 {
+					for k, v := range report.With {
+						if v.Error == "" {
+							with += fmt.Sprintf("%s: %s\n", k, v.Value)
+						}
+					}
+					with = strings.TrimSpace(with)
+				}
+				tbl.AppendRow(table.Row{p, report.Result, strings.Join(report.Groups, ", "), with})
+			}
+		}
+		tbl.Render()
+	}
 }
