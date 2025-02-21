@@ -264,6 +264,11 @@ frameworks:
         version: fs.depVersion("php", "wordpress/wordpress")
       group: php
 
+    matomo: # Matomo (formerly Piwik) analytics app. See: https://matomo.org/
+      when: fs.fileExists("matomo.php") || (fs.fileExists("config/config.ini.php") && fs.fileContains("config/config.ini.php", "Matomo"))
+      then: matomo
+      group: php
+
     express:
       when: fs.isDir("node_modules/express") || fs.depExists("js", "express")
       then: express
