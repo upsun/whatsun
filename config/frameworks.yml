@@ -192,16 +192,15 @@ frameworks:
       group: php
 
     # Drupal (modern versions, installed via Composer).
-    # Detect Drupal by looking for drupal/core Composer requirements.
-    # But exclude Drupal modules and themes that themselves require drupal/core.
     drupal:
-      when: >
-        !fs.path().contains("modules/") && !fs.path().contains("themes/") &&
-        (fs.depExists("php", "drupal/core") || fs.depExists("php", "drupal/core-recommended"))
+      when: fs.depExists("php", "drupal/core") || fs.depExists("php", "drupal/core-recommended")
       then: drupal
       with:
         version: fs.depVersion("php", "drupal/core")
       group: [php, symfony]
+      ignore: # Drupal modules and themes themselves require Drupal via Composer.
+        - modules/
+        - themes/
 
     # Drupal 7 (legacy version 7, installed via Composer).
     drupal7-composer:
