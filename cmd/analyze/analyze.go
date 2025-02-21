@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"reflect"
 	"runtime/pprof"
 	"sort"
 	"strings"
@@ -59,13 +60,21 @@ func main() {
 		log.Fatal(err)
 	}
 
-	fmt.Fprintf(os.Stdout, "Received result in %s:\n", time.Since(start))
-
 	names := make([]string, 0, len(results))
 	for name := range results {
+		if len(results[name].Paths) == 0 {
+			continue
+		}
 		names = append(names, name)
 	}
 	sort.Strings(names)
+
+	if len(names) == 0 {
+		fmt.Fprintln(os.Stdout, "No results found")
+		return
+	}
+
+	fmt.Fprintf(os.Stdout, "Received result in %s:\n", time.Since(start))
 
 	for _, name := range names {
 		fmt.Fprintln(os.Stdout, "\nRuleset:", name)
@@ -86,7 +95,7 @@ func main() {
 				var with string
 				if len(report.With) > 0 {
 					for k, v := range report.With {
-						if v.Error == "" {
+						if v.Error == "" && !isEmpty(v.Value) {
 							with += fmt.Sprintf("%s: %s\n", k, v.Value)
 						}
 					}
@@ -97,4 +106,12 @@ func main() {
 		}
 		tbl.Render()
 	}
+}
+
+func isEmpty(v any) bool {
+	if v == nil || v == "" {
+		return true
+	}
+	val := reflect.ValueOf(v)
+	return val.IsZero() || val.Len() == 0
 }

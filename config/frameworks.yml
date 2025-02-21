@@ -270,7 +270,7 @@ frameworks:
       group: php
 
     express:
-      when: fs.isDir("node_modules/express") || fs.depExists("js", "express")
+      when: fs.depExists("js", "express")
       then: express
       with:
         version: fs.depVersion("js", "express")
@@ -322,16 +322,14 @@ frameworks:
       group: js
 
     reactjs:
-      when: fs.isDir("node_modules/react") || fs.depExists("js", "react")
+      when: fs.depExists("js", "react")
       then: reactjs
       with:
-        # Example of conditional: parse the version if known, otherwise return an empty map.
-        version: >
-          fs.depExists("js", "react") ? parseVersion(fs.depVersion("js", "react")) : {}
+        version: fs.depVersion("js", "react")
       group: js
 
     vuejs:
-      when: fs.isDir("node_modules/vue") || fs.depExists("js", "vue")
+      when: fs.depExists("js", "vue")
       then: vuejs
       with:
         version: fs.depVersion("js", "vue")
