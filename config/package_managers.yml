@@ -33,6 +33,8 @@ package_managers:
     composer:
       when: fs.fileExists("composer.json")
       then: composer
+      with:
+        php_version: jq(fs.read("composer.json"), ".require.php")
       ignore:
         - modules/
       group: php

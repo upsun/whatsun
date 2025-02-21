@@ -20,7 +20,7 @@ func TestAnalyze(t *testing.T) {
 		)},
 
 		// Definitely Composer.
-		`composer.json`: &fstest.MapFile{Data: []byte(`{"require": {"symfony/framework-bundle": "^7"}}`)},
+		`composer.json`: &fstest.MapFile{Data: []byte(`{"require": {"symfony/framework-bundle": "^7", "php": "^8.3"}}`)},
 		`composer.lock`: &fstest.MapFile{Data: []byte(`{"packages": [{"name": "symfony/framework-bundle", "version": "7.2.3"}]}`)},
 
 		// Ignored due to .gitignore.
@@ -82,6 +82,7 @@ func TestAnalyze(t *testing.T) {
 
 	assert.EqualValues(t, []rules.Report{{
 		Result: "composer", Rules: []string{"composer"}, Sure: true, Groups: []string{"php"},
+		With: map[string]rules.Metadata{"php_version": {Value: "^8.3"}},
 	}}, result["package_managers"].Paths["."])
 
 	assert.EqualValues(t, []rules.Report{
