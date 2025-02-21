@@ -177,11 +177,8 @@ func (a *Analyzer) applyRuleset(rs *Ruleset, fsys fs.FS, directoryPaths []string
 			evalWithInput := a.evalWithInput(input)
 			dirSplit := fsgitignore.Split(d)
 			matches, err := matcher.Match(func(rule *Rule) (bool, error) {
-				// TODO tidy this up
-				if len(rule.Ignore) > 0 {
-					if gitignore.NewMatcher(fsgitignore.ParsePatterns(rule.Ignore, []string{})).Match(dirSplit, true) {
-						return false, nil
-					}
+				if rule.IgnoresDirectory(dirSplit) {
+					return false, nil
 				}
 
 				return evalWithInput(rule.When)

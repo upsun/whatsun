@@ -7,9 +7,11 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/go-git/go-git/v5/plumbing/format/gitignore"
 	"gopkg.in/yaml.v3"
 
 	"what"
+	"what/internal/fsgitignore"
 )
 
 var Config map[string]Ruleset
@@ -31,6 +33,18 @@ type Rule struct {
 	GroupList yamlListOrString `yaml:"group"`
 
 	Ignore yamlListOrString `yaml:"ignore"`
+
+	matcher gitignore.Matcher
+}
+
+func (r *Rule) IgnoresDirectory(path []string) bool {
+	if r.Ignore == nil {
+		return false
+	}
+	if r.matcher == nil {
+		r.matcher = gitignore.NewMatcher(fsgitignore.ParsePatterns(r.Ignore, []string{}))
+	}
+	return r.matcher.Match(path, true)
 }
 
 type yamlListOrString []string
