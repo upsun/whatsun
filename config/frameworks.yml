@@ -602,3 +602,10 @@ frameworks:
       with:
         version: fs.depVersion("elixir", "phoenix")
       group: elixir
+
+    platformsh-app:
+      when: fs.fileExists(".platform.app.yaml")
+      then: platformsh-app
+      with:
+        name: yq(fs.read(".platform.app.yaml"), ".name")
+      group: cloud

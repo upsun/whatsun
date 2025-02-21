@@ -1,13 +1,13 @@
 package celfuncs
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
 
 	"github.com/google/cel-go/cel"
 	"github.com/itchyny/gojq"
+	"gopkg.in/yaml.v3"
 )
 
 func JQ() cel.EnvOption {
@@ -19,16 +19,36 @@ func JQ() cel.EnvOption {
 		},
 	}
 
-	return bytesStringReturnsStringErr("jq", jq)
+	return bytesStringReturnsStringErr("jq", func(b []byte, expr string) (string, error) {
+		m := map[string]any{}
+		if err := json.Unmarshal(b, &m); err != nil {
+			return "", err
+		}
+		return jq(m, expr)
+	})
 }
 
-func jq(b []byte, expr string) (string, error) {
+func YQ() cel.EnvOption {
+	FuncDocs["yq"] = FuncDoc{
+		Comment: "Query YAML bytes (e.g. file contents) using YQ (same syntax as JQ)",
+		Args: []ArgDoc{
+			{"contents", ""},
+			{"query", ""},
+		},
+	}
+
+	return bytesStringReturnsStringErr("yq", func(b []byte, expr string) (string, error) {
+		m := map[string]any{}
+		if err := yaml.Unmarshal(b, &m); err != nil {
+			return "", err
+		}
+		return jq(m, expr)
+	})
+}
+
+func jq(m map[string]any, expr string) (string, error) {
 	query, err := gojq.Parse(expr)
 	if err != nil {
-		return "", err
-	}
-	m := map[string]any{}
-	if err := json.NewDecoder(bytes.NewReader(b)).Decode(&m); err != nil {
 		return "", err
 	}
 	// TODO use context?

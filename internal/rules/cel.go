@@ -15,6 +15,7 @@ func DefaultEnvOptions() []cel.EnvOption {
 	return append(
 		celOptions,
 		celfuncs.JQ(),
+		celfuncs.YQ(),
 		celfuncs.ParseVersion(),
 	)
 }

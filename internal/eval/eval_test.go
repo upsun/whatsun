@@ -46,6 +46,7 @@ func TestEval(t *testing.T) {
 	options = append(
 		options,
 		celfuncs.JQ(),
+		celfuncs.YQ(),
 		celfuncs.ParseVersion(),
 	)
 
