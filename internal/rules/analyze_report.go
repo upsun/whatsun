@@ -38,7 +38,6 @@ func matchToReport(ev *eval.Evaluator, input any, rules map[string]Rule, match M
 	}
 
 	var groupMap = make(map[string]struct{})
-	var reports []Report
 	for i, ruleName := range match.Rules {
 		rule, ok := rules[ruleName]
 		if !ok {
@@ -62,7 +61,6 @@ func matchToReport(ev *eval.Evaluator, input any, rules map[string]Rule, match M
 			}
 			rep.With[name] = Metadata{Value: val.Value()}
 		}
-		reports = append(reports, rep)
 	}
 	rep.Groups = sortedMapKeys(groupMap)
 	slices.Sort(rep.Rules)

@@ -65,11 +65,10 @@ func (m *rubyManager) Get(name string) (Dependency, bool) {
 	if !ok {
 		return Dependency{}, false
 	}
-	v, _ := m.resolved[name]
 	return Dependency{
 		Name:       name,
 		Constraint: req,
-		Version:    v,
+		Version:    m.resolved[name],
 	}, true
 }
 
@@ -77,11 +76,10 @@ func (m *rubyManager) Find(pattern string) []Dependency {
 	var deps []Dependency
 	for name, constraint := range m.required {
 		if wildcard.Match(pattern, name) {
-			v, _ := m.resolved[name]
 			deps = append(deps, Dependency{
 				Name:       name,
 				Constraint: constraint,
-				Version:    v,
+				Version:    m.resolved[name],
 			})
 		}
 	}

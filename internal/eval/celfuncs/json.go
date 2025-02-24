@@ -69,7 +69,7 @@ func jq(m map[string]any, expr string) (string, error) {
 		if v == nil {
 			return "", nil
 		}
-		return fmt.Sprint(v), nil
+		return fmt.Sprint(v), nil //nolint: staticcheck
 	}
 
 	return "", errors.New("failed to evaluate JSON query")

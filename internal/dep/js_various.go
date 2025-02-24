@@ -158,9 +158,7 @@ func (m *jsManager) parse() error {
 		}
 	}
 	for name, pkg := range locked.Packages {
-		if strings.HasPrefix(name, "node_modules/") {
-			name = strings.TrimPrefix(name, "node_modules/")
-		}
+		name = strings.TrimPrefix(name, "node_modules/")
 		if d, ok := m.deps[name]; ok {
 			d.Version = pkg.Version
 			m.deps[name] = d
