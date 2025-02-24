@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"encoding/xml"
 	"errors"
-	"io"
 	"io/fs"
 	"path/filepath"
 	"regexp"
@@ -12,7 +11,6 @@ import (
 	"sync"
 
 	"github.com/IGLOU-EU/go-wildcard/v2"
-	"golang.org/x/sync/errgroup"
 )
 
 type javaManager struct {
@@ -39,83 +37,22 @@ func (m *javaManager) Init() error {
 }
 
 func (m *javaManager) parse() error {
-	eg := errgroup.Group{}
-	eg.Go(func() error {
-		f, err := m.fsys.Open(filepath.Join(m.path, "pom.xml"))
-		if err != nil {
-			if errors.Is(err, fs.ErrNotExist) {
-				return nil
-			}
-			return err
-		}
-		defer f.Close()
-		project, err := parseMavenDependencies(f)
-		if err != nil {
-			return err
-		}
-		if project.Parent.GroupID != "" {
-			m.deps = append(m.deps, Dependency{
-				Vendor:  project.Parent.GroupID,
-				Name:    project.Parent.GroupID + ":" + project.Parent.ArtifactID,
-				Version: project.Parent.Version,
-			})
-		}
-		for _, dep := range project.Dependencies.Dependency {
-			m.deps = append(m.deps, Dependency{
-				Vendor:  dep.GroupID,
-				Name:    dep.GroupID + ":" + dep.ArtifactID,
-				Version: dep.Version,
-			})
-		}
-		return nil
-	})
-	eg.Go(func() error {
-		f, err := m.fsys.Open(filepath.Join(m.path, "build.gradle"))
-		if err != nil {
-			if errors.Is(err, fs.ErrNotExist) {
-				return nil
-			}
-			return err
-		}
-		defer f.Close()
-
-		reqs, err := parseGradleDependencies(f, gradleGroovyPatt)
-		if err != nil {
-			return err
-		}
-		for k, v := range reqs {
-			vnd, parts := "", strings.SplitN(k, ":", 2)
-			if len(parts) == 2 {
-				vnd = parts[0]
-			}
-			m.deps = append(m.deps, Dependency{Vendor: vnd, Name: k, Version: v})
-		}
-		return nil
-	})
-	eg.Go(func() error {
-		f, err := m.fsys.Open(filepath.Join(m.path, "build.gradle.kts"))
-		if err != nil {
-			if errors.Is(err, fs.ErrNotExist) {
-				return nil
-			}
-			return err
-		}
-		defer f.Close()
-
-		reqs, err := parseGradleDependencies(f, gradleKotlinPatt)
-		if err != nil {
-			return err
-		}
-		for k, v := range reqs {
-			vnd, parts := "", strings.SplitN(k, ":", 2)
-			if len(parts) == 2 {
-				vnd = parts[0]
-			}
-			m.deps = append(m.deps, Dependency{Vendor: vnd, Name: k, Version: v})
-		}
-		return nil
-	})
-	return eg.Wait()
+	deps, err := parsePomXML(m.fsys, m.path)
+	if err != nil {
+		return err
+	}
+	m.deps = append(m.deps, deps...)
+	deps, err = parseBuildGradleGroovy(m.fsys, m.path)
+	if err != nil {
+		return err
+	}
+	m.deps = append(m.deps, deps...)
+	deps, err = parseBuildGradleKotlin(m.fsys, m.path)
+	if err != nil {
+		return err
+	}
+	m.deps = append(m.deps, deps...)
+	return nil
 }
 
 func (m *javaManager) Find(pattern string) []Dependency {
@@ -150,31 +87,66 @@ type mavenProject struct {
 	} `xml:"dependencies"`
 }
 
-func parseMavenDependencies(r io.Reader) (project mavenProject, err error) {
-	err = xml.NewDecoder(r).Decode(&project)
-	return
-}
-
-type GradleDependency struct {
-	Name    string `json:"name"`
-	Version string `json:"version"`
-}
-
 var (
 	gradleGroovyPatt = regexp.MustCompile(`^(?:implementation|compileOnly|runtimeOnly) ['"]?([^'":]+):([^'":]+):([^'"]+)['"]?$`)
 	gradleKotlinPatt = regexp.MustCompile(`^(?:implementation|compileOnly|runtimeOnly)\(['"]?([^'":]+):([^'":]+):([^'"]+)['"]?\)$`)
 )
 
-func parseGradleDependencies(r io.Reader, patt *regexp.Regexp) (map[string]string, error) {
-	var deps map[string]string
-	scanner := bufio.NewScanner(r)
-	deps = make(map[string]string)
+func parsePomXML(fsys fs.FS, path string) ([]Dependency, error) {
+	f, err := fsys.Open(filepath.Join(path, "pom.xml"))
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	defer f.Close()
+	var project mavenProject
+	if err := xml.NewDecoder(f).Decode(&project); err != nil {
+		return nil, err
+	}
+	var deps = make([]Dependency, 0, len(project.Dependencies.Dependency)+1)
+	if project.Parent.GroupID != "" {
+		deps = append(deps, Dependency{
+			Vendor:  project.Parent.GroupID,
+			Name:    project.Parent.GroupID + ":" + project.Parent.ArtifactID,
+			Version: project.Parent.Version,
+		})
+	}
+	for _, dep := range project.Dependencies.Dependency {
+		deps = append(deps, Dependency{
+			Vendor:  dep.GroupID,
+			Name:    dep.GroupID + ":" + dep.ArtifactID,
+			Version: dep.Version,
+		})
+	}
+	return deps, nil
+}
+
+func parseBuildGradle(fsys fs.FS, path, filename string, patt *regexp.Regexp) ([]Dependency, error) {
+	f, err := fsys.Open(filepath.Join(path, filename))
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	defer f.Close()
+	var deps []Dependency
+	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
-		matches := patt.FindStringSubmatch(line)
+		matches := patt.FindStringSubmatch(strings.TrimSpace(scanner.Text()))
 		if len(matches) > 3 {
-			deps[matches[1]+":"+matches[2]] = matches[3]
+			deps = append(deps, Dependency{Vendor: matches[1], Name: matches[1] + ":" + matches[2], Version: matches[3]})
 		}
 	}
 	return deps, nil
+}
+
+func parseBuildGradleGroovy(fsys fs.FS, path string) ([]Dependency, error) {
+	return parseBuildGradle(fsys, path, "build.gradle", gradleGroovyPatt)
+}
+
+func parseBuildGradleKotlin(fsys fs.FS, path string) ([]Dependency, error) {
+	return parseBuildGradle(fsys, path, "build.gradle.kts", gradleKotlinPatt)
 }
