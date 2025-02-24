@@ -11,8 +11,6 @@ type store struct {
 	then  map[string][]*Rule
 	maybe map[string][]*Rule
 
-	thenByGroup map[string]map[string]struct{}
-
 	mutex sync.RWMutex
 }
 
@@ -24,12 +22,14 @@ func (s *store) List() ([]Match, error) {
 	}
 
 	// Validate and combine the lists.
-	var matches = make([]Match, 0, len(s.then)+len(s.maybe))
+	var matches = make([]Match, len(s.then), len(s.then)+len(s.maybe))
 	var groupsWithThen = make(map[string]struct{})
 
 	// Add the "then" values.
+	i := 0
 	for result, rules := range s.then {
-		matches = append(matches, Match{Result: result, Rules: ruleNames(rules), Sure: true})
+		matches[i] = Match{Result: result, Rules: ruleNames(rules), Sure: true}
+		i++
 		for _, rule := range rules {
 			for _, g := range rule.GroupList {
 				groupsWithThen[g] = struct{}{}
@@ -45,7 +45,7 @@ func (s *store) List() ([]Match, error) {
 		var hasResultByGroup bool
 		for _, rule := range rules {
 			for _, g := range rule.GroupList {
-				if _, ok := s.thenByGroup[g]; ok {
+				if _, ok := groupsWithThen[g]; ok {
 					hasResultByGroup = true
 					break
 				}
@@ -78,34 +78,16 @@ func (s *store) Add(rule *Rule) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
-	if len(rule.Maybe) > 0 {
-		if s.maybe == nil {
-			s.maybe = make(map[string][]*Rule)
-		}
-		for _, v := range rule.Maybe {
-			s.maybe[v] = append(s.maybe[v], rule)
-		}
+	if s.maybe == nil {
+		s.maybe = make(map[string][]*Rule)
 	}
-
-	if len(rule.Then) > 0 {
-		if s.then == nil {
-			s.then = make(map[string][]*Rule)
-		}
-		for _, v := range rule.Then {
-			s.then[v] = append(s.then[v], rule)
-		}
-		if len(rule.GroupList) > 0 {
-			if s.thenByGroup == nil {
-				s.thenByGroup = make(map[string]map[string]struct{})
-			}
-			for _, g := range rule.GroupList {
-				if s.thenByGroup[g] == nil {
-					s.thenByGroup[g] = make(map[string]struct{})
-				}
-				for _, v := range rule.Then {
-					s.thenByGroup[g][v] = struct{}{}
-				}
-			}
-		}
+	for _, v := range rule.Maybe {
+		s.maybe[v] = append(s.maybe[v], rule)
+	}
+	if s.then == nil {
+		s.then = make(map[string][]*Rule)
+	}
+	for _, v := range rule.Then {
+		s.then[v] = append(s.then[v], rule)
 	}
 }
