@@ -10,6 +10,7 @@ import (
 	"runtime"
 	"slices"
 	"strings"
+	"sync"
 
 	"github.com/go-git/go-git/v5/plumbing/format/gitignore"
 	"github.com/google/cel-go/common/types"
@@ -163,10 +164,12 @@ func (a *Analyzer) applyRuleset(rs *Ruleset, fsys fs.FS, directoryPaths []string
 	var (
 		matcher = &Matcher{rs.Rules}
 		reports []Report
-		eg      = errgroup.Group{}
+		mux     sync.Mutex
+		eg      errgroup.Group
 	)
 	eg.SetLimit(runtime.GOMAXPROCS(0))
 	for _, d := range directoryPaths {
+		d := d
 		eg.Go(func() error {
 			input := celfuncs.FilesystemInput(fsys, d)
 			evalWithInput := a.evalWithInput(input)
@@ -181,9 +184,13 @@ func (a *Analyzer) applyRuleset(rs *Ruleset, fsys fs.FS, directoryPaths []string
 			if err != nil {
 				return fmt.Errorf("in directory %s: %w", d, err)
 			}
-			for _, m := range matches {
-				reports = append(reports, matchToReport(a.evaluator, input, rs.Rules, m, d))
+			var subReports = make([]Report, len(matches))
+			for i, m := range matches {
+				subReports[i] = matchToReport(a.evaluator, input, rs.Rules, m, d)
 			}
+			mux.Lock()
+			reports = append(reports, subReports...)
+			mux.Unlock()
 			return nil
 		})
 	}
