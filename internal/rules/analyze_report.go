@@ -7,13 +7,10 @@ import (
 	"what/internal/eval"
 )
 
-type Results map[string]Result
-
-type Result struct {
-	Paths map[string][]Report `json:"directories"`
-}
+type Results map[string][]Report
 
 type Report struct {
+	Path   string              `json:"path"`
 	Result string              `json:"result,omitempty"`
 	Sure   bool                `json:"sure,omitempty"`
 	Error  string              `json:"error,omitempty"`
@@ -27,8 +24,9 @@ type Metadata struct {
 	Error string `json:"error,omitempty"`
 }
 
-func matchToReport(ev *eval.Evaluator, input any, rules map[string]Rule, match Match) Report {
+func matchToReport(ev *eval.Evaluator, input any, rules map[string]Rule, match Match, path string) Report {
 	rep := Report{
+		Path:   path,
 		Result: match.Result,
 		Sure:   match.Sure,
 		Rules:  make([]string, len(match.Rules)),

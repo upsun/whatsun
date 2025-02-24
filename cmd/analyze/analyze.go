@@ -61,7 +61,7 @@ func main() {
 
 	names := make([]string, 0, len(results))
 	for name := range results {
-		if len(results[name].Paths) == 0 {
+		if len(results[name]) == 0 {
 			continue
 		}
 		names = append(names, name)
@@ -81,27 +81,20 @@ func main() {
 		tbl.SetOutputMirror(os.Stdout)
 		tbl.AppendHeader(table.Row{"Path", "Result", "Groups", "With"})
 
-		paths := make([]string, 0, len(results[name].Paths))
-		for path := range results[name].Paths {
-			paths = append(paths, path)
-		}
-		sort.Strings(paths)
-		for _, p := range paths {
-			for _, report := range results[name].Paths[p] {
-				if !report.Sure {
-					continue
-				}
-				var with string
-				if len(report.With) > 0 {
-					for k, v := range report.With {
-						if v.Error == "" && !isEmpty(v.Value) {
-							with += fmt.Sprintf("%s: %s\n", k, v.Value)
-						}
-					}
-					with = strings.TrimSpace(with)
-				}
-				tbl.AppendRow(table.Row{p, report.Result, strings.Join(report.Groups, ", "), with})
+		for _, report := range results[name] {
+			if !report.Sure {
+				continue
 			}
+			var with string
+			if len(report.With) > 0 {
+				for k, v := range report.With {
+					if v.Error == "" && !isEmpty(v.Value) {
+						with += fmt.Sprintf("%s: %s\n", k, v.Value)
+					}
+				}
+				with = strings.TrimSpace(with)
+			}
+			tbl.AppendRow(table.Row{report.Path, report.Result, strings.Join(report.Groups, ", "), with})
 		}
 		tbl.Render()
 	}

@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strings"
 
 	"github.com/go-git/go-git/v5/plumbing/format/gitignore"
@@ -45,11 +46,11 @@ func (a *Analyzer) Analyze(ctx context.Context, fsys fs.FS, root string) (Result
 
 	var results = make(Results, len(a.config))
 	for name, rs := range a.config {
-		res, err := a.applyRuleset(&rs, fsys, dirs)
+		reports, err := a.applyRuleset(&rs, fsys, dirs)
 		if err != nil {
 			return nil, err
 		}
-		results[name] = Result{Paths: res}
+		results[name] = reports
 	}
 
 	return results, nil
@@ -109,11 +110,6 @@ func (a *Analyzer) evalWithInput(input any) func(string) (bool, error) {
 	}
 }
 
-type dirReport struct {
-	Path   string
-	Report Report
-}
-
 // TODO: only use defaults if no gitignore files are in the parent tree
 var defaultIgnorePatterns = fsgitignore.ParsePatterns([]string{
 	// IDE directories
@@ -163,12 +159,12 @@ var defaultIgnorePatterns = fsgitignore.ParsePatterns([]string{
 	"vendor/",
 }, nil)
 
-func (a *Analyzer) applyRuleset(rs *Ruleset, fsys fs.FS, directoryPaths []string) (map[string][]Report, error) {
-	matcher := &Matcher{rs.Rules}
-
-	var dirReports []dirReport
-
-	eg := errgroup.Group{}
+func (a *Analyzer) applyRuleset(rs *Ruleset, fsys fs.FS, directoryPaths []string) ([]Report, error) {
+	var (
+		matcher = &Matcher{rs.Rules}
+		reports []Report
+		eg      = errgroup.Group{}
+	)
 	eg.SetLimit(runtime.GOMAXPROCS(0))
 	for _, d := range directoryPaths {
 		eg.Go(func() error {
@@ -186,10 +182,7 @@ func (a *Analyzer) applyRuleset(rs *Ruleset, fsys fs.FS, directoryPaths []string
 				return fmt.Errorf("in directory %s: %w", d, err)
 			}
 			for _, m := range matches {
-				dirReports = append(dirReports, struct {
-					Path   string
-					Report Report
-				}{Path: d, Report: matchToReport(a.evaluator, input, rs.Rules, m)})
+				reports = append(reports, matchToReport(a.evaluator, input, rs.Rules, m, d))
 			}
 			return nil
 		})
@@ -198,10 +191,9 @@ func (a *Analyzer) applyRuleset(rs *Ruleset, fsys fs.FS, directoryPaths []string
 		return nil, err
 	}
 
-	var reports = make(map[string][]Report, len(directoryPaths))
-	for _, r := range dirReports {
-		reports[r.Path] = append(reports[r.Path], r.Report)
-	}
+	slices.SortFunc(reports, func(a, b Report) int {
+		return strings.Compare(a.Path, b.Path)
+	})
 
 	return reports, nil
 }
