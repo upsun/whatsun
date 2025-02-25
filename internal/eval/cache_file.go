@@ -63,7 +63,7 @@ func (c *FileCache) Save() error {
 	if c.filename == "" {
 		return errors.New("no cache filename specified")
 	}
-	f, err := os.OpenFile(c.filename, os.O_RDWR|os.O_CREATE, 0666)
+	f, err := os.OpenFile(c.filename, os.O_RDWR|os.O_CREATE, 0o666)
 	if err != nil {
 		return err
 	}

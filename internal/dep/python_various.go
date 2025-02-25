@@ -97,7 +97,7 @@ func (m *pythonManager) Get(name string) (Dependency, bool) {
 	}, true
 }
 
-var pipPattern = regexp.MustCompile(`^([\w\-_]+)([<>=!~]+[\d\w.\-]*)?$`)
+var pipPattern = regexp.MustCompile(`^([\w-]+)([<>=!~]+[\w.-]*)?$`)
 
 // parseRequirementsTXT parses a requirements.txt file
 func parseRequirementsTXT(r io.Reader) (map[string]string, error) {
@@ -127,7 +127,7 @@ func parseRequirementsTXT(r io.Reader) (map[string]string, error) {
 	return dependencies, nil
 }
 
-var pipEnvPattern = regexp.MustCompile(`^\s*"?([\w\-_]+)"?\s*=\s*"([^"]+)"`)
+var pipEnvPattern = regexp.MustCompile(`^\s*"?([\w-]+)"?\s*=\s*"([^"]+)"`)
 
 // parsePipfile extracts dependencies from a Pipfile
 func parsePipfile(r io.Reader) (map[string]string, error) {
@@ -171,11 +171,12 @@ func parsePyprojectTOML(r io.Reader) (map[string]string, error) {
 
 	// Handle Poetry dependencies
 	for pkg, version := range pyProject.Tool.Poetry.Dependencies {
-		if s, ok := version.(string); ok {
-			dependencies[pkg] = s
-		} else if st, ok := version.(map[string]interface{}); ok {
-			dependencies[pkg] = st["version"].(string)
-		} else {
+		switch v := version.(type) {
+		case string:
+			dependencies[pkg] = v
+		case map[string]any:
+			dependencies[pkg] = v["version"].(string)
+		default:
 			return nil, fmt.Errorf("unrecognized poetry version type %T: %v", version, version)
 		}
 	}

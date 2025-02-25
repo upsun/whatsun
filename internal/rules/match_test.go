@@ -10,11 +10,11 @@ import (
 )
 
 func TestMatch(t *testing.T) {
-	ruleMap := map[string]rules.Rule{
-		"a":   {When: "a", Then: []string{"a"}, GroupList: []string{"g"}},
-		"aaa": {When: "aaa", Then: []string{"a"}},
-		"ab":  {When: "ab", Maybe: []string{"a", "b"}, GroupList: []string{"g"}},
-		"bc":  {When: "bc", Maybe: []string{"b", "c"}},
+	ruleMap := map[string]*rules.Rule{
+		"a":   {Name: "a", When: "a", Then: []string{"a"}, GroupList: []string{"g"}},
+		"aaa": {Name: "aaa", When: "aaa", Then: []string{"a"}},
+		"ab":  {Name: "ab", When: "ab", Maybe: []string{"a", "b"}, GroupList: []string{"g"}},
+		"bc":  {Name: "bc", When: "bc", Maybe: []string{"b", "c"}},
 	}
 
 	cases := []struct {

@@ -18,11 +18,10 @@ warm_cache: ## Warms the expression cache (run this when expressions change).
 
 .PHONY: govulncheck
 govulncheck: ## Check dependencies for vulnerabilities.
-	@command -v govulncheck > /dev/null || go install golang.org/x/vuln/cmd/govulncheck@latest
-	govulncheck ./...
+	go tool govulncheck ./...
 
 .PHONY: lint
-lint: lint-gofmt lint-gomod lint-govet ## Run all linters.
+lint: lint-gofmt lint-gomod lint-govet lint-staticcheck ## Run all linters.
 
 .PHONY: lint-gofmt
 lint-gofmt: ## Run linter `go fmt`.
@@ -40,6 +39,10 @@ endif
 .PHONY: lint-govet
 lint-govet: ## Run linter `go vet`.
 	go vet ./...
+
+.PHONY: lint-staticcheck
+lint-staticcheck: ## Run linter `staticcheck`.
+	go tool staticcheck ./...
 
 .PHONY: test
 test: ## Run unit tests.

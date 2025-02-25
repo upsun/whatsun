@@ -24,7 +24,7 @@ type Metadata struct {
 	Error string `json:"error,omitempty"`
 }
 
-func matchToReport(ev *eval.Evaluator, input any, rules map[string]Rule, match Match, path string) Report {
+func matchToReport(ev *eval.Evaluator, input any, rules map[string]*Rule, match Match, path string) Report {
 	rep := Report{
 		Path:   path,
 		Result: match.Result,

@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/go-git/go-git/v5/plumbing/format/gitignore"
 	"gopkg.in/yaml.v3"
@@ -17,8 +18,8 @@ import (
 var Config map[string]Ruleset
 
 type Ruleset struct {
-	Depends []string        `yaml:"depends"`
-	Rules   map[string]Rule `yaml:"rules"`
+	Depends []string         `yaml:"depends"`
+	Rules   map[string]*Rule `yaml:"rules"`
 }
 
 type Rule struct {
@@ -34,16 +35,17 @@ type Rule struct {
 
 	Ignore yamlListOrString `yaml:"ignore"`
 
-	matcher gitignore.Matcher
+	matcher   gitignore.Matcher
+	matchInit sync.Once
 }
 
 func (r *Rule) IgnoresDirectory(path []string) bool {
 	if r.Ignore == nil {
 		return false
 	}
-	if r.matcher == nil {
+	r.matchInit.Do(func() {
 		r.matcher = gitignore.NewMatcher(fsgitignore.ParsePatterns(r.Ignore, []string{}))
-	}
+	})
 	return r.matcher.Match(path, true)
 }
 

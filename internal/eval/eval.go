@@ -68,7 +68,7 @@ func (e *Evaluator) CompileAndCache(expr string) (*cel.Ast, error) {
 func (e *Evaluator) eval(ast *cel.Ast, input any) (ref.Val, error) {
 	var prg cel.Program
 	if v, ok := e.programCache.Load(ast); ok {
-		prg = v.(cel.Program)
+		prg, _ = v.(cel.Program)
 	} else {
 		var err error
 		prg, err = e.celEnv.Program(ast)
@@ -83,13 +83,11 @@ func (e *Evaluator) eval(ast *cel.Ast, input any) (ref.Val, error) {
 }
 
 func newCelEnv(cnf *Config) (*cel.Env, error) {
-	options := append(cnf.EnvOptions,
+	celEnv, err := cel.NewEnv(append(cnf.EnvOptions,
 		ext.Lists(),
 		ext.Strings(),
 		ext.NativeTypes(),
-	)
-
-	celEnv, err := cel.NewEnv(options...)
+	)...)
 	if err != nil {
 		return nil, err
 	}

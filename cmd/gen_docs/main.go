@@ -112,15 +112,16 @@ func GenerateDocs(w io.Writer, env *cel.Env) error {
 				}
 			}
 
-			if overload.IsMemberFunction() {
+			switch {
+			case overload.IsMemberFunction():
 				b.WriteString(fmt.Sprintf("* `<%s>.%s(%s)` -> `%s`\n", argTypesStr[0], name, strings.Join(argTypesStr[1:], ", "), overload.ResultType()))
-			} else if isOperator {
+			case isOperator:
 				descr := f.Name()
 				for _, argTypeStr := range argTypesStr {
 					descr = strings.Replace(descr, "_", "` `"+argTypeStr+"` `", 1)
 				}
 				b.WriteString(fmt.Sprintf("* `%s` -> `%s`\n", strings.Trim(descr, " `"), overload.ResultType()))
-			} else {
+			default:
 				b.WriteString(fmt.Sprintf("* `%s(%s)` -> `%s`\n", f.Name(), strings.Join(argTypesStr, ", "), overload.ResultType()))
 			}
 

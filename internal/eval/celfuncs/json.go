@@ -64,12 +64,11 @@ func jq(m map[string]any, expr string) (string, error) {
 				break
 			}
 			return "", err
-
 		}
 		if v == nil {
 			return "", nil
 		}
-		return fmt.Sprint(v), nil //nolint: staticcheck
+		return fmt.Sprint(v), nil //lint:ignore SA4004 false positive
 	}
 
 	return "", errors.New("failed to evaluate JSON query")

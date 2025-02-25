@@ -42,7 +42,7 @@ func TestFS(t *testing.T) {
 		globCount int
 	}
 
-	var cases []caseType
+	var cases = make([]caseType, 0, 25)
 	for _, d := range genDirs(1, 5) {
 		cases = append(cases,
 			caseType{path: d, globCount: 1},

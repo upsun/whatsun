@@ -29,7 +29,7 @@ func Split(path string) []string {
 }
 
 // ParsePatterns turns string patterns into parsed versions.
-func ParsePatterns(patterns []string, path []string) []gitignore.Pattern {
+func ParsePatterns(patterns, path []string) []gitignore.Pattern {
 	var parsed = make([]gitignore.Pattern, len(patterns))
 	for i, pattern := range patterns {
 		parsed[i] = gitignore.ParsePattern(pattern, path)
@@ -53,7 +53,7 @@ func ParseIgnoreFiles(fsys fs.FS, path string) ([]gitignore.Pattern, error) {
 }
 
 // parseIgnoreFile reads a specific git ignore file.
-func parseIgnoreFile(fsys fs.FS, path string, ignoreFile string) (ps []gitignore.Pattern, err error) {
+func parseIgnoreFile(fsys fs.FS, path, ignoreFile string) (ps []gitignore.Pattern, err error) {
 	f, err := fsys.Open(filepath.Join(path, ignoreFile))
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
