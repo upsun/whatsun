@@ -12,54 +12,54 @@ import (
 	"what/internal/rules"
 )
 
+var testFs = fstest.MapFS{
+	".gitignore": &fstest.MapFile{Data: []byte("/git-ignored/\n" +
+		"git-ignored-deep/\n" +
+		"git-ignored-wildcard*\n",
+	)},
+
+	// Definitely Composer.
+	`composer.json`: &fstest.MapFile{Data: []byte(`{"require": {"symfony/framework-bundle": "^7", "php": "^8.3"}}`)},
+	`composer.lock`: &fstest.MapFile{Data: []byte(`{"packages": [{"name": "symfony/framework-bundle", "version": "7.2.3"}]}`)},
+
+	// Ignored due to .gitignore.
+	"git-ignored/composer.json":                      &fstest.MapFile{Data: []byte("{}")},
+	"a/b/git-ignored-deep/composer.json":             &fstest.MapFile{Data: []byte("{}")},
+	"a/b/git-ignored-wildcard-example/composer.json": &fstest.MapFile{Data: []byte("{}")},
+
+	// Ignored due to .gitignore in a subdirectory.
+	"x/y/.gitignore":                  &fstest.MapFile{Data: []byte("ignore-subdir/")},
+	"x/y/ignore-subdir/composer.json": &fstest.MapFile{Data: []byte("{}")},
+
+	// Ignored due to default ignores.
+	"node_modules/composer.lock": &fstest.MapFile{Data: []byte("{}")},
+
+	// Ignored due to argument ignores.
+	"arg-ignored/composer.lock": &fstest.MapFile{Data: []byte("{}")},
+
+	// Potentially Composer or perhaps others.
+	"vendor":         &fstest.MapFile{Mode: fs.ModeDir},
+	"vendor/symfony": &fstest.MapFile{Mode: fs.ModeDir},
+
+	// Definitely NPM.
+	"another-app/package.json":      &fstest.MapFile{Data: []byte("{}")},
+	"another-app/package-lock.json": &fstest.MapFile{Data: []byte("{}")},
+
+	// Detected without having a package manager.
+	"configured-app/.platform.app.yaml": &fstest.MapFile{Data: []byte("name: app")},
+
+	// Ambiguous: Bun, NPM, PNPM, or Yarn.
+	// No lockfile so generates an error getting the version.
+	"ambiguous/package.json": &fstest.MapFile{Data: []byte(`{"dependencies":{"gatsby":"^5.14.1"}}`)},
+
+	// Meteor and NPM directory ("conflicting").
+	"meteor/.meteor":           &fstest.MapFile{Mode: fs.ModeDir},
+	"meteor/.meteor/packages":  &fstest.MapFile{},
+	"meteor/.meteor/versions":  &fstest.MapFile{},
+	"meteor/package-lock.json": &fstest.MapFile{},
+}
+
 func TestAnalyze(t *testing.T) {
-	testFs := fstest.MapFS{
-		".gitignore": &fstest.MapFile{Data: []byte("/git-ignored/\n" +
-			"git-ignored-deep/\n" +
-			"git-ignored-wildcard*\n",
-		)},
-
-		// Definitely Composer.
-		`composer.json`: &fstest.MapFile{Data: []byte(`{"require": {"symfony/framework-bundle": "^7", "php": "^8.3"}}`)},
-		`composer.lock`: &fstest.MapFile{Data: []byte(`{"packages": [{"name": "symfony/framework-bundle", "version": "7.2.3"}]}`)},
-
-		// Ignored due to .gitignore.
-		"git-ignored/composer.json":                      &fstest.MapFile{Data: []byte("{}")},
-		"a/b/git-ignored-deep/composer.json":             &fstest.MapFile{Data: []byte("{}")},
-		"a/b/git-ignored-wildcard-example/composer.json": &fstest.MapFile{Data: []byte("{}")},
-
-		// Ignored due to .gitignore in a subdirectory.
-		"x/y/.gitignore":                  &fstest.MapFile{Data: []byte("ignore-subdir/")},
-		"x/y/ignore-subdir/composer.json": &fstest.MapFile{Data: []byte("{}")},
-
-		// Ignored due to default ignores.
-		"node_modules/composer.lock": &fstest.MapFile{Data: []byte("{}")},
-
-		// Ignored due to argument ignores.
-		"arg-ignored/composer.lock": &fstest.MapFile{Data: []byte("{}")},
-
-		// Potentially Composer or perhaps others.
-		"vendor":         &fstest.MapFile{Mode: fs.ModeDir},
-		"vendor/symfony": &fstest.MapFile{Mode: fs.ModeDir},
-
-		// Definitely NPM.
-		"another-app/package.json":      &fstest.MapFile{Data: []byte("{}")},
-		"another-app/package-lock.json": &fstest.MapFile{Data: []byte("{}")},
-
-		// Detected without having a package manager.
-		"configured-app/.platform.app.yaml": &fstest.MapFile{Data: []byte("name: app")},
-
-		// Ambiguous: Bun, NPM, PNPM, or Yarn.
-		// No lockfile so generates an error getting the version.
-		"ambiguous/package.json": &fstest.MapFile{Data: []byte(`{"dependencies":{"gatsby":"^5.14.1"}}`)},
-
-		// Meteor and NPM directory ("conflicting").
-		"meteor/.meteor":           &fstest.MapFile{Mode: fs.ModeDir},
-		"meteor/.meteor/packages":  &fstest.MapFile{},
-		"meteor/.meteor/versions":  &fstest.MapFile{},
-		"meteor/package-lock.json": &fstest.MapFile{},
-	}
-
 	rulesAnalyzer, err := rules.NewAnalyzer([]string{"arg-ignored"})
 	require.NoError(t, err)
 
@@ -111,4 +111,15 @@ func TestAnalyze(t *testing.T) {
 			},
 		},
 	}, result)
+}
+
+func BenchmarkAnalyze(b *testing.B) {
+	rulesAnalyzer, err := rules.NewAnalyzer([]string{"arg-ignored"})
+	require.NoError(b, err)
+
+	ctx := context.Background()
+	for n := 0; n < b.N; n++ {
+		_, err = rulesAnalyzer.Analyze(ctx, testFs, ".")
+		require.NoError(b, err)
+	}
 }
