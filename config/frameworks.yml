@@ -335,13 +335,6 @@ frameworks:
         version: fs.depVersion("js", "vue")
       group: js
 
-    vite:
-      when: fs.fileExists("vite.config.ts") || fs.depExists("js", "vite")
-      then: vite
-      with:
-        version: fs.depVersion("js", "vite")
-      group: js
-
     shopsys: # Shopsys Platform (eCommerce framework). See: https://github.com/shopsys/shopsys
       when: fs.depExists("js", "shopsys")
       then: shopsys

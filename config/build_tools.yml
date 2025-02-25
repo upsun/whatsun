@@ -25,8 +25,10 @@ build_tools:
       group: js
 
     vite:
-      when: fs.glob("vite.config.*s").size() > 0
+      when: fs.glob("vite.config.*s").size() > 0 || fs.depExists("js", "vite")
       then: vite
+      with:
+        version: fs.depVersion("js", "vite")
       group: js
 
     rollup:
