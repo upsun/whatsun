@@ -1,0 +1,55 @@
+build_tools:
+  rules:
+    deno:
+      when: fs.fileExists("deno.json") || fs.fileExists("deno.lock")
+      then: deno
+      group: js
+
+    make:
+      when: fs.fileExists("Makefile")
+      then: make
+
+    rake:
+      when: fs.fileExists("Rakefile")
+      then: rake
+      group: ruby
+
+    thor:
+      when: fs.fileExists("Thorfile")
+      then: thor
+      group: ruby
+
+    webpack:
+      when: fs.glob("webpack.config.*s").size() > 0
+      then: webpack
+      group: js
+
+    vite:
+      when: fs.glob("vite.config.*s").size() > 0
+      then: vite
+      group: js
+
+    rollup:
+      when: fs.glob("rollup.config.*s").size() > 0
+      then: rollup
+      group: js
+
+    gulp:
+      when: fs.glob("gulpfile.*s").size() > 0 || fs.glob("Gulpfile.*s").size() > 0
+      then: gulp
+      group: js
+
+    grunt:
+      when: fs.fileExists("Gruntfile.js") || fs.fileExists("Gruntfile.coffee")
+      then: grunt
+      group: js
+
+    paver:
+      when: fs.fileExists("pavement.py")
+      then: paver
+      group: python
+
+    fabric:
+      when: fs.fileExists("fabfile.py")
+      then: fabric
+      group: python

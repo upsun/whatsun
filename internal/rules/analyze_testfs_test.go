@@ -50,6 +50,8 @@ var testFs = fstest.MapFS{
 	// Detected without having a package manager.
 	"configured-app/.platform.app.yaml": &fstest.MapFile{Data: []byte("name: app")},
 
+	"rake/Rakefile": &fstest.MapFile{},
+
 	// Ambiguous: Bun, NPM, PNPM, or Yarn.
 	// No lockfile so generates an error getting the version.
 	"ambiguous/package.json": &fstest.MapFile{Data: []byte(`{"dependencies":{"gatsby":"^5.14.1"}}`)},
@@ -81,6 +83,9 @@ func TestAnalyze_TestFS_ActualRules(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.EqualValues(t, rules.RulesetReports{
+		"build_tools": {
+			{Path: "rake", Result: "rake", Rules: []string{"rake"}, Groups: []string{"ruby"}},
+		},
 		"package_managers": {
 			{
 				Path:   ".",

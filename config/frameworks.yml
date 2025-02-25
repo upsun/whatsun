@@ -385,7 +385,7 @@ frameworks:
       group: js
 
     # Deno TypeScript/JavaScript runtime.
-    # This is deliberately in both the "frameworks" and "package_managers" rulesets.
+    # This is deliberately in all three rulesets.
     deno:
       when: fs.fileExists("deno.json") || fs.fileExists("deno.lock")
       then: deno
