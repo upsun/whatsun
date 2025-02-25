@@ -300,7 +300,7 @@ frameworks:
     # Next.js. See: https://nextjs.org/docs
     # Valid config files: next.config.js, next.config.ts, next.config.mjs
     nextjs:
-      when: fs.fileExists("next.config.*s") || fs.depExists("js", "next")
+      when: fs.glob("next.config.*s").size() > 0 || fs.depExists("js", "next")
       then: nextjs
       with:
         version: fs.depVersion("js", "next")
@@ -394,7 +394,7 @@ frameworks:
     # Astro framework / SSG. See: https://github.com/withastro/astro
     # The config file is normally astro.config.mjs but could also have ts, js or cjs extensions.
     astro:
-      when: fs.depExists("js", "astro") || fs.fileExists("astro.config.*s")
+      when: fs.depExists("js", "astro") || fs.glob("astro.config.*s").size() > 0
       then: astro
       with:
         version: fs.depVersion("js", "astro")
@@ -581,14 +581,14 @@ frameworks:
     # Eleventy static site generator. See: https://www.11ty.dev/
     # The config file, which is optional, could be any of .eleventy.js, eleventy.config.js, eleventy.config.mjs or eleventy.config.cjs.
     eleventy:
-      when: fs.fileExists(".eleventy.js") || fs.fileExists("eleventy.config.*s") || fs.depExists("js", "@11ty/eleventy")
+      when: fs.fileExists(".eleventy.js") || fs.glob("eleventy.config.*s").size() > 0 || fs.depExists("js", "@11ty/eleventy")
       then: eleventy
       with:
         version: fs.depVersion("js", "@11ty/eleventy")
       group: [js, static]
 
     docusaurus: # Docusaurus static site generator. See: https://github.com/facebook/docusaurus
-      when: fs.fileExists("docusaurus.config.*s") || fs.depExists("js", "@docusaurus/core")
+      when: fs.glob("docusaurus.config.*s").size() > 0 || fs.depExists("js", "@docusaurus/core")
       then: docusaurus
       with:
         version: fs.depVersion("js", "@docusaurus/core")

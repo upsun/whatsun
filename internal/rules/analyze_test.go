@@ -52,6 +52,9 @@ var testFs = fstest.MapFS{
 	// No lockfile so generates an error getting the version.
 	"ambiguous/package.json": &fstest.MapFile{Data: []byte(`{"dependencies":{"gatsby":"^5.14.1"}}`)},
 
+	// Eleventy: detected via glob.
+	"eleventy/eleventy.config.ts": &fstest.MapFile{},
+
 	// Meteor and NPM directory ("conflicting").
 	"meteor/.meteor":           &fstest.MapFile{Mode: fs.ModeDir},
 	"meteor/.meteor/packages":  &fstest.MapFile{},
@@ -108,6 +111,14 @@ func TestAnalyze(t *testing.T) {
 				With:   map[string]rules.Metadata{"name": {Value: "app"}},
 				Sure:   true,
 				Groups: []string{"cloud"},
+			},
+			{
+				Path:   "eleventy",
+				Result: "eleventy",
+				Rules:  []string{"eleventy"},
+				With:   map[string]rules.Metadata{"version": {Value: ""}},
+				Sure:   true,
+				Groups: []string{"js", "static"},
 			},
 		},
 	}, result)
