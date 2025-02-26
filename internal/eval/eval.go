@@ -6,7 +6,6 @@ import (
 
 	"github.com/google/cel-go/cel"
 	"github.com/google/cel-go/common/types/ref"
-	"github.com/google/cel-go/ext"
 )
 
 type Config struct {
@@ -22,7 +21,7 @@ type Evaluator struct {
 }
 
 func NewEvaluator(cnf *Config) (*Evaluator, error) {
-	celEnv, err := newCelEnv(cnf)
+	celEnv, err := cel.NewEnv(cnf.EnvOptions...)
 	if err != nil {
 		return nil, err
 	}
@@ -80,17 +79,4 @@ func (e *Evaluator) eval(ast *cel.Ast, input any) (ref.Val, error) {
 
 	out, _, err := prg.Eval(input)
 	return out, err
-}
-
-func newCelEnv(cnf *Config) (*cel.Env, error) {
-	celEnv, err := cel.NewEnv(append(cnf.EnvOptions,
-		ext.Lists(),
-		ext.Strings(),
-		ext.NativeTypes(),
-	)...)
-	if err != nil {
-		return nil, err
-	}
-
-	return celEnv, nil
 }

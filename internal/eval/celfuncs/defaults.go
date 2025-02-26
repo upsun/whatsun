@@ -1,6 +1,9 @@
 package celfuncs
 
-import "github.com/google/cel-go/cel"
+import (
+	"github.com/google/cel-go/cel"
+	"github.com/google/cel-go/ext"
+)
 
 // DefaultEnvOptions returns default options for creating a Common Expression Language (CEL) environment.
 func DefaultEnvOptions() []cel.EnvOption {
@@ -14,5 +17,8 @@ func DefaultEnvOptions() []cel.EnvOption {
 		JQ(),
 		YQ(),
 		ParseVersion(),
+		ext.Lists(),
+		ext.Strings(),
+		ext.NativeTypes(),
 	)
 }
