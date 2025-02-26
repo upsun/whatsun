@@ -3,8 +3,6 @@ package config
 import (
 	_ "embed"
 
-	"github.com/google/cel-go/cel"
-
 	"what"
 	"what/internal/eval"
 	"what/internal/eval/celfuncs"
@@ -20,7 +18,7 @@ func LoadEvaluatorConfig() (*eval.Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &eval.Config{Cache: cache, EnvOptions: DefaultCELEnvOptions()}, nil
+	return &eval.Config{Cache: cache, EnvOptions: celfuncs.DefaultEnvOptions()}, nil
 }
 
 // LoadEmbeddedRulesets loads the rulesets embedded by what.ConfigData.
@@ -30,19 +28,4 @@ func LoadEmbeddedRulesets() (map[string]*rules.Ruleset, error) {
 		return nil, err
 	}
 	return sets, nil
-}
-
-// DefaultCELEnvOptions returns default options for creating a Common Expression Language (CEL) environment.
-func DefaultCELEnvOptions() []cel.EnvOption {
-	var celOptions []cel.EnvOption
-	celOptions = append(celOptions, celfuncs.FilesystemVariable())
-	celOptions = append(celOptions, celfuncs.AllFileFunctions()...)
-	celOptions = append(celOptions, celfuncs.AllPackageManagerFunctions()...)
-
-	return append(
-		celOptions,
-		celfuncs.JQ(),
-		celfuncs.YQ(),
-		celfuncs.ParseVersion(),
-	)
 }

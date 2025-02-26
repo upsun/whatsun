@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/google/cel-go/cel"
 	"github.com/google/cel-go/common/types"
 	"github.com/google/cel-go/common/types/ref"
 	"github.com/stretchr/testify/assert"
@@ -40,18 +39,7 @@ func TestEval(t *testing.T) {
 	cache, err := eval.NewFileCacheWithContent(exprCache, cachePath)
 	require.NoError(t, err)
 
-	var options []cel.EnvOption
-	options = append(options, celfuncs.FilesystemVariable())
-	options = append(options, celfuncs.AllFileFunctions()...)
-	options = append(options, celfuncs.AllPackageManagerFunctions()...)
-	options = append(
-		options,
-		celfuncs.JQ(),
-		celfuncs.YQ(),
-		celfuncs.ParseVersion(),
-	)
-
-	cnf := &eval.Config{EnvOptions: options, Cache: cache}
+	cnf := &eval.Config{EnvOptions: celfuncs.DefaultEnvOptions(), Cache: cache}
 
 	e, err := eval.NewEvaluator(cnf)
 	require.NoError(t, err)

@@ -6,6 +6,7 @@ import (
 
 	"what/internal/config"
 	"what/internal/eval"
+	"what/internal/eval/celfuncs"
 )
 
 func main() {
@@ -31,8 +32,7 @@ func warmCache(filename string) error {
 		return err
 	}
 
-	celOptions := config.DefaultCELEnvOptions()
-	ev, err := eval.NewEvaluator(&eval.Config{Cache: cache, EnvOptions: celOptions})
+	ev, err := eval.NewEvaluator(&eval.Config{Cache: cache, EnvOptions: celfuncs.DefaultEnvOptions()})
 	if err != nil {
 		return err
 	}
