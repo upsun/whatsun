@@ -46,8 +46,11 @@ lint-staticcheck: ## Run linter `staticcheck`.
 
 .PHONY: test
 test: ## Run unit tests.
-	go clean -testcache
-	GIN_MODE="test" go test $(FLAGS) ./...
+	go test $(FLAGS) -count=1 ./...
+
+.PHONY: bench
+bench: ## Run benchmarks.
+	go test $(FLAGS) -run=_none -bench=. -benchtime 500x -cpu 1,2,4 ./...
 
 .PHONY: test-coverage
 test-coverage: ## Run unit tests and generate code coverage.
