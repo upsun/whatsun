@@ -6,11 +6,11 @@ import (
 	"os"
 	"sort"
 	"strings"
+	"what/internal/config"
 
 	"github.com/google/cel-go/cel"
 
 	"what/internal/eval/celfuncs"
-	"what/internal/rules"
 )
 
 func main() {
@@ -26,7 +26,7 @@ func main() {
 	defer f.Close()
 
 	// Make the CEL environment.
-	celOptions := rules.DefaultEnvOptions()
+	celOptions := config.DefaultCELEnvOptions()
 	env, err := cel.NewEnv(celOptions...)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)

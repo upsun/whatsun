@@ -1,4 +1,4 @@
-package rules_test
+package main_test
 
 import (
 	"context"
@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"what/internal/config"
 	"what/internal/rules"
 )
 
@@ -63,7 +64,12 @@ var testFs = fstest.MapFS{
 }
 
 func TestAnalyze(t *testing.T) {
-	rulesAnalyzer, err := rules.NewAnalyzer([]string{"arg-ignored"})
+	rulesets, err := config.LoadEmbeddedRulesets()
+	require.NoError(t, err)
+	evalConfig, err := config.LoadEvaluatorConfig()
+	require.NoError(t, err)
+
+	rulesAnalyzer, err := rules.NewAnalyzer(rulesets, evalConfig, []string{"arg-ignored"})
 	require.NoError(t, err)
 
 	result, err := rulesAnalyzer.Analyze(context.Background(), testFs, ".")
@@ -125,7 +131,12 @@ func TestAnalyze(t *testing.T) {
 }
 
 func BenchmarkAnalyze(b *testing.B) {
-	rulesAnalyzer, err := rules.NewAnalyzer([]string{"arg-ignored"})
+	rulesets, err := config.LoadEmbeddedRulesets()
+	require.NoError(b, err)
+	evalConfig, err := config.LoadEvaluatorConfig()
+	require.NoError(b, err)
+
+	rulesAnalyzer, err := rules.NewAnalyzer(rulesets, evalConfig, []string{"arg-ignored"})
 	require.NoError(b, err)
 
 	ctx := context.Background()

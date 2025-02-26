@@ -23,21 +23,17 @@ import (
 )
 
 type Analyzer struct {
-	config    map[string]Ruleset
+	config    map[string]*Ruleset
 	evaluator *eval.Evaluator
 	ignore    []string
 }
 
-func NewAnalyzer(ignore []string) (*Analyzer, error) {
-	cache, err := eval.NewFileCacheWithContent(exprCache, "")
+func NewAnalyzer(rulesets map[string]*Ruleset, evalConfig *eval.Config, ignore []string) (*Analyzer, error) {
+	ev, err := eval.NewEvaluator(evalConfig)
 	if err != nil {
 		return nil, err
 	}
-	ev, err := eval.NewEvaluator(&eval.Config{Cache: cache, EnvOptions: DefaultEnvOptions()})
-	if err != nil {
-		return nil, err
-	}
-	return &Analyzer{evaluator: ev, config: Config, ignore: ignore}, nil
+	return &Analyzer{evaluator: ev, config: rulesets, ignore: ignore}, nil
 }
 
 func (a *Analyzer) Analyze(ctx context.Context, fsys fs.FS, root string) (Results, error) {
@@ -50,7 +46,7 @@ func (a *Analyzer) Analyze(ctx context.Context, fsys fs.FS, root string) (Result
 
 	var results = make(Results, len(a.config))
 	for name, rs := range a.config {
-		reports, err := a.applyRuleset(&rs, fsys, dirs)
+		reports, err := a.applyRuleset(rs, fsys, dirs)
 		if err != nil {
 			return nil, err
 		}

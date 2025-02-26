@@ -3,7 +3,9 @@ package main
 import (
 	"fmt"
 	"os"
-	"what/internal/rules"
+
+	"what/internal/config"
+	"what/internal/eval"
 )
 
 func main() {
@@ -11,9 +13,43 @@ func main() {
 		fmt.Println("Usage: warm_cache <filename>")
 		os.Exit(1)
 	}
-	if err := rules.WarmCache(os.Args[1]); err != nil {
+	if err := warmCache(os.Args[1]); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 	fmt.Fprintln(os.Stderr, "Cache saved to:", os.Args[1])
+}
+
+func warmCache(filename string) error {
+	rulesets, err := config.LoadEmbeddedRulesets()
+	if err != nil {
+		return err
+	}
+
+	cache, err := eval.NewFileCacheWithContent(nil, filename)
+	if err != nil {
+		return err
+	}
+
+	celOptions := config.DefaultCELEnvOptions()
+	ev, err := eval.NewEvaluator(&eval.Config{Cache: cache, EnvOptions: celOptions})
+	if err != nil {
+		return err
+	}
+	for _, rs := range rulesets {
+		for _, r := range rs.Rules {
+			if r.When != "" {
+				if _, err := ev.CompileAndCache(r.When); err != nil {
+					return err
+				}
+			}
+			for _, expr := range r.With {
+				if _, err := ev.CompileAndCache(expr); err != nil {
+					return err
+				}
+			}
+		}
+	}
+
+	return cache.Save()
 }

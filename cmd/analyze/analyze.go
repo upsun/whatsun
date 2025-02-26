@@ -15,6 +15,7 @@ import (
 
 	"github.com/jedib0t/go-pretty/v6/table"
 
+	"what/internal/config"
 	"what/internal/rules"
 )
 
@@ -48,7 +49,17 @@ func main() {
 
 	ignoreSlice := strings.Split(*ignore, ",")
 
-	analyzer, err := rules.NewAnalyzer(ignoreSlice)
+	rulesets, err := config.LoadEmbeddedRulesets()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	evalConfig, err := config.LoadEvaluatorConfig()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	analyzer, err := rules.NewAnalyzer(rulesets, evalConfig, ignoreSlice)
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -3,7 +3,6 @@ package rules
 import (
 	"fmt"
 	"io/fs"
-	"os"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -11,11 +10,8 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/format/gitignore"
 	"gopkg.in/yaml.v3"
 
-	"what"
 	"what/internal/fsgitignore"
 )
-
-var Config map[string]Ruleset
 
 type Ruleset struct {
 	Depends []string         `yaml:"depends"`
@@ -66,37 +62,30 @@ func (l *yamlListOrString) UnmarshalYAML(unmarshal func(interface{}) error) erro
 	return nil
 }
 
-func init() {
-	if err := parseConfig(); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
-}
-
-func parseConfig() error {
-	dirname := "config"
-	entries, err := fs.ReadDir(what.ConfigData, dirname)
+// ParseFiles loads all YAML files in a directory and parses rulesets from them.
+func ParseFiles(fsys fs.FS, path string, dest map[string]*Ruleset) error {
+	entries, err := fs.ReadDir(fsys, path)
 	if err != nil {
 		return err
 	}
-	Config = make(map[string]Ruleset)
 	for _, entry := range entries {
-		if strings.HasSuffix(entry.Name(), ".yaml") || strings.HasSuffix(entry.Name(), ".yml") {
-			subConfig := make(map[string]Ruleset)
-			f, err := what.ConfigData.Open(filepath.Join(dirname, entry.Name()))
-			if err != nil {
-				return fmt.Errorf("failed to open config file %s: %w", entry.Name(), err)
-			}
-			if err := yaml.NewDecoder(f).Decode(&subConfig); err != nil {
-				return fmt.Errorf("failed to parse config file %s: %w", entry.Name(), err)
-			}
-			for k, v := range subConfig {
-				Config[k] = v
-				// Copy the name to the rule.
-				for name, rule := range v.Rules {
-					rule.Name = name
-					Config[k].Rules[name] = rule
-				}
+		if !strings.HasSuffix(entry.Name(), ".yml") && !strings.HasSuffix(entry.Name(), ".yaml") {
+			continue
+		}
+		subConfig := make(map[string]*Ruleset)
+		f, err := fsys.Open(filepath.Join(path, entry.Name()))
+		if err != nil {
+			return fmt.Errorf("failed to open config file %s: %w", entry.Name(), err)
+		}
+		if err := yaml.NewDecoder(f).Decode(&subConfig); err != nil {
+			return fmt.Errorf("failed to parse config file %s: %w", entry.Name(), err)
+		}
+		for k, v := range subConfig {
+			dest[k] = v
+			// Copy the name to the rule.
+			for name, rule := range v.Rules {
+				rule.Name = name
+				dest[k].Rules[name] = rule
 			}
 		}
 	}
