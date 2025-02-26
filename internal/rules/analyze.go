@@ -23,16 +23,16 @@ import (
 )
 
 type Analyzer struct {
-	config    map[string]*Ruleset
+	rulesets  []RulesetSpec
 	evaluator *eval.Evaluator
 	ignore    []string
 }
 
-func NewAnalyzer(rulesets map[string]*Ruleset, ev *eval.Evaluator, ignore []string) *Analyzer {
-	return &Analyzer{evaluator: ev, config: rulesets, ignore: ignore}
+func NewAnalyzer(rulesets []RulesetSpec, ev *eval.Evaluator, ignore []string) *Analyzer {
+	return &Analyzer{evaluator: ev, rulesets: rulesets, ignore: ignore}
 }
 
-func (a *Analyzer) Analyze(ctx context.Context, fsys fs.FS, root string) (Results, error) {
+func (a *Analyzer) Analyze(ctx context.Context, fsys fs.FS, root string) (RulesetReports, error) {
 	fsys = searchfs.New(fsys)
 
 	dirs, err := a.collectDirectories(ctx, fsys, root)
@@ -40,16 +40,16 @@ func (a *Analyzer) Analyze(ctx context.Context, fsys fs.FS, root string) (Result
 		return nil, err
 	}
 
-	var results = make(Results, len(a.config))
-	for name, rs := range a.config {
-		reports, err := a.applyRuleset(rs, fsys, dirs)
+	var rulesetReports = make(RulesetReports, len(a.rulesets))
+	for _, ruleset := range a.rulesets {
+		reports, err := a.applyRuleset(ruleset, fsys, dirs)
 		if err != nil {
 			return nil, err
 		}
-		results[name] = reports
+		rulesetReports[ruleset.GetName()] = reports
 	}
 
-	return results, nil
+	return rulesetReports, nil
 }
 
 func (a *Analyzer) collectDirectories(_ context.Context, fsys fs.FS, root string) ([]string, error) {
@@ -90,9 +90,17 @@ func (a *Analyzer) collectDirectories(_ context.Context, fsys fs.FS, root string
 	return directoryPaths, nil
 }
 
-func (a *Analyzer) evalWithInput(input any) func(string) (bool, error) {
-	return func(condition string) (bool, error) {
-		val, err := a.evaluator.Eval(condition, input)
+func (a *Analyzer) evalFuncForDirectory(dir string, celInput map[string]any, gitIgnores *ignoreStore) func(rule RuleSpec) (bool, error) {
+	dirSplit := fsgitignore.Split(dir)
+
+	return func(rule RuleSpec) (bool, error) {
+		if ri, ok := rule.(ignorer); ok {
+			if m := gitIgnores.getMatcher(ri); m != nil && m.Match(dirSplit, true) {
+				return false, nil
+			}
+		}
+
+		val, err := a.evaluator.Eval(rule.GetCondition(), celInput)
 		if err != nil {
 			return false, err
 		}
@@ -106,82 +114,26 @@ func (a *Analyzer) evalWithInput(input any) func(string) (bool, error) {
 	}
 }
 
-// TODO: only use defaults if no gitignore files are in the parent tree
-var defaultIgnorePatterns = fsgitignore.ParsePatterns([]string{
-	// IDE directories
-	".idea/",
-	".vscode/",
-	".vs/",
-
-	// Local development tool directories
-	"/.ddev",
-
-	// Build tool directories
-	".build/",
-	"bower_components",
-	"elm-stuff/",
-	".workspace/",
-	"node_modules/",
-	".next",
-	".nuxt",
-
-	// Tests and fixtures
-	"tests/",
-	"testdata/",
-	"fixtures/",
-	"Fixtures/",
-	"__fixtures__/",
-
-	// Python
-	"__pycache__/",
-	"venv/",
-	"virtualenv/",
-	".virtualenv/",
-
-	// CI config
-	".github/",
-	".gitlab/",
-
-	// Version control (".git" is already excluded)
-	".hg/",
-	".svn/",
-	".bzr/",
-
-	// Misc.
-	".cache/",
-	"_asm/",
-
-	// TODO remove this when it can be parsed from e.g. composer.json
-	"vendor/",
-}, nil)
-
-func (a *Analyzer) applyRuleset(rs *Ruleset, fsys fs.FS, directoryPaths []string) ([]Report, error) {
+func (a *Analyzer) applyRuleset(rs RulesetSpec, fsys fs.FS, directoryPaths []string) ([]Report, error) {
 	var (
-		matcher = &Matcher{rs.Rules}
+		rules   = rs.GetRules()
+		ignores = &ignoreStore{}
 		reports []Report
 		mux     sync.Mutex
 		eg      errgroup.Group
 	)
 	eg.SetLimit(runtime.GOMAXPROCS(0))
 	for _, d := range directoryPaths {
-		d := d
+		d := d // Copy the range variable, avoiding reuse in the goroutine.
 		eg.Go(func() error {
-			input := celfuncs.FilesystemInput(fsys, d)
-			evalWithInput := a.evalWithInput(input)
-			dirSplit := fsgitignore.Split(d)
-			matches, err := matcher.Match(func(rule *Rule) (bool, error) {
-				if rule.IgnoresDirectory(dirSplit) {
-					return false, nil
-				}
-
-				return evalWithInput(rule.When)
-			})
+			celInput := celfuncs.FilesystemInput(fsys, d)
+			matches, err := FindMatches(rules, a.evalFuncForDirectory(d, celInput, ignores))
 			if err != nil {
 				return fmt.Errorf("in directory %s: %w", d, err)
 			}
 			var subReports = make([]Report, len(matches))
 			for i, m := range matches {
-				subReports[i] = matchToReport(a.evaluator, input, rs.Rules, m, d)
+				subReports[i] = matchToReport(a.evaluator, celInput, m, d)
 			}
 			mux.Lock()
 			reports = append(reports, subReports...)

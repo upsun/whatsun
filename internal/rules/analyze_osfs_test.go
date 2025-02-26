@@ -17,18 +17,9 @@ import (
 //go:embed testdata/rulesets
 var testRulesetsDir embed.FS
 
-// loadMockRulesets loads the rulesets embedded in the testdata/rulesets directory.
-func loadMockRulesets() (map[string]*rules.Ruleset, error) {
-	var sets = make(map[string]*rules.Ruleset)
-	if err := rules.ParseFiles(testRulesetsDir, "testdata/rulesets", sets); err != nil {
-		return nil, err
-	}
-	return sets, nil
-}
-
 // Test analysis on a real filesystem, but with mocked files and rulesets.
 func TestAnalyze_OSFS_MockRules(t *testing.T) {
-	rulesets, err := loadMockRulesets()
+	rulesets, err := rules.LoadFromYAMLDir(testRulesetsDir, "testdata/rulesets")
 	require.NoError(t, err)
 	cache, err := eval.NewFileCache("testdata/expr.cache")
 	require.NoError(t, err)
@@ -41,7 +32,7 @@ func TestAnalyze_OSFS_MockRules(t *testing.T) {
 	result, err := analyzer.Analyze(context.Background(), os.DirFS("testdata/mock-project"), ".")
 	require.NoError(t, err)
 
-	assert.EqualValues(t, rules.Results{
+	assert.EqualValues(t, rules.RulesetReports{
 		"package_managers": {
 			{Path: ".", Result: "npm", Sure: true, Rules: []string{"npm"}, Groups: []string{"js"}},
 			{Path: "deep/1/2/3", Result: "npm", Sure: true, Rules: []string{"npm"}, Groups: []string{"js"}},
@@ -55,7 +46,7 @@ func TestAnalyze_OSFS_MockRules(t *testing.T) {
 
 // Benchmark analysis on a real filesystem, but with mocked files and rulesets.
 func BenchmarkAnalyze_OSFS_MockRules(b *testing.B) {
-	rulesets, err := loadMockRulesets()
+	rulesets, err := rules.LoadFromYAMLDir(testRulesetsDir, "testdata/rulesets")
 	require.NoError(b, err)
 	cache, err := eval.NewFileCache("testdata/expr.cache")
 	require.NoError(b, err)

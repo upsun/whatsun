@@ -2,14 +2,13 @@ package rules
 
 import (
 	"slices"
-	"sort"
 	"strings"
 	"sync"
 )
 
 type store struct {
-	then  map[string][]*Rule
-	maybe map[string][]*Rule
+	then  map[string][]RuleSpec
+	maybe map[string][]RuleSpec
 
 	mutex sync.RWMutex
 }
@@ -23,16 +22,18 @@ func (s *store) List() ([]Match, error) {
 
 	// Validate and combine the lists.
 	var matches = make([]Match, len(s.then), len(s.then)+len(s.maybe))
-	var groupsWithThen = make(map[string]struct{})
+	var groupsWithResults = make(map[string]struct{})
 
 	// Add the "then" values.
 	i := 0
 	for result, rules := range s.then {
-		matches[i] = Match{Result: result, Rules: ruleNames(rules), Sure: true}
+		matches[i] = Match{Result: result, Rules: rules, Sure: true}
 		i++
 		for _, rule := range rules {
-			for _, g := range rule.GroupList {
-				groupsWithThen[g] = struct{}{}
+			if rg, ok := rule.(WithGroups); ok {
+				for _, g := range rg.GetGroups() {
+					groupsWithResults[g] = struct{}{}
+				}
 			}
 		}
 	}
@@ -44,17 +45,19 @@ func (s *store) List() ([]Match, error) {
 		}
 		var hasResultByGroup bool
 		for _, rule := range rules {
-			for _, g := range rule.GroupList {
-				if _, ok := groupsWithThen[g]; ok {
-					hasResultByGroup = true
-					break
+			if rg, ok := rule.(WithGroups); ok {
+				for _, g := range rg.GetGroups() {
+					if _, ok := groupsWithResults[g]; ok {
+						hasResultByGroup = true
+						break
+					}
 				}
 			}
 		}
 		if hasResultByGroup {
 			continue
 		}
-		matches = append(matches, Match{Result: result, Rules: ruleNames(rules)})
+		matches = append(matches, Match{Result: result, Rules: rules})
 	}
 
 	// Sort the list for consistent output.
@@ -65,29 +68,23 @@ func (s *store) List() ([]Match, error) {
 	return matches, nil
 }
 
-func ruleNames(rules []*Rule) []string {
-	names := make([]string, len(rules))
-	for i, r := range rules {
-		names[i] = r.Name
-	}
-	sort.Strings(names)
-	return names
-}
-
-func (s *store) Add(rule *Rule) {
+func (s *store) Add(rule RuleSpec) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
-	if s.maybe == nil {
-		s.maybe = make(map[string][]*Rule)
-	}
-	for _, v := range rule.Maybe {
-		s.maybe[v] = append(s.maybe[v], rule)
-	}
 	if s.then == nil {
-		s.then = make(map[string][]*Rule)
+		s.then = make(map[string][]RuleSpec)
 	}
-	for _, v := range rule.Then {
+	for _, v := range rule.GetResults() {
 		s.then[v] = append(s.then[v], rule)
+	}
+
+	if m, ok := rule.(WithMaybeResults); ok {
+		if s.maybe == nil {
+			s.maybe = make(map[string][]RuleSpec)
+		}
+		for _, v := range m.GetMaybeResults() {
+			s.maybe[v] = append(s.maybe[v], rule)
+		}
 	}
 }

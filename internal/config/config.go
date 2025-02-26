@@ -22,10 +22,6 @@ func LoadEvaluatorConfig() (*eval.Config, error) {
 }
 
 // LoadEmbeddedRulesets loads the rulesets embedded by what.ConfigData.
-func LoadEmbeddedRulesets() (map[string]*rules.Ruleset, error) {
-	var sets = make(map[string]*rules.Ruleset)
-	if err := rules.ParseFiles(what.ConfigData, "config", sets); err != nil {
-		return nil, err
-	}
-	return sets, nil
+func LoadEmbeddedRulesets() ([]rules.RulesetSpec, error) {
+	return rules.LoadFromYAMLDir(what.ConfigData, "config")
 }

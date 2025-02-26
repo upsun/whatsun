@@ -7,6 +7,7 @@ import (
 	"what/internal/config"
 	"what/internal/eval"
 	"what/internal/eval/celfuncs"
+	"what/internal/rules"
 )
 
 func main() {
@@ -37,15 +38,17 @@ func warmCache(filename string) error {
 		return err
 	}
 	for _, rs := range rulesets {
-		for _, r := range rs.Rules {
-			if r.When != "" {
-				if _, err := ev.CompileAndCache(r.When); err != nil {
+		for _, r := range rs.GetRules() {
+			if condition := r.GetCondition(); condition != "" {
+				if _, err := ev.CompileAndCache(condition); err != nil {
 					return err
 				}
 			}
-			for _, expr := range r.With {
-				if _, err := ev.CompileAndCache(expr); err != nil {
-					return err
+			if wm, ok := r.(rules.WithMetadata); ok {
+				for _, expr := range wm.GetMetadata() {
+					if _, err := ev.CompileAndCache(expr); err != nil {
+						return err
+					}
 				}
 			}
 		}

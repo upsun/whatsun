@@ -10,24 +10,30 @@ import (
 )
 
 func TestMatch(t *testing.T) {
-	ruleMap := map[string]*rules.Rule{
-		"a":   {Name: "a", When: "a", Then: []string{"a"}, GroupList: []string{"g"}},
-		"aaa": {Name: "aaa", When: "aaa", Then: []string{"a"}},
-		"ab":  {Name: "ab", When: "ab", Maybe: []string{"a", "b"}, GroupList: []string{"g"}},
-		"bc":  {Name: "bc", When: "bc", Maybe: []string{"b", "c"}},
+	testRules := []rules.RuleSpec{
+		&rules.Rule{Name: "a", When: "a", Then: []string{"a"}, GroupList: []string{"g"}},
+		&rules.Rule{Name: "aaa", When: "aaa", Then: []string{"a"}},
+		&rules.Rule{Name: "ab", When: "ab", Maybe: []string{"a", "b"}, GroupList: []string{"g"}},
+		&rules.Rule{Name: "bc", When: "bc", Maybe: []string{"b", "c"}},
+	}
+
+	type matchExpectation struct {
+		result    any
+		sure      bool
+		ruleNames []string
 	}
 
 	cases := []struct {
 		name        string
 		data        []string
-		expect      []rules.Match
+		expect      []matchExpectation
 		expectError bool
 	}{
 		{
 			name: "then_direct",
 			data: []string{"a", "x", "y"},
-			expect: []rules.Match{
-				{Result: "a", Sure: true, Rules: []string{"a"}},
+			expect: []matchExpectation{
+				{"a", true, []string{"a"}},
 			},
 		},
 		{
@@ -37,33 +43,37 @@ func TestMatch(t *testing.T) {
 		{
 			name: "combine_then_maybe_grouped",
 			data: []string{"a", "ab"},
-			expect: []rules.Match{
-				{Result: "a", Sure: true, Rules: []string{"a"}},
+			expect: []matchExpectation{
+				{"a", true, []string{"a"}},
 			},
 		},
 		{
 			name: "combine_then_maybe_no_group",
 			data: []string{"aaa", "bc"},
-			expect: []rules.Match{
-				{Result: "a", Sure: true, Rules: []string{"aaa"}},
-				{Result: "b", Rules: []string{"bc"}},
-				{Result: "c", Rules: []string{"bc"}},
+			expect: []matchExpectation{
+				{"a", true, []string{"aaa"}},
+				{"b", false, []string{"bc"}},
+				{"c", false, []string{"bc"}},
 			},
 		},
 	}
 
-	m := rules.Matcher{Rules: ruleMap}
-
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			matches, err := m.Match(func(rule *rules.Rule) (bool, error) {
-				return slices.Contains(c.data, rule.When), nil
+			matches, err := rules.FindMatches(testRules, func(r rules.RuleSpec) (bool, error) {
+				return slices.Contains(c.data, r.GetCondition()), nil
 			})
 			if c.expectError {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
-				assert.EqualValues(t, c.expect, matches)
+				for i, m := range matches {
+					assert.Equal(t, c.expect[i].result, m.Result)
+					assert.Equal(t, c.expect[i].sure, m.Sure)
+					for j, r := range m.Rules {
+						assert.Equal(t, c.expect[i].ruleNames[j], r.GetName())
+					}
+				}
 			}
 		})
 	}

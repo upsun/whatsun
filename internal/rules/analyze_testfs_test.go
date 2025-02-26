@@ -82,7 +82,7 @@ func TestAnalyze_TestFS_ActualRules(t *testing.T) {
 	result, err := analyzer.Analyze(context.Background(), testFs, ".")
 	require.NoError(t, err)
 
-	assert.EqualValues(t, rules.Results{
+	assert.EqualValues(t, rules.RulesetReports{
 		"package_managers": {
 			{
 				Path:   ".",
@@ -90,7 +90,7 @@ func TestAnalyze_TestFS_ActualRules(t *testing.T) {
 				Sure:   true,
 				Rules:  []string{"composer"},
 				Groups: []string{"php"},
-				With:   map[string]rules.Metadata{"php_version": {Value: "^8.3"}},
+				With:   map[string]rules.ReportValue{"php_version": {Value: "^8.3"}},
 			},
 			{Path: "ambiguous", Result: "bun", Rules: []string{"js-packages"}, Groups: []string{"js"}},
 			{Path: "ambiguous", Result: "npm", Rules: []string{"js-packages"}, Groups: []string{"js"}},
@@ -105,7 +105,7 @@ func TestAnalyze_TestFS_ActualRules(t *testing.T) {
 				Path:   ".",
 				Result: "symfony",
 				Rules:  []string{"symfony-framework"},
-				With:   map[string]rules.Metadata{"version": {Value: "7.2.3"}},
+				With:   map[string]rules.ReportValue{"version": {Value: "7.2.3"}},
 				Sure:   true,
 				Groups: []string{"php", "symfony"},
 			},
@@ -113,7 +113,7 @@ func TestAnalyze_TestFS_ActualRules(t *testing.T) {
 				Path:   "ambiguous",
 				Result: "gatsby",
 				Rules:  []string{"gatsby"},
-				With:   map[string]rules.Metadata{"version": {Value: ""}},
+				With:   map[string]rules.ReportValue{"version": {Value: ""}},
 				Sure:   true,
 				Groups: []string{"js"},
 			},
@@ -121,7 +121,7 @@ func TestAnalyze_TestFS_ActualRules(t *testing.T) {
 				Path:   "configured-app",
 				Result: "platformsh-app",
 				Rules:  []string{"platformsh-app"},
-				With:   map[string]rules.Metadata{"name": {Value: "app"}},
+				With:   map[string]rules.ReportValue{"name": {Value: "app"}},
 				Sure:   true,
 				Groups: []string{"cloud"},
 			},
@@ -129,7 +129,7 @@ func TestAnalyze_TestFS_ActualRules(t *testing.T) {
 				Path:   "eleventy",
 				Result: "eleventy",
 				Rules:  []string{"eleventy"},
-				With:   map[string]rules.Metadata{"version": {Value: ""}},
+				With:   map[string]rules.ReportValue{"version": {Value: ""}},
 				Sure:   true,
 				Groups: []string{"js", "static"},
 			},
