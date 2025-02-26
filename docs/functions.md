@@ -65,6 +65,11 @@ Read a file.
 
 * `<fs dyn>.read(filename string)` -> `bytes`
 
+### `yq`
+Query YAML bytes (e.g. file contents) using YQ (same syntax as JQ).
+
+* `yq(contents bytes, query string)` -> `string`
+
 ## Built-in functions
 
 ### `@in`
