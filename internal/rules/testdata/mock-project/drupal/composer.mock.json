@@ -1,0 +1,6 @@
+{
+    "name": "test/test",
+    "require": {
+        "drupal/core": "^11"
+    }
+}

@@ -6,7 +6,7 @@ help:
 
 .PHONY: build
 build: warm_cache
-	go build -o ./what cmd/analyze/analyze.go
+	go build -o ./what cmd/analyze/main.go
 
 .PHONY: gen_docs
 gen_docs: ## Generates CEL function documentation
@@ -46,11 +46,11 @@ lint-staticcheck: ## Run linter `staticcheck`.
 
 .PHONY: test
 test: ## Run unit tests.
-	go test $(FLAGS) -count=1 ./...
+	go test $(FLAGS) -race -count=1 ./...
 
 .PHONY: bench
 bench: ## Run benchmarks.
-	go test $(FLAGS) -run=_none -bench=. -benchtime 500x -cpu 1,2,4 ./...
+	go test $(FLAGS) -run=Analyze -bench=Analyze -cpu 1,2,4 ./...
 
 .PHONY: test-coverage
 test-coverage: ## Run unit tests and generate code coverage.

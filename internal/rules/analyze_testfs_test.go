@@ -1,4 +1,4 @@
-package main_test
+package rules_test
 
 import (
 	"context"
@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"what/internal/config"
+	"what/internal/eval"
 	"what/internal/rules"
 )
 
@@ -63,16 +64,22 @@ var testFs = fstest.MapFS{
 	"meteor/package-lock.json": &fstest.MapFile{},
 }
 
-func TestAnalyze(t *testing.T) {
+func setupAnalyzerWithEmbeddedConfig(t require.TestingT, ignore []string) *rules.Analyzer {
 	rulesets, err := config.LoadEmbeddedRulesets()
 	require.NoError(t, err)
 	evalConfig, err := config.LoadEvaluatorConfig()
 	require.NoError(t, err)
-
-	rulesAnalyzer, err := rules.NewAnalyzer(rulesets, evalConfig, []string{"arg-ignored"})
+	ev, err := eval.NewEvaluator(evalConfig)
 	require.NoError(t, err)
 
-	result, err := rulesAnalyzer.Analyze(context.Background(), testFs, ".")
+	return rules.NewAnalyzer(rulesets, ev, ignore)
+}
+
+// Test analysis on the test filesystem, but with real rulesets.
+func TestAnalyze_TestFS_ActualRules(t *testing.T) {
+	analyzer := setupAnalyzerWithEmbeddedConfig(t, []string{"arg-ignore"})
+
+	result, err := analyzer.Analyze(context.Background(), testFs, ".")
 	require.NoError(t, err)
 
 	assert.EqualValues(t, rules.Results{
@@ -130,18 +137,14 @@ func TestAnalyze(t *testing.T) {
 	}, result)
 }
 
-func BenchmarkAnalyze(b *testing.B) {
-	rulesets, err := config.LoadEmbeddedRulesets()
-	require.NoError(b, err)
-	evalConfig, err := config.LoadEvaluatorConfig()
-	require.NoError(b, err)
-
-	rulesAnalyzer, err := rules.NewAnalyzer(rulesets, evalConfig, []string{"arg-ignored"})
-	require.NoError(b, err)
+// Benchmark analysis on the test filesystem, but with real rulesets.
+func BenchmarkAnalyze_TestFS_ActualRules(b *testing.B) {
+	analyzer := setupAnalyzerWithEmbeddedConfig(b, []string{"arg-ignore"})
 
 	ctx := context.Background()
+	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		_, err = rulesAnalyzer.Analyze(ctx, testFs, ".")
+		_, err := analyzer.Analyze(ctx, testFs, ".")
 		require.NoError(b, err)
 	}
 }

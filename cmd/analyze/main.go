@@ -16,6 +16,7 @@ import (
 	"github.com/jedib0t/go-pretty/v6/table"
 
 	"what/internal/config"
+	"what/internal/eval"
 	"what/internal/rules"
 )
 
@@ -58,11 +59,12 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	analyzer, err := rules.NewAnalyzer(rulesets, evalConfig, ignoreSlice)
+	ev, err := eval.NewEvaluator(evalConfig)
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	analyzer := rules.NewAnalyzer(rulesets, ev, ignoreSlice)
 	start := time.Now()
 
 	results, err := analyzer.Analyze(context.TODO(), os.DirFS(absPath), ".")

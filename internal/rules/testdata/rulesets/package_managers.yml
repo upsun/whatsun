@@ -1,0 +1,24 @@
+# A ruleset mimicking package manager detection, with mocked filenames to avoid triggering IDEs.
+package_managers:
+  rules:
+    npm:
+      when: fs.fileExists("package.mock.json")
+      then: npm
+      group: js
+
+    composer:
+      when: fs.fileExists("composer.mock.json")
+      then: composer
+      group: php
+      ignore:
+        - modules/
+
+    pip:
+      when: fs.fileExists("requirements.mock.txt")
+      then: pip
+      group: python
+
+    poetry:
+      when: fs.fileExists("poetry.mock.lock")
+      then: poetry
+      group: python

@@ -28,12 +28,8 @@ type Analyzer struct {
 	ignore    []string
 }
 
-func NewAnalyzer(rulesets map[string]*Ruleset, evalConfig *eval.Config, ignore []string) (*Analyzer, error) {
-	ev, err := eval.NewEvaluator(evalConfig)
-	if err != nil {
-		return nil, err
-	}
-	return &Analyzer{evaluator: ev, config: rulesets, ignore: ignore}, nil
+func NewAnalyzer(rulesets map[string]*Ruleset, ev *eval.Evaluator, ignore []string) *Analyzer {
+	return &Analyzer{evaluator: ev, config: rulesets, ignore: ignore}
 }
 
 func (a *Analyzer) Analyze(ctx context.Context, fsys fs.FS, root string) (Results, error) {
