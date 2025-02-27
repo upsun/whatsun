@@ -16,7 +16,6 @@ import (
 	"github.com/jedib0t/go-pretty/v6/table"
 
 	"what/internal/config"
-	"what/internal/eval"
 	"what/internal/rules"
 )
 
@@ -55,11 +54,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	evalConfig, err := config.LoadEvaluatorConfig()
-	if err != nil {
-		log.Fatal(err)
-	}
-	ev, err := eval.NewEvaluator(evalConfig)
+	ev, err := config.LoadEvaluator()
 	if err != nil {
 		log.Fatal(err)
 	}

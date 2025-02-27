@@ -68,9 +68,7 @@ var testFs = fstest.MapFS{
 func setupAnalyzerWithEmbeddedConfig(t require.TestingT, ignore []string) *rules.Analyzer {
 	rulesets, err := config.LoadEmbeddedRulesets()
 	require.NoError(t, err)
-	evalConfig, err := config.LoadEvaluatorConfig()
-	require.NoError(t, err)
-	ev, err := eval.NewEvaluator(evalConfig)
+	ev, err := config.LoadEvaluator()
 	require.NoError(t, err)
 
 	return rules.NewAnalyzer(rulesets, ev, ignore)
