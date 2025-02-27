@@ -10,13 +10,17 @@ import (
 	"github.com/google/cel-go/cel"
 )
 
-const fsVariable = "fs"
+const (
+	fsVariable   = "fs"
+	pathVariable = "path"
+)
 
-// FilesystemInput returns a CEL program input for a filesystem named "fs".
-// This can only be used alongside the FilesystemVariable option.
+// FilesystemInput returns a CEL program input for a filesystem named "fs", and a file path variable named "path".
+// This can only be used alongside the FilesystemVariables options.
 func FilesystemInput(fsys fs.FS, root string) map[string]any {
 	return map[string]any{
-		fsVariable: filesystemWrapper{FS: fsys, Path: root, ID: uintptr(unsafe.Pointer(&fsys))},
+		pathVariable: root,
+		fsVariable:   filesystemWrapper{FS: fsys, Path: root, ID: uintptr(unsafe.Pointer(&fsys))},
 	}
 }
 
@@ -26,33 +30,24 @@ type filesystemWrapper struct {
 	ID   uintptr
 }
 
-// FilesystemVariable is a CEL option to create a variable named "fs" which will receive input from FilesystemInput.
-func FilesystemVariable() cel.EnvOption {
-	return cel.Variable(fsVariable, cel.DynType)
+// FilesystemVariables returns CEL options to create variables corresponding to FilesystemInput.
+func FilesystemVariables() []cel.EnvOption {
+	return []cel.EnvOption{
+		cel.Variable(pathVariable, cel.StringType),
+		cel.Variable(fsVariable, cel.DynType),
+	}
 }
 
 // AllFileOptions returns CEL functions for reading an fs.FS filesystem.
-// This can only be used alongside the FilesystemVariable option.
+// This can only be used alongside the FilesystemVariables options.
 func AllFileOptions() []cel.EnvOption {
 	return []cel.EnvOption{
 		FileContains(),
 		FileExists(),
 		FileGlob(),
 		FileIsDir(),
-		FilePath(),
 		FileRead(),
 	}
-}
-
-func FilePath() cel.EnvOption {
-	FuncDocs["path"] = FuncDoc{
-		Comment: "Get the current file path",
-		Args:    []ArgDoc{{"fs", ""}},
-	}
-
-	return fsReturnsStringErr("path", func(fsWrapper filesystemWrapper) (string, error) {
-		return fsWrapper.Path, nil
-	})
 }
 
 func FileExists() cel.EnvOption {

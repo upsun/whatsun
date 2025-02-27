@@ -11,7 +11,7 @@ import (
 )
 
 // AllPackageManagerFunctions returns CEL functions for reading package manager dependencies in an fs.FS filesystem.
-// This can only be used alongside the FilesystemVariable option.
+// This can only be used alongside the FilesystemVariables options.
 func AllPackageManagerFunctions() []cel.EnvOption {
 	return []cel.EnvOption{
 		DepExists(),

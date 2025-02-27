@@ -55,11 +55,6 @@ Parse a semantic version into major, minor and patch components.
 
 * `parseVersion(version string)` -> `map(string, string)`
 
-### `path`
-Get the current file path.
-
-* `<fs dyn>.path()` -> `string`
-
 ### `read`
 Read a file.
 
@@ -81,6 +76,17 @@ Query YAML bytes (e.g. file contents) using YQ (same syntax as JQ).
 
 * `@not_strictly_false(bool)` -> `bool`
 
+### `@sortByAssociatedKeys`
+
+* `<list(T)>.@sortByAssociatedKeys(list(int))` -> `list(T)`
+* `<list(T)>.@sortByAssociatedKeys(list(uint))` -> `list(T)`
+* `<list(T)>.@sortByAssociatedKeys(list(double))` -> `list(T)`
+* `<list(T)>.@sortByAssociatedKeys(list(bool))` -> `list(T)`
+* `<list(T)>.@sortByAssociatedKeys(list(google.protobuf.Duration))` -> `list(T)`
+* `<list(T)>.@sortByAssociatedKeys(list(google.protobuf.Timestamp))` -> `list(T)`
+* `<list(T)>.@sortByAssociatedKeys(list(string))` -> `list(T)`
+* `<list(T)>.@sortByAssociatedKeys(list(bytes))` -> `list(T)`
+
 ### `bool`
 
 * `bool(bool)` -> `bool`
@@ -91,9 +97,17 @@ Query YAML bytes (e.g. file contents) using YQ (same syntax as JQ).
 * `bytes(bytes)` -> `bytes`
 * `bytes(string)` -> `bytes`
 
+### `charAt`
+
+* `<string>.charAt(int)` -> `string`
+
 ### `contains`
 
 * `<string>.contains(string)` -> `bool`
+
+### `distinct`
+
+* `<list(T)>.distinct()` -> `list(T)`
 
 ### `double`
 
@@ -115,6 +129,15 @@ Query YAML bytes (e.g. file contents) using YQ (same syntax as JQ).
 ### `endsWith`
 
 * `<string>.endsWith(string)` -> `bool`
+
+### `flatten`
+
+* `<list(list(T))>.flatten()` -> `list(T)`
+* `<list(dyn)>.flatten(int)` -> `list(dyn)`
+
+### `format`
+
+* `<string>.format(list(dyn))` -> `string`
 
 ### `getDate`
 
@@ -175,6 +198,11 @@ Query YAML bytes (e.g. file contents) using YQ (same syntax as JQ).
 * `in(A, list(A))` -> `bool`
 * `in(A, map(A, B))` -> `bool`
 
+### `indexOf`
+
+* `<string>.indexOf(string)` -> `int`
+* `<string>.indexOf(string, int)` -> `int`
+
 ### `int`
 
 * `int(int)` -> `int`
@@ -184,10 +212,38 @@ Query YAML bytes (e.g. file contents) using YQ (same syntax as JQ).
 * `int(google.protobuf.Timestamp)` -> `int`
 * `int(uint)` -> `int`
 
+### `join`
+
+* `<list(string)>.join()` -> `string`
+* `<list(string)>.join(string)` -> `string`
+
+### `lastIndexOf`
+
+* `<string>.lastIndexOf(string)` -> `int`
+* `<string>.lastIndexOf(string, int)` -> `int`
+
+### `lists.range`
+
+* `lists.range(int)` -> `list(int)`
+
+### `lowerAscii`
+
+* `<string>.lowerAscii()` -> `string`
+
 ### `matches`
 
 * `matches(string, string)` -> `bool`
 * `<string>.matches(string)` -> `bool`
+
+### `replace`
+
+* `<string>.replace(string, string)` -> `string`
+* `<string>.replace(string, string, int)` -> `string`
+
+### `reverse`
+
+* `<list(T)>.reverse()` -> `list(T)`
+* `<string>.reverse()` -> `string`
 
 ### `size`
 
@@ -199,6 +255,26 @@ Query YAML bytes (e.g. file contents) using YQ (same syntax as JQ).
 * `<map(A, B)>.size()` -> `int`
 * `size(string)` -> `int`
 * `<string>.size()` -> `int`
+
+### `slice`
+
+* `<list(T)>.slice(int, int)` -> `list(T)`
+
+### `sort`
+
+* `<list(int)>.sort()` -> `list(int)`
+* `<list(uint)>.sort()` -> `list(uint)`
+* `<list(double)>.sort()` -> `list(double)`
+* `<list(bool)>.sort()` -> `list(bool)`
+* `<list(google.protobuf.Duration)>.sort()` -> `list(google.protobuf.Duration)`
+* `<list(google.protobuf.Timestamp)>.sort()` -> `list(google.protobuf.Timestamp)`
+* `<list(string)>.sort()` -> `list(string)`
+* `<list(bytes)>.sort()` -> `list(bytes)`
+
+### `split`
+
+* `<string>.split(string)` -> `list(string)`
+* `<string>.split(string, int)` -> `list(string)`
 
 ### `startsWith`
 
@@ -215,11 +291,24 @@ Query YAML bytes (e.g. file contents) using YQ (same syntax as JQ).
 * `string(google.protobuf.Timestamp)` -> `string`
 * `string(uint)` -> `string`
 
+### `strings.quote`
+
+* `strings.quote(string)` -> `string`
+
+### `substring`
+
+* `<string>.substring(int)` -> `string`
+* `<string>.substring(int, int)` -> `string`
+
 ### `timestamp`
 
 * `timestamp(google.protobuf.Timestamp)` -> `google.protobuf.Timestamp`
 * `timestamp(int)` -> `google.protobuf.Timestamp`
 * `timestamp(string)` -> `google.protobuf.Timestamp`
+
+### `trim`
+
+* `<string>.trim()` -> `string`
 
 ### `type`
 
@@ -231,6 +320,10 @@ Query YAML bytes (e.g. file contents) using YQ (same syntax as JQ).
 * `uint(double)` -> `uint`
 * `uint(int)` -> `uint`
 * `uint(string)` -> `uint`
+
+### `upperAscii`
+
+* `<string>.upperAscii()` -> `string`
 
 ## Operators
 

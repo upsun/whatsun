@@ -7,18 +7,18 @@ import (
 
 // DefaultEnvOptions returns default options for creating a Common Expression Language (CEL) environment.
 func DefaultEnvOptions() []cel.EnvOption {
+	return append(CustomEnvOptions(), ext.Lists(), ext.Strings(), ext.NativeTypes())
+}
+
+// CustomEnvOptions returns the customized CEL options.
+func CustomEnvOptions() []cel.EnvOption {
 	var celOptions []cel.EnvOption
-	celOptions = append(celOptions, FilesystemVariable())
+	celOptions = append(celOptions, FilesystemVariables()...)
 	celOptions = append(celOptions, AllFileOptions()...)
 	celOptions = append(celOptions, AllPackageManagerFunctions()...)
-
-	return append(
-		celOptions,
+	return append(celOptions,
 		JQ(),
 		YQ(),
 		ParseVersion(),
-		ext.Lists(),
-		ext.Strings(),
-		ext.NativeTypes(),
 	)
 }

@@ -53,17 +53,17 @@ func GenerateDocs(w io.Writer, env *cel.Env) error {
 	categories := []string{"Custom functions", "Built-in functions", "Operators"}
 	perCategory := make(map[string]string, len(categories))
 
-	emptyCELEnv, err := cel.NewEnv()
+	onlyCustomEnv, err := cel.NewCustomEnv(celfuncs.CustomEnvOptions()...)
 	if err != nil {
 		return err
 	}
 	isCustom := func(name string) bool {
-		for k := range emptyCELEnv.Functions() {
+		for k := range onlyCustomEnv.Functions() {
 			if k == name {
-				return false
+				return true
 			}
 		}
-		return true
+		return false
 	}
 
 	for _, name := range sortedNames {
