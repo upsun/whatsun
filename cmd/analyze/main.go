@@ -15,10 +15,12 @@ import (
 	"github.com/jedib0t/go-pretty/v6/table"
 
 	"what"
+	"what/pkg/eval"
 	"what/pkg/rules"
 )
 
 var ignore = flag.String("ignore", "", "Comma-separated list of paths (or patterns) to ignore, adding to defaults")
+var customRulesets = flag.String("rulesets", "", "Path to a custom ruleset directory (replacing the default embedded rulesets)")
 
 func main() {
 	flag.Parse()
@@ -31,20 +33,44 @@ func main() {
 		log.Fatal(err)
 	}
 
-	rulesets, err := what.LoadRulesets()
-	if err != nil {
-		log.Fatal(err)
+	var analyzerConfig = &rules.AnalyzerConfig{
+		IgnoreDirs: strings.Split(*ignore, ","),
+	}
+	var rulesets []rules.RulesetSpec
+	if *customRulesets != "" {
+		var err error
+		rulesets, err = rules.LoadFromYAMLDir(os.DirFS("."), *customRulesets)
+		if err != nil {
+			log.Fatalf("failed to load custom rulesets: %v", err)
+		}
+		userCacheDir, err := os.UserCacheDir()
+		if err != nil {
+			log.Fatalf("failed to get user cache dir: %v", err)
+		}
+		cacheDir := filepath.Join(userCacheDir, "what")
+		if err := os.MkdirAll(cacheDir, 0700); err != nil {
+			log.Fatalf("failed to create cache dir: %v", err)
+		}
+		cache, err := eval.NewFileCache(filepath.Join(cacheDir, "expr.cache"))
+		if err != nil {
+			log.Fatalf("failed to create file cache: %v", err)
+		}
+		defer cache.Save()
+		analyzerConfig.CELExpressionCache = cache
+	} else {
+		var err error
+		rulesets, err = what.LoadRulesets()
+		if err != nil {
+			log.Fatal(err)
+		}
+		exprCache, err := what.LoadExpressionCache()
+		if err != nil {
+			log.Fatal(err)
+		}
+		analyzerConfig.CELExpressionCache = exprCache
 	}
 
-	exprCache, err := what.LoadExpressionCache()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	analyzer, err := rules.NewAnalyzer(rulesets, &rules.AnalyzerConfig{
-		CELExpressionCache: exprCache,
-		IgnoreDirs:         strings.Split(*ignore, ","),
-	})
+	analyzer, err := rules.NewAnalyzer(rulesets, analyzerConfig)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -53,7 +79,7 @@ func main() {
 
 	results, err := analyzer.Analyze(context.Background(), os.DirFS(absPath), ".")
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("analysis failed: %v", err)
 	}
 
 	names := make([]string, 0, len(results))

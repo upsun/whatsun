@@ -8,6 +8,7 @@ Usage: `./what [path]`
 
 Options (these may change):
 * `-ignore string`: Comma-separated list of directory paths to ignore, adding to defaults
+* `-rulesets string`: A directory containing custom rulesets, replacing the [default ones](config)
 
 Analysis rules are defined in YAML inside the [config](config) directory. See [docs/rules.md](docs/rules.md) for more information.
 
