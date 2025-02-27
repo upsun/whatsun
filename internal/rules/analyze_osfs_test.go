@@ -1,7 +1,6 @@
 package rules_test
 
 import (
-	"context"
 	"embed"
 	"os"
 	"testing"
@@ -29,7 +28,7 @@ func TestAnalyze_OSFS_MockRules(t *testing.T) {
 
 	analyzer := rules.NewAnalyzer(rulesets, ev, []string{"arg-ignored"})
 
-	result, err := analyzer.Analyze(context.Background(), os.DirFS("testdata/mock-project"), ".")
+	result, err := analyzer.Analyze(t.Context(), os.DirFS("testdata/mock-project"), ".")
 	require.NoError(t, err)
 
 	assert.EqualValues(t, rules.RulesetReports{
@@ -58,7 +57,7 @@ func BenchmarkAnalyze_OSFS_MockRules(b *testing.B) {
 
 	fsys := os.DirFS("testdata/mock-project")
 
-	ctx := context.Background()
+	ctx := b.Context()
 
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {

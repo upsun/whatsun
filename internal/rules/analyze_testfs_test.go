@@ -1,7 +1,6 @@
 package rules_test
 
 import (
-	"context"
 	"io/fs"
 	"testing"
 	"testing/fstest"
@@ -78,7 +77,7 @@ func setupAnalyzerWithEmbeddedConfig(t require.TestingT, ignore []string) *rules
 func TestAnalyze_TestFS_ActualRules(t *testing.T) {
 	analyzer := setupAnalyzerWithEmbeddedConfig(t, []string{"arg-ignore"})
 
-	result, err := analyzer.Analyze(context.Background(), testFs, ".")
+	result, err := analyzer.Analyze(t.Context(), testFs, ".")
 	require.NoError(t, err)
 
 	assert.EqualValues(t, rules.RulesetReports{
@@ -135,7 +134,7 @@ func TestAnalyze_TestFS_ActualRules(t *testing.T) {
 func BenchmarkAnalyze_TestFS_ActualRules(b *testing.B) {
 	analyzer := setupAnalyzerWithEmbeddedConfig(b, []string{"arg-ignore"})
 
-	ctx := context.Background()
+	ctx := b.Context()
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
 		_, err := analyzer.Analyze(ctx, testFs, ".")
@@ -187,7 +186,7 @@ func TestAnalyze_CustomRules(t *testing.T) {
 
 	analyzer := rules.NewAnalyzer(rulesets, ev, nil)
 
-	result, err := analyzer.Analyze(context.Background(), fsys, ".")
+	result, err := analyzer.Analyze(t.Context(), fsys, ".")
 	require.NoError(t, err)
 
 	assert.EqualValues(t, rules.RulesetReports{

@@ -42,7 +42,7 @@ func (a *Analyzer) Analyze(ctx context.Context, fsys fs.FS, root string) (Rulese
 
 	var rulesetReports = make(RulesetReports, len(a.rulesets))
 	for _, ruleset := range a.rulesets {
-		reports, err := a.applyRuleset(ruleset, fsys, dirs)
+		reports, err := a.applyRuleset(ctx, ruleset, fsys, dirs)
 		if err != nil {
 			return nil, err
 		}
@@ -52,13 +52,18 @@ func (a *Analyzer) Analyze(ctx context.Context, fsys fs.FS, root string) (Rulese
 	return rulesetReports, nil
 }
 
-func (a *Analyzer) collectDirectories(_ context.Context, fsys fs.FS, root string) ([]string, error) {
+func (a *Analyzer) collectDirectories(ctx context.Context, fsys fs.FS, root string) ([]string, error) {
 	var ignorePatterns = defaultIgnorePatterns
 	if len(a.ignore) > 0 {
 		ignorePatterns = append(ignorePatterns, fsgitignore.ParsePatterns(a.ignore, fsgitignore.Split(root))...)
 	}
 	var directoryPaths []string
 	err := fs.WalkDir(fsys, root, func(path string, d fs.DirEntry, err error) error {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default: // Continue only if the context was not canceled.
+		}
 		if err != nil {
 			return err
 		}
@@ -114,18 +119,23 @@ func (a *Analyzer) evalFuncForDirectory(dir string, celInput map[string]any, git
 	}
 }
 
-func (a *Analyzer) applyRuleset(rs RulesetSpec, fsys fs.FS, directoryPaths []string) ([]Report, error) {
+func (a *Analyzer) applyRuleset(ctx context.Context, rs RulesetSpec, fsys fs.FS, directoryPaths []string) ([]Report, error) {
 	var (
 		rules   = rs.GetRules()
 		ignores = &ignoreStore{}
 		reports []Report
 		mux     sync.Mutex
-		eg      errgroup.Group
 	)
+	eg, ctx := errgroup.WithContext(ctx)
 	eg.SetLimit(runtime.GOMAXPROCS(0))
 	for _, d := range directoryPaths {
 		d := d // Copy the range variable, avoiding reuse in the goroutine.
 		eg.Go(func() error {
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			default: // Continue only if the context was not canceled.
+			}
 			celInput := celfuncs.FilesystemInput(fsys, d)
 			matches, err := FindMatches(rules, a.evalFuncForDirectory(d, celInput, ignores))
 			if err != nil {
