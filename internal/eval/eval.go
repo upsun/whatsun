@@ -70,7 +70,7 @@ func (e *Evaluator) eval(ast *cel.Ast, input any) (ref.Val, error) {
 		prg, _ = v.(cel.Program)
 	} else {
 		var err error
-		prg, err = e.celEnv.Program(ast)
+		prg, err = e.celEnv.Program(ast, cel.EvalOptions(cel.OptOptimize))
 		if err != nil {
 			return nil, err
 		}

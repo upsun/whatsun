@@ -140,6 +140,7 @@ func BenchmarkAnalyze_TestFS_ActualRules(b *testing.B) {
 	analyzer := setupAnalyzerWithEmbeddedConfig(b, []string{"arg-ignore"})
 
 	ctx := b.Context()
+	b.ReportAllocs()
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
 		_, err := analyzer.Analyze(ctx, testFs, ".")
