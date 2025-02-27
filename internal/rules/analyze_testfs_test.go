@@ -11,6 +11,7 @@ import (
 
 	"what/internal/config"
 	"what/internal/eval"
+	"what/internal/eval/celfuncs"
 	"what/internal/rules"
 )
 
@@ -147,4 +148,60 @@ func BenchmarkAnalyze_TestFS_ActualRules(b *testing.B) {
 		_, err := analyzer.Analyze(ctx, testFs, ".")
 		require.NoError(b, err)
 	}
+}
+
+type customRuleset struct {
+	name  string
+	rules []rules.RuleSpec
+}
+
+func (c customRuleset) GetName() string            { return c.name }
+func (c customRuleset) GetRules() []rules.RuleSpec { return c.rules }
+
+type customRule struct {
+	name      string
+	condition string
+	results   []string
+}
+
+func (c customRule) GetName() string      { return c.name }
+func (c customRule) GetCondition() string { return c.condition }
+func (c customRule) GetResults() []string { return c.results }
+
+var _ rules.RulesetSpec = &customRuleset{}
+var _ rules.RuleSpec = &customRule{}
+
+// Test analysis with custom rules (not from YAML).
+func TestAnalyze_CustomRules(t *testing.T) {
+	fsys := fstest.MapFS{
+		"foo/foo.json":        &fstest.MapFile{},
+		"bar/foo.json":        &fstest.MapFile{},
+		"deep/a/b/c/foo.json": &fstest.MapFile{},
+		"not/bar.json":        &fstest.MapFile{},
+	}
+
+	rulesets := []rules.RulesetSpec{
+		&customRuleset{name: "custom", rules: []rules.RuleSpec{
+			&customRule{
+				name:      "foo-json",
+				condition: `fs.fileExists("foo.json")`,
+				results:   []string{"foo"},
+			},
+		}},
+	}
+	ev, err := eval.NewEvaluator(&eval.Config{EnvOptions: celfuncs.DefaultEnvOptions()})
+	require.NoError(t, err)
+
+	analyzer := rules.NewAnalyzer(rulesets, ev, nil)
+
+	result, err := analyzer.Analyze(context.Background(), fsys, ".")
+	require.NoError(t, err)
+
+	assert.EqualValues(t, rules.RulesetReports{
+		"custom": {
+			{Path: "bar", Result: "foo", Rules: []string{"foo-json"}, Sure: true},
+			{Path: "deep/a/b/c", Result: "foo", Rules: []string{"foo-json"}, Sure: true},
+			{Path: "foo", Result: "foo", Rules: []string{"foo-json"}, Sure: true},
+		},
+	}, result)
 }
