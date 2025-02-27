@@ -34,12 +34,12 @@ func TestAnalyze_OSFS_MockRules(t *testing.T) {
 
 	assert.EqualValues(t, rules.RulesetReports{
 		"package_managers": {
-			{Path: ".", Result: "npm", Sure: true, Rules: []string{"npm"}, Groups: []string{"js"}},
-			{Path: "deep/1/2/3", Result: "npm", Sure: true, Rules: []string{"npm"}, Groups: []string{"js"}},
-			{Path: "deep/1/2/python", Result: "pip", Sure: true, Rules: []string{"pip"}, Groups: []string{"python"}},
-			{Path: "deep/1/2/python", Result: "poetry", Sure: true, Rules: []string{"poetry"}, Groups: []string{"python"}},
-			{Path: "drupal", Result: "composer", Sure: true, Rules: []string{"composer"}, Groups: []string{"php"}},
-			{Path: "symfony", Result: "composer", Sure: true, Rules: []string{"composer"}, Groups: []string{"php"}},
+			{Path: ".", Result: "npm", Rules: []string{"npm"}, Groups: []string{"js"}},
+			{Path: "deep/1/2/3", Result: "npm", Rules: []string{"npm"}, Groups: []string{"js"}},
+			{Path: "deep/1/2/python", Result: "pip", Rules: []string{"pip"}, Groups: []string{"python"}},
+			{Path: "deep/1/2/python", Result: "poetry", Rules: []string{"poetry"}, Groups: []string{"python"}},
+			{Path: "drupal", Result: "composer", Rules: []string{"composer"}, Groups: []string{"php"}},
+			{Path: "symfony", Result: "composer", Rules: []string{"composer"}, Groups: []string{"php"}},
 		},
 	}, result)
 }

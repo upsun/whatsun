@@ -95,7 +95,7 @@ func main() {
 		tbl.AppendHeader(table.Row{"Path", "Result", "Groups", "With"})
 
 		for _, report := range results[name] {
-			if !report.Sure {
+			if report.Maybe {
 				continue
 			}
 			var with string

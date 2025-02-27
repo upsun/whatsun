@@ -17,7 +17,7 @@ type Report struct {
 	Error  string   `json:"error,omitempty"`
 	Rules  []string `json:"rules,omitempty"`
 
-	Sure bool `json:"sure,omitempty"`
+	Maybe bool `json:"maybe,omitempty"`
 
 	Groups []string               `json:"groups,omitempty"`
 	With   map[string]ReportValue `json:"with,omitempty"`
@@ -33,7 +33,7 @@ func matchToReport(ev *eval.Evaluator, input any, match Match, path string) Repo
 	rep := Report{
 		Path:   path,
 		Result: match.Result,
-		Sure:   match.Sure,
+		Maybe:  match.Maybe,
 		Rules:  make([]string, len(match.Rules)),
 	}
 	if match.Err != nil {

@@ -22,7 +22,7 @@ func FindMatches(rules []RuleSpec, eval func(RuleSpec) (bool, error)) ([]Match, 
 
 type Match struct {
 	Result string
-	Sure   bool
+	Maybe  bool
 	Err    error
 	Rules  []RuleSpec
 }

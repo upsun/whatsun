@@ -88,18 +88,17 @@ func TestAnalyze_TestFS_ActualRules(t *testing.T) {
 			{
 				Path:   ".",
 				Result: "composer",
-				Sure:   true,
 				Rules:  []string{"composer"},
 				Groups: []string{"php"},
 				With:   map[string]rules.ReportValue{"php_version": {Value: "^8.3"}},
 			},
-			{Path: "ambiguous", Result: "bun", Rules: []string{"js-packages"}, Groups: []string{"js"}},
-			{Path: "ambiguous", Result: "npm", Rules: []string{"js-packages"}, Groups: []string{"js"}},
-			{Path: "ambiguous", Result: "pnpm", Rules: []string{"js-packages"}, Groups: []string{"js"}},
-			{Path: "ambiguous", Result: "yarn", Rules: []string{"js-packages"}, Groups: []string{"js"}},
-			{Path: "another-app", Result: "npm", Rules: []string{"npm-lockfile"}, Sure: true, Groups: []string{"js"}},
-			{Path: "meteor", Result: "meteor", Rules: []string{"meteor"}, Sure: true, Groups: []string{"js"}},
-			{Path: "meteor", Result: "npm", Rules: []string{"npm-lockfile"}, Sure: true, Groups: []string{"js"}},
+			{Path: "ambiguous", Result: "bun", Maybe: true, Rules: []string{"js-packages"}, Groups: []string{"js"}},
+			{Path: "ambiguous", Result: "npm", Maybe: true, Rules: []string{"js-packages"}, Groups: []string{"js"}},
+			{Path: "ambiguous", Result: "pnpm", Maybe: true, Rules: []string{"js-packages"}, Groups: []string{"js"}},
+			{Path: "ambiguous", Result: "yarn", Maybe: true, Rules: []string{"js-packages"}, Groups: []string{"js"}},
+			{Path: "another-app", Result: "npm", Rules: []string{"npm-lockfile"}, Groups: []string{"js"}},
+			{Path: "meteor", Result: "meteor", Rules: []string{"meteor"}, Groups: []string{"js"}},
+			{Path: "meteor", Result: "npm", Rules: []string{"npm-lockfile"}, Groups: []string{"js"}},
 		},
 		"frameworks": {
 			{
@@ -107,7 +106,6 @@ func TestAnalyze_TestFS_ActualRules(t *testing.T) {
 				Result: "symfony",
 				Rules:  []string{"symfony-framework"},
 				With:   map[string]rules.ReportValue{"version": {Value: "7.2.3"}},
-				Sure:   true,
 				Groups: []string{"php", "symfony"},
 			},
 			{
@@ -115,7 +113,6 @@ func TestAnalyze_TestFS_ActualRules(t *testing.T) {
 				Result: "gatsby",
 				Rules:  []string{"gatsby"},
 				With:   map[string]rules.ReportValue{"version": {Value: ""}},
-				Sure:   true,
 				Groups: []string{"js"},
 			},
 			{
@@ -123,7 +120,6 @@ func TestAnalyze_TestFS_ActualRules(t *testing.T) {
 				Result: "platformsh-app",
 				Rules:  []string{"platformsh-app"},
 				With:   map[string]rules.ReportValue{"name": {Value: "app"}},
-				Sure:   true,
 				Groups: []string{"cloud"},
 			},
 			{
@@ -131,7 +127,6 @@ func TestAnalyze_TestFS_ActualRules(t *testing.T) {
 				Result: "eleventy",
 				Rules:  []string{"eleventy"},
 				With:   map[string]rules.ReportValue{"version": {Value: ""}},
-				Sure:   true,
 				Groups: []string{"js", "static"},
 			},
 		},
@@ -199,9 +194,9 @@ func TestAnalyze_CustomRules(t *testing.T) {
 
 	assert.EqualValues(t, rules.RulesetReports{
 		"custom": {
-			{Path: "bar", Result: "foo", Rules: []string{"foo-json"}, Sure: true},
-			{Path: "deep/a/b/c", Result: "foo", Rules: []string{"foo-json"}, Sure: true},
-			{Path: "foo", Result: "foo", Rules: []string{"foo-json"}, Sure: true},
+			{Path: "bar", Result: "foo", Rules: []string{"foo-json"}},
+			{Path: "deep/a/b/c", Result: "foo", Rules: []string{"foo-json"}},
+			{Path: "foo", Result: "foo", Rules: []string{"foo-json"}},
 		},
 	}, result)
 }

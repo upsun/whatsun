@@ -19,7 +19,7 @@ func TestMatch(t *testing.T) {
 
 	type matchExpectation struct {
 		result    any
-		sure      bool
+		maybe     bool
 		ruleNames []string
 	}
 
@@ -33,7 +33,7 @@ func TestMatch(t *testing.T) {
 			name: "then_direct",
 			data: []string{"a", "x", "y"},
 			expect: []matchExpectation{
-				{"a", true, []string{"a"}},
+				{result: "a", ruleNames: []string{"a"}},
 			},
 		},
 		{
@@ -44,16 +44,16 @@ func TestMatch(t *testing.T) {
 			name: "combine_then_maybe_grouped",
 			data: []string{"a", "ab"},
 			expect: []matchExpectation{
-				{"a", true, []string{"a"}},
+				{result: "a", ruleNames: []string{"a"}},
 			},
 		},
 		{
 			name: "combine_then_maybe_no_group",
 			data: []string{"aaa", "bc"},
 			expect: []matchExpectation{
-				{"a", true, []string{"aaa"}},
-				{"b", false, []string{"bc"}},
-				{"c", false, []string{"bc"}},
+				{result: "a", ruleNames: []string{"aaa"}},
+				{result: "b", maybe: true, ruleNames: []string{"bc"}},
+				{result: "c", maybe: true, ruleNames: []string{"bc"}},
 			},
 		},
 	}
@@ -69,7 +69,7 @@ func TestMatch(t *testing.T) {
 				assert.NoError(t, err)
 				for i, m := range matches {
 					assert.Equal(t, c.expect[i].result, m.Result)
-					assert.Equal(t, c.expect[i].sure, m.Sure)
+					assert.Equal(t, c.expect[i].maybe, m.Maybe)
 					for j, r := range m.Rules {
 						assert.Equal(t, c.expect[i].ruleNames[j], r.GetName())
 					}

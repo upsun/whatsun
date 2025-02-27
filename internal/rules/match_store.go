@@ -27,7 +27,7 @@ func (s *store) List() ([]Match, error) {
 	// Add the "then" values.
 	i := 0
 	for result, rules := range s.then {
-		matches[i] = Match{Result: result, Rules: rules, Sure: true}
+		matches[i] = Match{Result: result, Rules: rules}
 		i++
 		for _, rule := range rules {
 			if rg, ok := rule.(WithGroups); ok {
@@ -57,7 +57,7 @@ func (s *store) List() ([]Match, error) {
 		if hasResultByGroup {
 			continue
 		}
-		matches = append(matches, Match{Result: result, Rules: rules})
+		matches = append(matches, Match{Result: result, Rules: rules, Maybe: true})
 	}
 
 	// Sort the list for consistent output.
