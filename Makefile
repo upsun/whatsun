@@ -48,6 +48,10 @@ lint-staticcheck: ## Run linter `staticcheck`.
 test: ## Run unit tests.
 	go test $(FLAGS) -race -count=1 ./...
 
+.PHONY: bench-light
+bench-light: ## Run a single benchmark on the test filesystem.
+	go test $(FLAGS) -run=Analyze -bench=Analyze_TestFS ./...
+
 .PHONY: bench
 bench: ## Run benchmarks.
 	go test $(FLAGS) -run=Analyze -bench=Analyze -cpu 1,2,4,8 ./...

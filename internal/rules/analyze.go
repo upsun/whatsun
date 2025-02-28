@@ -35,30 +35,78 @@ func NewAnalyzer(rulesets []RulesetSpec, ev *eval.Evaluator, ignore []string) *A
 func (a *Analyzer) Analyze(ctx context.Context, fsys fs.FS, root string) (RulesetReports, error) {
 	fsys = searchfs.New(fsys)
 
-	dirs, err := a.collectDirectories(ctx, fsys, root)
-	if err != nil {
+	var (
+		numWorkers = runtime.GOMAXPROCS(0)
+		dirChan    = make(chan string, numWorkers)
+		errGroup   errgroup.Group
+	)
+	errGroup.Go(func() error {
+		defer close(dirChan)
+		return a.collectDirectories(ctx, fsys, root, dirChan)
+	})
+
+	type reportsKeyed struct {
+		set     string
+		reports []Report
+	}
+
+	var reportsChan = make(chan reportsKeyed, numWorkers)
+	errGroup.Go(func() error {
+		var dirGroup errgroup.Group
+		dirGroup.SetLimit(numWorkers)
+		defer close(reportsChan)
+		for path := range dirChan {
+			path := path
+			dirGroup.Go(func() error {
+				select {
+				case <-ctx.Done():
+					return ctx.Err()
+				default: // Continue only if the context was not canceled.
+				}
+				for _, ruleset := range a.rulesets {
+					subReports, err := a.applyRuleset(ruleset, fsys, path)
+					if err != nil {
+						return err
+					}
+					reportsChan <- reportsKeyed{ruleset.GetName(), subReports}
+				}
+				return nil
+			})
+		}
+		return dirGroup.Wait()
+	})
+
+	var rulesetReports = make(RulesetReports)
+	errGroup.Go(func() error {
+		var mux sync.Mutex
+		for rk := range reportsChan {
+			mux.Lock()
+			rulesetReports[rk.set] = append(rulesetReports[rk.set], rk.reports...)
+			mux.Unlock()
+		}
+		return nil
+	})
+
+	if err := errGroup.Wait(); err != nil {
 		return nil, err
 	}
 
-	var rulesetReports = make(RulesetReports, len(a.rulesets))
-	for _, ruleset := range a.rulesets {
-		reports, err := a.applyRuleset(ctx, ruleset, fsys, dirs)
-		if err != nil {
-			return nil, err
-		}
-		rulesetReports[ruleset.GetName()] = reports
+	for k, rr := range rulesetReports {
+		slices.SortFunc(rr, func(a, b Report) int {
+			return strings.Compare(a.Path, b.Path)
+		})
+		rulesetReports[k] = rr
 	}
 
 	return rulesetReports, nil
 }
 
-func (a *Analyzer) collectDirectories(ctx context.Context, fsys fs.FS, root string) ([]string, error) {
+func (a *Analyzer) collectDirectories(ctx context.Context, fsys fs.FS, root string, dirChan chan<- string) error {
 	var ignorePatterns = defaultIgnorePatterns
 	if len(a.ignore) > 0 {
 		ignorePatterns = append(ignorePatterns, fsgitignore.ParsePatterns(a.ignore, fsgitignore.Split(root))...)
 	}
-	var directoryPaths []string
-	err := fs.WalkDir(fsys, root, func(path string, d fs.DirEntry, err error) error {
+	return fs.WalkDir(fsys, root, func(path string, d fs.DirEntry, err error) error {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
@@ -85,14 +133,9 @@ func (a *Analyzer) collectDirectories(ctx context.Context, fsys fs.FS, root stri
 			return err
 		}
 		ignorePatterns = append(ignorePatterns, patterns...)
-		directoryPaths = append(directoryPaths, path)
+		dirChan <- path
 		return nil
 	})
-	if err != nil {
-		return nil, err
-	}
-
-	return directoryPaths, nil
 }
 
 func (a *Analyzer) evalFuncForDirectory(dir string, celInput map[string]any, gitIgnores *ignoreStore) func(rule RuleSpec) (bool, error) {
@@ -119,45 +162,19 @@ func (a *Analyzer) evalFuncForDirectory(dir string, celInput map[string]any, git
 	}
 }
 
-func (a *Analyzer) applyRuleset(ctx context.Context, rs RulesetSpec, fsys fs.FS, directoryPaths []string) ([]Report, error) {
-	var (
-		rules   = rs.GetRules()
-		ignores = &ignoreStore{}
-		reports []Report
-		mux     sync.Mutex
-	)
-	eg, ctx := errgroup.WithContext(ctx)
-	eg.SetLimit(runtime.GOMAXPROCS(0))
-	for _, d := range directoryPaths {
-		d := d // Copy the range variable, avoiding reuse in the goroutine.
-		eg.Go(func() error {
-			select {
-			case <-ctx.Done():
-				return ctx.Err()
-			default: // Continue only if the context was not canceled.
-			}
-			celInput := celfuncs.FilesystemInput(fsys, d)
-			matches, err := FindMatches(rules, a.evalFuncForDirectory(d, celInput, ignores))
-			if err != nil {
-				return fmt.Errorf("in directory %s: %w", d, err)
-			}
-			var subReports = make([]Report, len(matches))
-			for i, m := range matches {
-				subReports[i] = matchToReport(a.evaluator, celInput, m, d)
-			}
-			mux.Lock()
-			reports = append(reports, subReports...)
-			mux.Unlock()
-			return nil
-		})
-	}
-	if err := eg.Wait(); err != nil {
-		return nil, err
+func (a *Analyzer) applyRuleset(rs RulesetSpec, fsys fs.FS, path string) ([]Report, error) {
+	var ignores = &ignoreStore{}
+	var celInput = celfuncs.FilesystemInput(fsys, path)
+
+	matches, err := FindMatches(rs.GetRules(), a.evalFuncForDirectory(path, celInput, ignores))
+	if err != nil {
+		return nil, fmt.Errorf("in directory %s: %w", path, err)
 	}
 
-	slices.SortFunc(reports, func(a, b Report) int {
-		return strings.Compare(a.Path, b.Path)
-	})
+	var reports = make([]Report, len(matches))
+	for i, m := range matches {
+		reports[i] = matchToReport(a.evaluator, celInput, m, path)
+	}
 
 	return reports, nil
 }
