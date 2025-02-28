@@ -60,26 +60,18 @@ type managerCacheKey struct {
 	path        string
 }
 
-var managerCache struct {
-	cache map[managerCacheKey]dep.Manager
-	mu    sync.Mutex
-}
+var managerCache sync.Map
 
 func depGetCachedManager(managerType string, fsWrapper filesystemWrapper) (dep.Manager, error) {
-	managerCache.mu.Lock()
-	defer managerCache.mu.Unlock()
 	cacheKey := managerCacheKey{managerType: managerType, fsID: fsWrapper.ID, path: fsWrapper.Path}
-	if manager, ok := managerCache.cache[cacheKey]; ok {
-		return manager, nil
+	if manager, ok := managerCache.Load(cacheKey); ok {
+		return manager.(dep.Manager), nil
 	}
 	m, err := dep.GetManager(managerType, fsWrapper.FS, fsWrapper.Path)
 	if err != nil {
 		return nil, err
 	}
-	if managerCache.cache == nil {
-		managerCache.cache = make(map[managerCacheKey]dep.Manager)
-	}
-	managerCache.cache[cacheKey] = m
+	managerCache.Store(cacheKey, m)
 	return m, nil
 }
 
