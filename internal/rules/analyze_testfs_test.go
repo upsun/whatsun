@@ -64,6 +64,11 @@ var testFs = fstest.MapFS{
 	"meteor/.meteor/packages":  &fstest.MapFile{},
 	"meteor/.meteor/versions":  &fstest.MapFile{},
 	"meteor/package-lock.json": &fstest.MapFile{},
+
+	// Additional directories to increase time taken.
+	"deep/1/2/3/4/5/composer.json":     &fstest.MapFile{Data: []byte("{}")},
+	"deep/a/b/c/d/e/package.json":      &fstest.MapFile{Data: []byte("{}")},
+	"deep/a/b/c/d/e/package-lock.json": &fstest.MapFile{Data: []byte("{}")},
 }
 
 func setupAnalyzerWithEmbeddedConfig(t require.TestingT, ignore []string) *rules.Analyzer {
@@ -99,6 +104,9 @@ func TestAnalyze_TestFS_ActualRules(t *testing.T) {
 			{Path: "ambiguous", Result: "pnpm", Maybe: true, Rules: []string{"js-packages"}, Groups: []string{"js"}},
 			{Path: "ambiguous", Result: "yarn", Maybe: true, Rules: []string{"js-packages"}, Groups: []string{"js"}},
 			{Path: "another-app", Result: "npm", Rules: []string{"npm-lockfile"}, Groups: []string{"js"}},
+			{Path: "deep/1/2/3/4/5", Result: "composer", Rules: []string{"composer"}, Groups: []string{"php"},
+				With: map[string]rules.ReportValue{"php_version": {Value: ""}}},
+			{Path: "deep/a/b/c/d/e", Result: "npm", Rules: []string{"npm-lockfile"}, Groups: []string{"js"}},
 			{Path: "meteor", Result: "meteor", Rules: []string{"meteor"}, Groups: []string{"js"}},
 			{Path: "meteor", Result: "npm", Rules: []string{"npm-lockfile"}, Groups: []string{"js"}},
 		},

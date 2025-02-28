@@ -50,7 +50,7 @@ test: ## Run unit tests.
 
 .PHONY: bench
 bench: ## Run benchmarks.
-	go test $(FLAGS) -run=Analyze -bench=Analyze -cpu 1,2,4 ./...
+	go test $(FLAGS) -run=Analyze -bench=Analyze -cpu 1,2,4,8 ./...
 
 .PHONY: test-coverage
 test-coverage: ## Run unit tests and generate code coverage.
