@@ -16,7 +16,7 @@ type FS struct {
 
 type store struct {
 	info       fs.FileInfo
-	dirEntries map[string][]fs.DirEntry
+	dirEntries sync.Map
 	mux        sync.RWMutex
 }
 
@@ -33,21 +33,14 @@ func (c *store) setInfo(info fs.FileInfo) {
 }
 
 func (c *store) get(name string) []fs.DirEntry {
-	c.mux.RLock()
-	defer c.mux.RUnlock()
-	if c.dirEntries == nil {
-		return nil
+	if de, ok := c.dirEntries.Load(name); ok {
+		return de.([]fs.DirEntry)
 	}
-	return c.dirEntries[name]
+	return nil
 }
 
 func (c *store) set(name string, entries []fs.DirEntry) {
-	c.mux.Lock()
-	defer c.mux.Unlock()
-	if c.dirEntries == nil {
-		c.dirEntries = make(map[string][]fs.DirEntry)
-	}
-	c.dirEntries[name] = entries
+	c.dirEntries.Store(name, entries)
 }
 
 func New(base fs.FS) FS {
