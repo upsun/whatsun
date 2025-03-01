@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/go-git/go-git/v5/plumbing/format/gitignore"
+	"github.com/google/cel-go/cel"
 	"github.com/google/cel-go/common/types"
 	"golang.org/x/sync/errgroup"
 
@@ -21,17 +22,46 @@ import (
 	"what/internal/searchfs"
 )
 
-type Analyzer struct {
-	rulesets  []RulesetSpec
-	evaluator *eval.Evaluator
-	ignore    []string
+type AnalyzerConfig struct {
+	CELEnvOptions      []cel.EnvOption // Optional custom CEL environment options, replacing the default.
+	CELExpressionCache eval.Cache      // Optional expression cache: ideally it should cover the expected expressions.
+
+	// DisableGitIgnore disables handling of .gitignore and .git/info/exclude files.
+	//
+	// The IgnoreDirs setting will still be respected, and certain directories will
+	// always be ignored (namely .git and node_modules). Rules that implement the
+	// Ignorer interface will also still be respected.
+	DisableGitIgnore bool
+
+	IgnoreDirs []string // Additional directory ignore rules, using git's exclude syntax.
 }
 
-func NewAnalyzer(rulesets []RulesetSpec, ev *eval.Evaluator, ignore []string) *Analyzer {
-	return &Analyzer{evaluator: ev, rulesets: rulesets, ignore: ignore}
+type Analyzer struct {
+	evaluator *eval.Evaluator
+	rulesets  []RulesetSpec
+	cnf       *AnalyzerConfig
+}
+
+func NewAnalyzer(rulesets []RulesetSpec, cnf *AnalyzerConfig) (*Analyzer, error) {
+	if cnf == nil {
+		cnf = &AnalyzerConfig{}
+	}
+	if cnf.CELEnvOptions == nil {
+		cnf.CELEnvOptions = celfuncs.DefaultEnvOptions()
+	}
+	ev, err := eval.NewEvaluator(&eval.Config{
+		EnvOptions: cnf.CELEnvOptions,
+		Cache:      cnf.CELExpressionCache,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &Analyzer{evaluator: ev, rulesets: rulesets, cnf: cnf}, nil
 }
 
 func (a *Analyzer) Analyze(ctx context.Context, fsys fs.FS, root string) (RulesetReports, error) {
+
 	fsys = searchfs.New(fsys)
 
 	var (
@@ -99,8 +129,8 @@ func (a *Analyzer) Analyze(ctx context.Context, fsys fs.FS, root string) (Rulese
 
 func (a *Analyzer) collectDirectories(ctx context.Context, fsys fs.FS, root string, dirChan chan<- string) error {
 	var ignorePatterns = defaultIgnorePatterns
-	if len(a.ignore) > 0 {
-		ignorePatterns = append(ignorePatterns, fsgitignore.ParsePatterns(a.ignore, fsgitignore.Split(root))...)
+	if len(a.cnf.IgnoreDirs) > 0 {
+		ignorePatterns = append(ignorePatterns, fsgitignore.ParsePatterns(a.cnf.IgnoreDirs, fsgitignore.Split(root))...)
 	}
 	return fs.WalkDir(fsys, root, func(path string, d fs.DirEntry, err error) error {
 		select {
@@ -124,11 +154,13 @@ func (a *Analyzer) collectDirectories(ctx context.Context, fsys fs.FS, root stri
 		if gitignore.NewMatcher(ignorePatterns).Match(fsgitignore.Split(path), true) {
 			return fs.SkipDir
 		}
-		patterns, err := fsgitignore.ParseIgnoreFiles(fsys, path)
-		if err != nil {
-			return err
+		if !a.cnf.DisableGitIgnore {
+			patterns, err := fsgitignore.ParseIgnoreFiles(fsys, path)
+			if err != nil {
+				return err
+			}
+			ignorePatterns = append(ignorePatterns, patterns...)
 		}
-		ignorePatterns = append(ignorePatterns, patterns...)
 		dirChan <- path
 		return nil
 	})
@@ -138,7 +170,7 @@ func (a *Analyzer) evalFuncForDirectory(dir string, celInput map[string]any) fun
 	dirSplit := fsgitignore.Split(dir)
 
 	return func(rule RuleSpec) (bool, error) {
-		if ri, ok := rule.(ignorer); ok {
+		if ri, ok := rule.(Ignorer); ok {
 			if m := getIgnoreMatcher(ri); m != nil && m.Match(dirSplit, true) {
 				return false, nil
 			}

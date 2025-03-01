@@ -9,7 +9,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"what/internal/eval"
-	"what/internal/eval/celfuncs"
 	"what/internal/rules"
 )
 
@@ -23,10 +22,12 @@ func TestAnalyze_OSFS_MockRules(t *testing.T) {
 	cache, err := eval.NewFileCache("testdata/expr.cache")
 	require.NoError(t, err)
 	defer cache.Save()
-	ev, err := eval.NewEvaluator(&eval.Config{Cache: cache, EnvOptions: celfuncs.DefaultEnvOptions()})
-	require.NoError(t, err)
 
-	analyzer := rules.NewAnalyzer(rulesets, ev, []string{"arg-ignored"})
+	analyzer, err := rules.NewAnalyzer(rulesets, &rules.AnalyzerConfig{
+		CELExpressionCache: cache,
+		IgnoreDirs:         []string{"arg-ignored"},
+	})
+	require.NoError(t, err)
 
 	result, err := analyzer.Analyze(t.Context(), os.DirFS("testdata/mock-project"), ".")
 	require.NoError(t, err)
@@ -49,10 +50,11 @@ func BenchmarkAnalyze_OSFS_MockRules(b *testing.B) {
 	require.NoError(b, err)
 	cache, err := eval.NewFileCache("testdata/expr.cache")
 	require.NoError(b, err)
-	ev, err := eval.NewEvaluator(&eval.Config{Cache: cache, EnvOptions: celfuncs.DefaultEnvOptions()})
-	require.NoError(b, err)
 
-	analyzer := rules.NewAnalyzer(rulesets, ev, []string{"arg-ignored"})
+	analyzer, err := rules.NewAnalyzer(rulesets, &rules.AnalyzerConfig{
+		CELExpressionCache: cache,
+		IgnoreDirs:         []string{"arg-ignored"},
+	})
 	require.NoError(b, err)
 
 	fsys := os.DirFS("testdata/mock-project")

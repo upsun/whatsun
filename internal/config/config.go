@@ -5,20 +5,15 @@ import (
 
 	"what"
 	"what/internal/eval"
-	"what/internal/eval/celfuncs"
 	"what/internal/rules"
 )
 
 //go:embed expr.cache
 var exprCache []byte
 
-// LoadEvaluator provides a default eval.Evaluator with a pre-warmed cache for the embedded expressions.
-func LoadEvaluator() (*eval.Evaluator, error) {
-	cache, err := eval.NewFileCacheWithContent(exprCache, "")
-	if err != nil {
-		return nil, err
-	}
-	return eval.NewEvaluator(&eval.Config{Cache: cache, EnvOptions: celfuncs.DefaultEnvOptions()})
+// LoadExpressionCache provides a default eval.Cache pre-warmed cache for the embedded expressions.
+func LoadExpressionCache() (eval.Cache, error) {
+	return eval.NewFileCacheWithContent(exprCache, "")
 }
 
 // LoadEmbeddedRulesets loads the rulesets embedded by what.ConfigData.

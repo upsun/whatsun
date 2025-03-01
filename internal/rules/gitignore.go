@@ -57,13 +57,13 @@ var defaultIgnorePatterns = fsgitignore.ParsePatterns([]string{
 	"vendor/",
 }, nil)
 
-type ignorer interface {
+type Ignorer interface {
 	GetIgnores() []string
 }
 
 var ignoreMatcherCache sync.Map
 
-func getIgnoreMatcher(i ignorer) gitignore.Matcher {
+func getIgnoreMatcher(i Ignorer) gitignore.Matcher {
 	ignores := i.GetIgnores()
 	if len(ignores) == 0 {
 		return nil

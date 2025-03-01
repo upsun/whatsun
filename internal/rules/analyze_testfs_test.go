@@ -9,8 +9,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"what/internal/config"
-	"what/internal/eval"
-	"what/internal/eval/celfuncs"
 	"what/internal/rules"
 )
 
@@ -74,10 +72,14 @@ var testFs = fstest.MapFS{
 func setupAnalyzerWithEmbeddedConfig(t require.TestingT, ignore []string) *rules.Analyzer {
 	rulesets, err := config.LoadEmbeddedRulesets()
 	require.NoError(t, err)
-	ev, err := config.LoadEvaluator()
+	cache, err := config.LoadExpressionCache()
 	require.NoError(t, err)
-
-	return rules.NewAnalyzer(rulesets, ev, ignore)
+	a, err := rules.NewAnalyzer(rulesets, &rules.AnalyzerConfig{
+		CELExpressionCache: cache,
+		IgnoreDirs:         ignore,
+	})
+	require.NoError(t, err)
+	return a
 }
 
 // Test analysis on the test filesystem, but with real rulesets.
@@ -195,10 +197,9 @@ func TestAnalyze_CustomRules(t *testing.T) {
 			},
 		}},
 	}
-	ev, err := eval.NewEvaluator(&eval.Config{EnvOptions: celfuncs.DefaultEnvOptions()})
-	require.NoError(t, err)
 
-	analyzer := rules.NewAnalyzer(rulesets, ev, nil)
+	analyzer, err := rules.NewAnalyzer(rulesets, nil)
+	require.NoError(t, err)
 
 	result, err := analyzer.Analyze(t.Context(), fsys, ".")
 	require.NoError(t, err)

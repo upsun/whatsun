@@ -47,19 +47,24 @@ func main() {
 		log.Fatal(err)
 	}
 
-	ignoreSlice := strings.Split(*ignore, ",")
-
 	rulesets, err := config.LoadEmbeddedRulesets()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	ev, err := config.LoadEvaluator()
+	exprCache, err := config.LoadExpressionCache()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	analyzer := rules.NewAnalyzer(rulesets, ev, ignoreSlice)
+	analyzer, err := rules.NewAnalyzer(rulesets, &rules.AnalyzerConfig{
+		CELExpressionCache: exprCache,
+		IgnoreDirs:         strings.Split(*ignore, ","),
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	start := time.Now()
 
 	results, err := analyzer.Analyze(context.TODO(), os.DirFS(absPath), ".")
