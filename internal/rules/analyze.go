@@ -36,7 +36,8 @@ func (a *Analyzer) Analyze(ctx context.Context, fsys fs.FS, root string) (Rulese
 	fsys = searchfs.New(fsys)
 
 	var (
-		numWorkers = runtime.GOMAXPROCS(0)
+		// Limit the number of per-directory workers to 2 less than GOMAXPROCS.
+		numWorkers = max(1, runtime.GOMAXPROCS(0)-2)
 		dirChan    = make(chan string, numWorkers)
 		errGroup   errgroup.Group
 	)
