@@ -7,72 +7,53 @@ import (
 	"io/fs"
 	"path/filepath"
 	"sync"
+	"sync/atomic"
 )
 
 type FS struct {
-	baseFS fs.FS
-	store  *store
-}
-
-type store struct {
-	info       fs.FileInfo
+	baseFS     fs.FS
+	rootInfo   atomic.Value // fs.FileInfo of the root directory
 	dirEntries sync.Map
-	mux        sync.RWMutex
 }
 
-func (c *store) getInfo() fs.FileInfo {
-	c.mux.RLock()
-	defer c.mux.RUnlock()
-	return c.info
+func New(base fs.FS) *FS {
+	return &FS{baseFS: base}
 }
 
-func (c *store) setInfo(info fs.FileInfo) {
-	c.mux.Lock()
-	c.info = info
-	c.mux.Unlock()
-}
-
-func (c *store) get(name string) []fs.DirEntry {
-	if de, ok := c.dirEntries.Load(name); ok {
+func (sfs *FS) getDirEntries(name string) []fs.DirEntry {
+	if de, ok := sfs.dirEntries.Load(name); ok {
 		return de.([]fs.DirEntry)
 	}
 	return nil
 }
 
-func (c *store) set(name string, entries []fs.DirEntry) {
-	c.dirEntries.Store(name, entries)
+func (sfs *FS) setDirEntries(name string, entries []fs.DirEntry) {
+	sfs.dirEntries.Store(name, entries)
 }
 
-func New(base fs.FS) FS {
-	return FS{
-		baseFS: base,
-		store:  &store{},
-	}
-}
-
-func (sfs FS) ReadDir(name string) ([]fs.DirEntry, error) {
-	entries := sfs.store.get(name)
+func (sfs *FS) ReadDir(name string) ([]fs.DirEntry, error) {
+	entries := sfs.getDirEntries(name)
 	if entries == nil {
 		e, err := fs.ReadDir(sfs.baseFS, name)
 		if err != nil {
 			return nil, err
 		}
-		sfs.store.set(name, e)
+		sfs.setDirEntries(name, e)
 		entries = e
 	}
 	return entries, nil
 }
 
-func (sfs FS) Stat(name string) (fs.FileInfo, error) {
+func (sfs *FS) Stat(name string) (fs.FileInfo, error) {
 	if name == "." {
-		if fi := sfs.store.getInfo(); fi != nil {
-			return fi, nil
+		if fi := sfs.rootInfo.Load(); fi != nil {
+			return fi.(fs.FileInfo), nil
 		}
 		fi, err := fs.Stat(sfs.baseFS, ".")
 		if err != nil {
 			return nil, err
 		}
-		sfs.store.setInfo(fi)
+		sfs.rootInfo.Store(fi)
 		return fi, nil
 	}
 	entries, err := sfs.ReadDir(filepath.Dir(name))
@@ -88,11 +69,9 @@ func (sfs FS) Stat(name string) (fs.FileInfo, error) {
 	return nil, fs.ErrNotExist
 }
 
-func (sfs FS) Open(name string) (fs.File, error) {
+func (sfs *FS) Open(name string) (fs.File, error) {
 	if _, err := sfs.Stat(name); err != nil {
 		return nil, err
 	}
 	return sfs.baseFS.Open(name)
 }
-
-var _ fs.StatFS = (*FS)(nil)
