@@ -60,3 +60,15 @@ bench: ## Run benchmarks.
 test-coverage: ## Run unit tests and generate code coverage.
 	go test $(FLAGS) -coverprofile=coverage.out ./...
 	go tool cover -func=coverage.out
+
+.PHONY: profile-cpu
+profile-cpu: ## Collect CPU profile in filename: cpu.pprof
+	go test $(FLAGS) -cpuprofile cpu.pprof -count=1 ./internal/rules
+
+.PHONY: profile-mem
+profile-mem: ## Collect memory profile in filename: mem.pprof
+	go test $(FLAGS) -memprofile mem.pprof -count=1 ./internal/rules
+
+.PHONY: profile-mutex
+profile-mutex: ## Collect mutex profile in filename: mutex.pprof
+	go test $(FLAGS) -memprofile mem.pprof -count=1 ./internal/rules
