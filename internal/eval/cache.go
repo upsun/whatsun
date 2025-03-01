@@ -12,27 +12,17 @@ type Cache interface {
 }
 
 type memoryCache struct {
-	cache map[string]*cel.Ast
-	mutex sync.RWMutex
+	cache sync.Map
 }
 
 func (c *memoryCache) Get(expr string) (*cel.Ast, bool) {
-	c.mutex.RLock()
-	defer c.mutex.RUnlock()
-	if c.cache != nil {
-		if ast, ok := c.cache[expr]; ok {
-			return ast, true
-		}
+	if a, ok := c.cache.Load(expr); ok {
+		return a.(*cel.Ast), true
 	}
 	return nil, false
 }
 
 func (c *memoryCache) Set(expr string, ast *cel.Ast) error {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-	if c.cache == nil {
-		c.cache = make(map[string]*cel.Ast)
-	}
-	c.cache[expr] = ast
+	c.cache.Store(expr, ast)
 	return nil
 }

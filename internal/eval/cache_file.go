@@ -11,6 +11,7 @@ import (
 	"os"
 	"slices"
 	"strings"
+	"sync"
 
 	"github.com/google/cel-go/cel"
 	exprpb "google.golang.org/genproto/googleapis/api/expr/v1alpha1"
@@ -18,16 +19,16 @@ import (
 )
 
 type FileCache struct {
-	memoryCache *memoryCache
-	filename    string
-	needsSave   bool
+	exprCache sync.Map
+	filename  string
+	needsSave bool
 }
 
 // NewFileCacheWithContent creates a FileCache with existing content, e.g. from an embedded file.
 //
 // Optionally, set a filename and call FileCache.Save to save the file.
 func NewFileCacheWithContent(content []byte, filename string) (*FileCache, error) {
-	c := &FileCache{filename: filename, memoryCache: &memoryCache{}}
+	c := &FileCache{filename: filename}
 	if err := c.load(bytes.NewReader(content)); err != nil {
 		return nil, err
 	}
@@ -39,7 +40,7 @@ func NewFileCacheWithContent(content []byte, filename string) (*FileCache, error
 // This function will read the file. The caller will need to run the
 // FileCache.Save method to save the file.
 func NewFileCache(filename string) (*FileCache, error) {
-	c := &FileCache{filename: filename, memoryCache: &memoryCache{}}
+	c := &FileCache{filename: filename}
 
 	f, err := os.Open(c.filename)
 	if err != nil {
@@ -69,14 +70,11 @@ func (c *FileCache) Save() error {
 	}
 	defer f.Close()
 
-	c.memoryCache.mutex.RLock()
-	defer c.memoryCache.mutex.RUnlock()
-
 	// Read the file in order to skip re-marshalling the AST for previously cached expressions.
 	// This is for consistency (reducing unnecessary Git diffs) rather than performance.
 	// TODO why does the marshalled representation change each time? - perhaps it's due to pointers in the environment
 	var (
-		marshalled = make(map[string]string, len(c.memoryCache.cache))
+		marshalled = make(map[string]string)
 		scanner    = bufio.NewScanner(f)
 		lineNumber = 0
 	)
@@ -90,20 +88,22 @@ func (c *FileCache) Save() error {
 		if len(parts) != 2 {
 			return fmt.Errorf("malformed line %d (not tab-separated) in file: %s", lineNumber, c.filename)
 		}
-		if _, ok := c.memoryCache.cache[parts[0]]; ok {
+		if _, ok := c.Get(parts[0]); ok {
 			marshalled[parts[0]] = parts[1]
 		}
 	}
-	for k, v := range c.memoryCache.cache {
+	c.exprCache.Range(func(k, v any) bool {
 		// Only re-marshal for existing expressions.
-		if _, ok := marshalled[k]; !ok {
-			s, err := marshalAST(v)
-			if err != nil {
-				return err
+		if _, ok := marshalled[k.(string)]; !ok {
+			s, _err := marshalAST(v.(*cel.Ast))
+			if _err != nil {
+				err = _err
+				return false
 			}
-			marshalled[k] = s
+			marshalled[k.(string)] = s
 		}
-	}
+		return true
+	})
 	lines := make([]string, len(marshalled))
 	i := 0
 	for k, v := range marshalled {
@@ -126,7 +126,6 @@ var cleanExpr = strings.NewReplacer("\n", " ", "\t", " ").Replace
 
 func (c *FileCache) load(r io.Reader) error {
 	scanner := bufio.NewScanner(r)
-	unmarshalled := make(map[string]*cel.Ast)
 	lineNumber := 0
 	for scanner.Scan() {
 		lineNumber++
@@ -142,21 +141,22 @@ func (c *FileCache) load(r io.Reader) error {
 		if err != nil {
 			return fmt.Errorf("could not unmarshal cached data at line %d: %w", lineNumber, err)
 		}
-		unmarshalled[parts[0]] = ast
+		c.exprCache.Store(parts[0], ast)
 	}
-	c.memoryCache.mutex.Lock()
-	c.memoryCache.cache = unmarshalled
-	c.memoryCache.mutex.Unlock()
 	return nil
 }
 
 func (c *FileCache) Get(expr string) (*cel.Ast, bool) {
-	return c.memoryCache.Get(cleanExpr(expr))
+	if a, ok := c.exprCache.Load(cleanExpr(expr)); ok {
+		return a.(*cel.Ast), true
+	}
+	return nil, false
 }
 
 func (c *FileCache) Set(expr string, ast *cel.Ast) error {
 	c.needsSave = true
-	return c.memoryCache.Set(cleanExpr(expr), ast)
+	c.exprCache.Store(cleanExpr(expr), ast)
+	return nil
 }
 
 func marshalAST(ast *cel.Ast) (string, error) {
