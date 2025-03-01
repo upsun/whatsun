@@ -138,12 +138,12 @@ func (a *Analyzer) collectDirectories(ctx context.Context, fsys fs.FS, root stri
 	})
 }
 
-func (a *Analyzer) evalFuncForDirectory(dir string, celInput map[string]any, gitIgnores *ignoreStore) func(rule RuleSpec) (bool, error) {
+func (a *Analyzer) evalFuncForDirectory(dir string, celInput map[string]any) func(rule RuleSpec) (bool, error) {
 	dirSplit := fsgitignore.Split(dir)
 
 	return func(rule RuleSpec) (bool, error) {
 		if ri, ok := rule.(ignorer); ok {
-			if m := gitIgnores.getMatcher(ri); m != nil && m.Match(dirSplit, true) {
+			if m := getIgnoreMatcher(ri); m != nil && m.Match(dirSplit, true) {
 				return false, nil
 			}
 		}
@@ -163,10 +163,9 @@ func (a *Analyzer) evalFuncForDirectory(dir string, celInput map[string]any, git
 }
 
 func (a *Analyzer) applyRuleset(rs RulesetSpec, fsys fs.FS, path string) ([]Report, error) {
-	var ignores = &ignoreStore{}
 	var celInput = celfuncs.FilesystemInput(fsys, path)
 
-	matches, err := FindMatches(rs.GetRules(), a.evalFuncForDirectory(path, celInput, ignores))
+	matches, err := FindMatches(rs.GetRules(), a.evalFuncForDirectory(path, celInput))
 	if err != nil {
 		return nil, fmt.Errorf("in directory %s: %w", path, err)
 	}

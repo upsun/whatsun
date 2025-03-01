@@ -61,24 +61,17 @@ type ignorer interface {
 	GetIgnores() []string
 }
 
-type ignoreStore struct {
-	matchers map[ignorer]gitignore.Matcher
-	mux      sync.Mutex
-}
+var ignoreMatcherCache sync.Map
 
-func (s *ignoreStore) getMatcher(i ignorer) gitignore.Matcher {
+func getIgnoreMatcher(i ignorer) gitignore.Matcher {
 	ignores := i.GetIgnores()
 	if len(ignores) == 0 {
 		return nil
 	}
-	s.mux.Lock()
-	defer s.mux.Unlock()
-	if s.matchers == nil {
-		s.matchers = make(map[ignorer]gitignore.Matcher)
+	if m, ok := ignoreMatcherCache.Load(i); ok {
+		return m.(gitignore.Matcher)
 	}
-	m, ok := s.matchers[i]
-	if !ok {
-		m = gitignore.NewMatcher(fsgitignore.ParsePatterns(ignores, []string{}))
-	}
+	m := gitignore.NewMatcher(fsgitignore.ParsePatterns(ignores, []string{}))
+	ignoreMatcherCache.Store(i, m)
 	return m
 }
