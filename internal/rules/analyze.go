@@ -88,11 +88,10 @@ func (a *Analyzer) Analyze(ctx context.Context, fsys fs.FS, root string) (Rulese
 		return nil, err
 	}
 
-	for k, rr := range rulesetReports {
+	for _, rr := range rulesetReports {
 		slices.SortFunc(rr, func(a, b Report) int {
 			return strings.Compare(a.Path, b.Path)
 		})
-		rulesetReports[k] = rr
 	}
 
 	return rulesetReports, nil
