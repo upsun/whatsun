@@ -6,23 +6,20 @@ import (
 	"strings"
 	"testing"
 	"testing/fstest"
-	"what/internal/dep"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"what/pkg/dep"
 )
 
-//go:embed testdata/js_npm/package_.json
-var testNPMPackageJSON []byte
+//go:embed testdata/js_deno/deno_.json
+var testDenoJSON []byte
 
-//go:embed testdata/js_npm/package-lock_.json
-var testNPMPackageLock []byte
-
-func TestNPM(t *testing.T) {
-	// This example was generated with: `npm install gatsby`
+func TestDeno(t *testing.T) {
+	// This example was generated with: `deno run -A -r https://fresh.deno.dev`
 	fsys := fstest.MapFS{
-		"package.json":      {Data: testNPMPackageJSON},
-		"package-lock.json": {Data: testNPMPackageLock},
+		"deno.json": {Data: testDenoJSON},
 	}
 
 	m, err := dep.GetManager(dep.ManagerTypeJavaScript, fsys, ".")
@@ -33,10 +30,13 @@ func TestNPM(t *testing.T) {
 		pattern      string
 		dependencies []dep.Dependency
 	}{
-		{"gatsby", []dep.Dependency{{
-			Name:       "gatsby",
-			Constraint: "^5.14.1",
-			Version:    "5.14.1",
+		{"https://deno.land/x/fresh", []dep.Dependency{{
+			Name:    "https://deno.land/x/fresh",
+			Version: "1.7.3",
+		}}},
+		{"*preact", []dep.Dependency{{
+			Name:    "https://esm.sh/preact",
+			Version: "10.22.0",
 		}}},
 	}
 	for _, c := range cases {

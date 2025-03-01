@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"what/internal/dep"
+	"what/pkg/dep"
 )
 
 func TestPHP(t *testing.T) {

@@ -4,7 +4,7 @@ import (
 	"slices"
 	"sort"
 
-	"what/internal/eval"
+	"what/pkg/eval"
 )
 
 // RulesetReports collects reports for each ruleset (keyed by the ruleset name).

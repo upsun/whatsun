@@ -6,10 +6,11 @@ import (
 	"strings"
 	"testing"
 	"testing/fstest"
-	"what/internal/dep"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"what/pkg/dep"
 )
 
 //go:embed testdata/js_bun/package_.json

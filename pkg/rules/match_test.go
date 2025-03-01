@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"what/internal/rules"
+	"what/pkg/rules"
 )
 
 func TestMatch(t *testing.T) {

@@ -14,8 +14,8 @@ import (
 
 	"github.com/jedib0t/go-pretty/v6/table"
 
-	"what/internal/config"
-	"what/internal/rules"
+	"what"
+	"what/pkg/rules"
 )
 
 var ignore = flag.String("ignore", "", "Comma-separated list of paths (or patterns) to ignore, adding to defaults")
@@ -31,12 +31,12 @@ func main() {
 		log.Fatal(err)
 	}
 
-	rulesets, err := config.LoadEmbeddedRulesets()
+	rulesets, err := what.LoadRulesets()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	exprCache, err := config.LoadExpressionCache()
+	exprCache, err := what.LoadExpressionCache()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -51,7 +51,7 @@ func main() {
 
 	start := time.Now()
 
-	results, err := analyzer.Analyze(context.TODO(), os.DirFS(absPath), ".")
+	results, err := analyzer.Analyze(context.Background(), os.DirFS(absPath), ".")
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"what/internal/eval/celfuncs"
+	"what/pkg/eval/celfuncs"
 )
 
 func TestCEL(t *testing.T) {

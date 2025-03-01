@@ -14,7 +14,7 @@ gen_docs: ## Generates CEL function documentation
 
 .PHONY: warm_cache
 warm_cache: ## Warms the expression cache (run this when expressions change).
-	go run cmd/warm_cache/main.go internal/config/expr.cache
+	go run cmd/warm_cache/main.go expr.cache
 
 .PHONY: govulncheck
 govulncheck: ## Check dependencies for vulnerabilities.
@@ -63,12 +63,12 @@ test-coverage: ## Run unit tests and generate code coverage.
 
 .PHONY: profile-cpu
 profile-cpu: ## Collect CPU profile in filename: cpu.pprof
-	go test $(FLAGS) -cpuprofile cpu.pprof -count=1 ./internal/rules
+	go test $(FLAGS) -cpuprofile cpu.pprof -count=1 ./pkg/rules
 
 .PHONY: profile-mem
 profile-mem: ## Collect memory profile in filename: mem.pprof
-	go test $(FLAGS) -memprofile mem.pprof -count=1 ./internal/rules
+	go test $(FLAGS) -memprofile mem.pprof -count=1 ./pkg/rules
 
 .PHONY: profile-mutex
 profile-mutex: ## Collect mutex profile in filename: mutex.pprof
-	go test $(FLAGS) -memprofile mem.pprof -count=1 ./internal/rules
+	go test $(FLAGS) -memprofile mem.pprof -count=1 ./pkg/rules

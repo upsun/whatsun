@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"os"
 
-	"what/internal/config"
-	"what/internal/eval"
-	"what/internal/eval/celfuncs"
-	"what/internal/rules"
+	"what"
+	"what/pkg/eval"
+	"what/pkg/eval/celfuncs"
+	"what/pkg/rules"
 )
 
 func main() {
@@ -23,7 +23,7 @@ func main() {
 }
 
 func warmCache(filename string) error {
-	rulesets, err := config.LoadEmbeddedRulesets()
+	rulesets, err := what.LoadRulesets()
 	if err != nil {
 		return err
 	}

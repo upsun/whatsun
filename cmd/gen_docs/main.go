@@ -9,7 +9,7 @@ import (
 
 	"github.com/google/cel-go/cel"
 
-	"what/internal/eval/celfuncs"
+	"what/pkg/eval/celfuncs"
 )
 
 func main() {

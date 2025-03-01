@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"what/internal/dep"
+	"what/pkg/dep"
 )
 
 func TestGradle(t *testing.T) {

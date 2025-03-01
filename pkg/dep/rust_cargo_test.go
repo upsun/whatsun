@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"what/internal/dep"
+	"what/pkg/dep"
 )
 
 //go:embed testdata/rust_cargo/Cargo_.toml

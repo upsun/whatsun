@@ -13,8 +13,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"what/internal/eval"
-	"what/internal/eval/celfuncs"
+	"what/pkg/eval"
+	"what/pkg/eval/celfuncs"
 )
 
 //go:embed testdata

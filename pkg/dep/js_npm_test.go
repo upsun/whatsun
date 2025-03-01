@@ -6,23 +6,24 @@ import (
 	"strings"
 	"testing"
 	"testing/fstest"
-	"what/internal/dep"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"what/pkg/dep"
 )
 
-//go:embed testdata/js_pnpm/package_.json
-var testPNPMPackageJSON []byte
+//go:embed testdata/js_npm/package_.json
+var testNPMPackageJSON []byte
 
-//go:embed testdata/js_pnpm/pnpm-lock_.yaml
-var testPNPMLock []byte
+//go:embed testdata/js_npm/package-lock_.json
+var testNPMPackageLock []byte
 
-func TestPNPM(t *testing.T) {
-	// This example was generated with: `pnpm install strapi`
+func TestNPM(t *testing.T) {
+	// This example was generated with: `npm install gatsby`
 	fsys := fstest.MapFS{
-		"package.json":   {Data: testPNPMPackageJSON},
-		"pnpm-lock.yaml": {Data: testPNPMLock},
+		"package.json":      {Data: testNPMPackageJSON},
+		"package-lock.json": {Data: testNPMPackageLock},
 	}
 
 	m, err := dep.GetManager(dep.ManagerTypeJavaScript, fsys, ".")
@@ -33,11 +34,10 @@ func TestPNPM(t *testing.T) {
 		pattern      string
 		dependencies []dep.Dependency
 	}{
-		{"@strapi/strapi", []dep.Dependency{{
-			Vendor:     "strapi",
-			Name:       "@strapi/strapi",
-			Constraint: "^5.10.2",
-			Version:    "5.10.2",
+		{"gatsby", []dep.Dependency{{
+			Name:       "gatsby",
+			Constraint: "^5.14.1",
+			Version:    "5.14.1",
 		}}},
 	}
 	for _, c := range cases {

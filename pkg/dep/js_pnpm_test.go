@@ -6,19 +6,24 @@ import (
 	"strings"
 	"testing"
 	"testing/fstest"
-	"what/internal/dep"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"what/pkg/dep"
 )
 
-//go:embed testdata/js_deno/deno_.json
-var testDenoJSON []byte
+//go:embed testdata/js_pnpm/package_.json
+var testPNPMPackageJSON []byte
 
-func TestDeno(t *testing.T) {
-	// This example was generated with: `deno run -A -r https://fresh.deno.dev`
+//go:embed testdata/js_pnpm/pnpm-lock_.yaml
+var testPNPMLock []byte
+
+func TestPNPM(t *testing.T) {
+	// This example was generated with: `pnpm install strapi`
 	fsys := fstest.MapFS{
-		"deno.json": {Data: testDenoJSON},
+		"package.json":   {Data: testPNPMPackageJSON},
+		"pnpm-lock.yaml": {Data: testPNPMLock},
 	}
 
 	m, err := dep.GetManager(dep.ManagerTypeJavaScript, fsys, ".")
@@ -29,13 +34,11 @@ func TestDeno(t *testing.T) {
 		pattern      string
 		dependencies []dep.Dependency
 	}{
-		{"https://deno.land/x/fresh", []dep.Dependency{{
-			Name:    "https://deno.land/x/fresh",
-			Version: "1.7.3",
-		}}},
-		{"*preact", []dep.Dependency{{
-			Name:    "https://esm.sh/preact",
-			Version: "10.22.0",
+		{"@strapi/strapi", []dep.Dependency{{
+			Vendor:     "strapi",
+			Name:       "@strapi/strapi",
+			Constraint: "^5.10.2",
+			Version:    "5.10.2",
 		}}},
 	}
 	for _, c := range cases {

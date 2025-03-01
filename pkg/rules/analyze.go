@@ -16,10 +16,10 @@ import (
 	"github.com/google/cel-go/common/types"
 	"golang.org/x/sync/errgroup"
 
-	"what/internal/eval"
-	"what/internal/eval/celfuncs"
 	"what/internal/fsgitignore"
 	"what/internal/searchfs"
+	"what/pkg/eval"
+	"what/pkg/eval/celfuncs"
 )
 
 type AnalyzerConfig struct {
@@ -61,7 +61,6 @@ func NewAnalyzer(rulesets []RulesetSpec, cnf *AnalyzerConfig) (*Analyzer, error)
 }
 
 func (a *Analyzer) Analyze(ctx context.Context, fsys fs.FS, root string) (RulesetReports, error) {
-
 	fsys = searchfs.New(fsys)
 
 	var (
