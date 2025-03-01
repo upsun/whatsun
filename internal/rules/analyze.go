@@ -10,7 +10,6 @@ import (
 	"runtime"
 	"slices"
 	"strings"
-	"sync"
 
 	"github.com/go-git/go-git/v5/plumbing/format/gitignore"
 	"github.com/google/cel-go/common/types"
@@ -79,11 +78,8 @@ func (a *Analyzer) Analyze(ctx context.Context, fsys fs.FS, root string) (Rulese
 
 	var rulesetReports = make(RulesetReports)
 	errGroup.Go(func() error {
-		var mux sync.Mutex
 		for rk := range reportsChan {
-			mux.Lock()
 			rulesetReports[rk.set] = append(rulesetReports[rk.set], rk.reports...)
-			mux.Unlock()
 		}
 		return nil
 	})
