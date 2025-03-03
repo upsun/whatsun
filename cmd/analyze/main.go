@@ -39,9 +39,16 @@ func main() {
 	var rulesets []rules.RulesetSpec
 	if *customRulesets != "" {
 		var err error
-		rulesets, err = rules.LoadFromYAMLDir(os.DirFS("."), *customRulesets)
+		dirName, fileName := filepath.Split(*customRulesets)
+		if dirName == "" {
+			dirName = "."
+		}
+		rulesets, err = rules.LoadFromYAMLDir(os.DirFS(dirName), fileName)
 		if err != nil {
 			log.Fatalf("failed to load custom rulesets: %v", err)
+		}
+		if len(rulesets) == 0 {
+			log.Fatalf("no rulesets found in directory: %s", *customRulesets)
 		}
 		userCacheDir, err := os.UserCacheDir()
 		if err != nil {

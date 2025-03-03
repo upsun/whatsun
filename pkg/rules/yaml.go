@@ -51,7 +51,10 @@ func LoadFromYAMLDir(fsys fs.FS, path string) ([]RulesetSpec, error) {
 		}
 		for name, rs := range subConfig {
 			if _, ok := setMap[name]; ok {
-				return nil, fmt.Errorf("duplicate ruleset found: %s", name)
+				return nil, fmt.Errorf("duplicate ruleset found: '%s'", name)
+			}
+			if len(rs.Rules) == 0 {
+				return nil, fmt.Errorf("invalid ruleset '%s' (no rules)", name)
 			}
 			rules := make([]RuleSpec, len(rs.Rules))
 			i := 0
