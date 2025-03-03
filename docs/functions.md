@@ -50,11 +50,6 @@ Query JSON bytes (e.g. file contents) using JQ.
 
 * `jq(contents bytes, query string)` -> `string`
 
-### `parseVersion`
-Parse a semantic version into major, minor and patch components.
-
-* `parseVersion(version string)` -> `map(string, string)`
-
 ### `read`
 Read a file.
 

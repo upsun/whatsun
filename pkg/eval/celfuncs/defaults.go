@@ -19,6 +19,5 @@ func CustomEnvOptions() []cel.EnvOption {
 	return append(celOptions,
 		JQ(),
 		YQ(),
-		ParseVersion(),
 	)
 }

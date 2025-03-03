@@ -32,25 +32,3 @@ func bytesStringReturnsStringErr(name string, f func([]byte, string) (string, er
 		),
 	)
 }
-
-// stringReturnsMapErr returns a CEL function wrapping the given one with the same signature.
-func stringReturnsMapErr(name string, f func(s string) (map[string]string, error)) cel.EnvOption {
-	return cel.Function(
-		name,
-		cel.Overload(name,
-			[]*cel.Type{cel.StringType},
-			cel.MapType(cel.StringType, cel.StringType),
-			cel.UnaryBinding(func(arg ref.Val) ref.Val {
-				str, ok := arg.(types.String)
-				if !ok {
-					return types.NewErr("invalid argument")
-				}
-				res, err := f(string(str))
-				if err != nil {
-					return types.NewErrFromString(err.Error())
-				}
-				return types.DefaultTypeAdapter.NativeToValue(res)
-			}),
-		),
-	)
-}

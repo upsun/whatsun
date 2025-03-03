@@ -100,13 +100,6 @@ func TestEval(t *testing.T) {
 		assert.Equal(t, types.Bool(true), ev(e, `fs.depExists("js", "express")`))
 	})
 
-	t.Run("parseVersion", func(t *testing.T) {
-		assert.Equal(t, types.String("v7.2.3"), ev(e, `fs.depVersion("php", "symfony/framework-bundle")`))
-		assert.Equal(t, types.String("7"), ev(e, `parseVersion(fs.depVersion("php", "symfony/framework-bundle")).major`))
-		assert.Equal(t, types.String("2"), ev(e, `parseVersion(fs.depVersion("php", "symfony/framework-bundle")).minor`))
-		assert.Equal(t, types.String("3"), ev(e, `parseVersion(fs.depVersion("php", "symfony/framework-bundle")).patch`))
-	})
-
 	// Ensure the file cache can be saved.
 	require.NoError(t, cache.Save())
 

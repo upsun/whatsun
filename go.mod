@@ -5,7 +5,6 @@ go 1.24
 require (
 	github.com/BurntSushi/toml v1.4.1-0.20240526193622-a339e1f7089c
 	github.com/IGLOU-EU/go-wildcard/v2 v2.1.0
-	github.com/Masterminds/semver/v3 v3.3.1
 	github.com/go-git/go-git/v5 v5.13.2
 	github.com/google/cel-go v0.23.2
 	github.com/itchyny/gojq v0.12.17
