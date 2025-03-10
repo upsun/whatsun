@@ -12,10 +12,10 @@ import (
 
 // AllPackageManagerFunctions returns CEL functions for reading package manager dependencies in an fs.FS filesystem.
 // This can only be used alongside the FilesystemVariables options.
-func AllPackageManagerFunctions() []cel.EnvOption {
+func AllPackageManagerFunctions(docs *Docs) []cel.EnvOption {
 	return []cel.EnvOption{
-		DepExists(),
-		DepVersion(),
+		DepExists(docs),
+		DepVersion(docs),
 	}
 }
 
@@ -23,8 +23,8 @@ func managerTypeComment() string {
 	return fmt.Sprintf("The manager type (one of: `%s`)", strings.Join(dep.AllManagerTypes, "`, `"))
 }
 
-func DepExists() cel.EnvOption {
-	FuncDocs["depExists"] = FuncDoc{
+func DepExists(docs *Docs) cel.EnvOption {
+	docs.AddFunction("depExists", FuncDoc{
 		Comment:     "Check if a project has a dependency",
 		Description: "This supports a few package management tools: more may be added later.",
 		Args: []ArgDoc{
@@ -32,7 +32,7 @@ func DepExists() cel.EnvOption {
 			{"managerType", managerTypeComment()},
 			{"pattern", "The dependency name, accepting `*` as a wildcard"},
 		},
-	}
+	})
 
 	return fsBinaryFunction[string, string, bool](
 		"depExists",
@@ -51,8 +51,8 @@ func DepExists() cel.EnvOption {
 	)
 }
 
-func DepVersion() cel.EnvOption {
-	FuncDocs["depVersion"] = FuncDoc{
+func DepVersion(docs *Docs) cel.EnvOption {
+	docs.AddFunction("depVersion", FuncDoc{
 		Comment:     "Find the version of a project dependency",
 		Description: "This returns an empty string if the dependency is not found.",
 		Args: []ArgDoc{
@@ -60,7 +60,7 @@ func DepVersion() cel.EnvOption {
 			{"managerType", managerTypeComment()},
 			{"name", "The dependency name"},
 		},
-	}
+	})
 
 	return fsBinaryFunction[string, string, string](
 		"depVersion",

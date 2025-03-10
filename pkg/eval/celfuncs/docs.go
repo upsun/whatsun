@@ -11,4 +11,21 @@ type ArgDoc struct {
 	Comment string
 }
 
-var FuncDocs = map[string]FuncDoc{}
+type Docs struct {
+	funcs map[string]*FuncDoc
+}
+
+func (d *Docs) GetFunction(name string) (*FuncDoc, bool) {
+	fd, ok := d.funcs[name]
+	return fd, ok
+}
+
+func (d *Docs) AddFunction(name string, fd FuncDoc) {
+	if d == nil {
+		return
+	}
+	if d.funcs == nil {
+		d.funcs = make(map[string]*FuncDoc)
+	}
+	d.funcs[name] = &fd
+}

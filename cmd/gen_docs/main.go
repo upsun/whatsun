@@ -53,7 +53,8 @@ func GenerateDocs(w io.Writer, env *cel.Env) error {
 	categories := []string{"Custom functions", "Built-in functions", "Operators"}
 	perCategory := make(map[string]string, len(categories))
 
-	onlyCustomEnv, err := cel.NewCustomEnv(celfuncs.CustomEnvOptions()...)
+	var docs = &celfuncs.Docs{}
+	onlyCustomEnv, err := cel.NewCustomEnv(celfuncs.CustomEnvOptions(docs)...)
 	if err != nil {
 		return err
 	}
@@ -83,7 +84,7 @@ func GenerateDocs(w io.Writer, env *cel.Env) error {
 			b.WriteString(fmt.Sprintf("\n### `%s`\n", strings.Trim(strings.ReplaceAll(name, "_", " "), "_ ")))
 		} else {
 			b.WriteString(fmt.Sprintf("\n### `%s`\n", name))
-			if funcDoc, ok := celfuncs.FuncDocs[name]; ok && funcDoc.Comment != "" {
+			if funcDoc, ok := docs.GetFunction(name); ok && funcDoc.Comment != "" {
 				b.WriteString(fmt.Sprintf("%s.\n", strings.TrimRight(funcDoc.Comment, ".")))
 				if funcDoc.Description != "" {
 					b.WriteString(fmt.Sprintf("\n%s\n", funcDoc.Description))
@@ -102,7 +103,7 @@ func GenerateDocs(w io.Writer, env *cel.Env) error {
 				argTypesStr[i] = at.String()
 			}
 
-			if funcDoc, ok := celfuncs.FuncDocs[name]; ok {
+			if funcDoc, ok := docs.GetFunction(name); ok {
 				if len(funcDoc.Args) == len(argTypesStr) {
 					for i, arg := range funcDoc.Args {
 						argTypesStr[i] = arg.Name + " " + argTypesStr[i]
@@ -123,7 +124,7 @@ func GenerateDocs(w io.Writer, env *cel.Env) error {
 				b.WriteString(fmt.Sprintf("* `%s(%s)` -> `%s`\n", f.Name(), strings.Join(argTypesStr, ", "), overload.ResultType()))
 			}
 
-			if funcDoc, ok := celfuncs.FuncDocs[name]; ok {
+			if funcDoc, ok := docs.GetFunction(name); ok {
 				if len(funcDoc.Args) == len(argTypesStr) {
 					var hasAnyComment bool
 					for _, arg := range funcDoc.Args {

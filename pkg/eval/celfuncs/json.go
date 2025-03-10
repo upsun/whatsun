@@ -10,14 +10,14 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-func JQ() cel.EnvOption {
-	FuncDocs["jq"] = FuncDoc{
+func JQ(docs *Docs) cel.EnvOption {
+	docs.AddFunction("jq", FuncDoc{
 		Comment: "Query JSON bytes (e.g. file contents) using JQ",
 		Args: []ArgDoc{
 			{"contents", ""},
 			{"query", ""},
 		},
-	}
+	})
 
 	return binaryFunction("jq", []*cel.Type{cel.BytesType, cel.StringType}, cel.StringType, func(b []byte, expr string) (string, error) {
 		m := map[string]any{}
@@ -28,14 +28,14 @@ func JQ() cel.EnvOption {
 	})
 }
 
-func YQ() cel.EnvOption {
-	FuncDocs["yq"] = FuncDoc{
+func YQ(docs *Docs) cel.EnvOption {
+	docs.AddFunction("yq", FuncDoc{
 		Comment: "Query YAML bytes (e.g. file contents) using YQ (same syntax as JQ)",
 		Args: []ArgDoc{
 			{"contents", ""},
 			{"query", ""},
 		},
-	}
+	})
 
 	return binaryFunction("yq", []*cel.Type{cel.BytesType, cel.StringType}, cel.StringType, func(b []byte, expr string) (string, error) {
 		m := map[string]any{}
