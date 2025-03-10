@@ -19,13 +19,15 @@ func JQ(docs *Docs) cel.EnvOption {
 		},
 	})
 
-	return binaryFunction("jq", []*cel.Type{cel.BytesType, cel.StringType}, cel.StringType, func(b []byte, expr string) (string, error) {
-		m := map[string]any{}
-		if err := json.Unmarshal(b, &m); err != nil {
-			return "", err
-		}
-		return jq(m, expr)
-	})
+	return binaryFunction("jq", []*cel.Type{cel.BytesType, cel.StringType}, cel.StringType,
+		func(b []byte, expr string) (string, error) {
+			m := map[string]any{}
+			if err := json.Unmarshal(b, &m); err != nil {
+				return "", err
+			}
+			return jq(m, expr)
+		},
+	)
 }
 
 func YQ(docs *Docs) cel.EnvOption {
@@ -37,13 +39,15 @@ func YQ(docs *Docs) cel.EnvOption {
 		},
 	})
 
-	return binaryFunction("yq", []*cel.Type{cel.BytesType, cel.StringType}, cel.StringType, func(b []byte, expr string) (string, error) {
-		m := map[string]any{}
-		if err := yaml.Unmarshal(b, &m); err != nil {
-			return "", err
-		}
-		return jq(m, expr)
-	})
+	return binaryFunction("yq", []*cel.Type{cel.BytesType, cel.StringType}, cel.StringType,
+		func(b []byte, expr string) (string, error) {
+			m := map[string]any{}
+			if err := yaml.Unmarshal(b, &m); err != nil {
+				return "", err
+			}
+			return jq(m, expr)
+		},
+	)
 }
 
 func jq(m map[string]any, expr string) (string, error) {

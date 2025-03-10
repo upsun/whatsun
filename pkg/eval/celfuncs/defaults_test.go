@@ -79,11 +79,12 @@ func TestCEL(t *testing.T) {
 		require.NoError(t, err, msgAndArgs...)
 
 		result, _, err := prg.Eval(input)
-		if tc.expectEvalErrIs != nil {
+		switch {
+		case tc.expectEvalErrIs != nil:
 			assert.ErrorIs(t, err, tc.expectEvalErrIs, msgAndArgs...)
-		} else if tc.expectEvalErrContains != "" {
+		case tc.expectEvalErrContains != "":
 			assert.ErrorContains(t, err, tc.expectEvalErrContains, msgAndArgs...)
-		} else {
+		default:
 			assert.NoError(t, err, msgAndArgs...)
 			if err == nil {
 				assert.Equal(t, types.DefaultTypeAdapter.NativeToValue(tc.expectResult), result, msgAndArgs...)

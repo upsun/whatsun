@@ -34,16 +34,10 @@ func DepExists(docs *Docs) cel.EnvOption {
 		},
 	})
 
-	return fsBinaryFunction[string, string, bool](
-		"depExists",
-		[]*cel.Type{cel.StringType, cel.StringType},
-		cel.BoolType,
+	return fsBinaryFunction("depExists", []*cel.Type{cel.StringType, cel.StringType}, cel.BoolType,
 		func(fsWrapper filesystemWrapper, managerType string, pattern string) (bool, error) {
 			m, err := depGetCachedManager(managerType, fsWrapper)
 			if err != nil {
-				return false, err
-			}
-			if err := m.Init(); err != nil {
 				return false, err
 			}
 			return len(m.Find(pattern)) > 0, nil
@@ -62,16 +56,10 @@ func DepVersion(docs *Docs) cel.EnvOption {
 		},
 	})
 
-	return fsBinaryFunction[string, string, string](
-		"depVersion",
-		[]*cel.Type{cel.StringType, cel.StringType},
-		cel.StringType,
+	return fsBinaryFunction("depVersion", []*cel.Type{cel.StringType, cel.StringType}, cel.StringType,
 		func(fsWrapper filesystemWrapper, managerType string, name string) (string, error) {
 			m, err := depGetCachedManager(managerType, fsWrapper)
 			if err != nil {
-				return "", err
-			}
-			if err := m.Init(); err != nil {
 				return "", err
 			}
 			d, _ := m.Get(name)
@@ -88,6 +76,7 @@ type managerCacheKey struct {
 
 var managerCache sync.Map
 
+// depGetCachedManager returns a cached and initialized dep.Manager for the given input.
 func depGetCachedManager(managerType string, fsWrapper filesystemWrapper) (dep.Manager, error) {
 	cacheKey := managerCacheKey{managerType: managerType, fsID: fsWrapper.ID, path: fsWrapper.Path}
 	if manager, ok := managerCache.Load(cacheKey); ok {
@@ -98,5 +87,8 @@ func depGetCachedManager(managerType string, fsWrapper filesystemWrapper) (dep.M
 		return nil, err
 	}
 	managerCache.Store(cacheKey, m)
+	if err := m.Init(); err != nil {
+		return nil, err
+	}
 	return m, nil
 }
