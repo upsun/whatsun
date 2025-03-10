@@ -19,7 +19,7 @@ func JQ() cel.EnvOption {
 		},
 	}
 
-	return bytesStringReturnsStringErr("jq", func(b []byte, expr string) (string, error) {
+	return binaryFunction("jq", []*cel.Type{cel.BytesType, cel.StringType}, cel.StringType, func(b []byte, expr string) (string, error) {
 		m := map[string]any{}
 		if err := json.Unmarshal(b, &m); err != nil {
 			return "", err
@@ -37,7 +37,7 @@ func YQ() cel.EnvOption {
 		},
 	}
 
-	return bytesStringReturnsStringErr("yq", func(b []byte, expr string) (string, error) {
+	return binaryFunction("yq", []*cel.Type{cel.BytesType, cel.StringType}, cel.StringType, func(b []byte, expr string) (string, error) {
 		m := map[string]any{}
 		if err := yaml.Unmarshal(b, &m); err != nil {
 			return "", err

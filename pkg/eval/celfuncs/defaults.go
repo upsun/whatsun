@@ -1,3 +1,4 @@
+// Package celfuncs provides functions for use in a Common Expression Language (CEL) environment.
 package celfuncs
 
 import (

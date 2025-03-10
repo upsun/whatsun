@@ -50,14 +50,24 @@ func AllFileOptions() []cel.EnvOption {
 	}
 }
 
+// fsUnaryFunction returns a CEL environment option for a receiver method on the filesystem variable ("fs") that takes 1 argument.
+func fsUnaryFunction[ARG any, RET any](name string, argType *cel.Type, returnType *cel.Type, f func(filesystemWrapper, ARG) (RET, error)) cel.EnvOption {
+	return unaryReceiverFunction[filesystemWrapper, ARG, RET](fsVariable, name, []*cel.Type{cel.DynType, argType}, returnType, f)
+}
+
+// fsBinaryFunction returns a CEL environment option for a receiver method on the filesystem variable ("fs") that takes 2 arguments.
+func fsBinaryFunction[A1 any, A2 any, RET any](name string, argTypes []*cel.Type, returnType *cel.Type, f func(filesystemWrapper, A1, A2) (RET, error)) cel.EnvOption {
+	return binaryReceiverFunction[filesystemWrapper, A1, A2, RET](fsVariable, name, append([]*cel.Type{cel.DynType}, argTypes...), returnType, f)
+}
+
 func FileExists() cel.EnvOption {
 	FuncDocs["fileExists"] = FuncDoc{
 		Comment: "Check whether a file exists",
 		Args:    []ArgDoc{{"fs", ""}, {"filename", ""}},
 	}
 
-	return fsStringReturnsBoolErr("fileExists", func(fsWrapper filesystemWrapper, filename string) (bool, error) {
-		_, err := fs.Stat(fsWrapper.FS, filepath.Join(fsWrapper.Path, filename))
+	return fsUnaryFunction[string, bool]("fileExists", cel.StringType, cel.BoolType, func(fsWrapper filesystemWrapper, name string) (bool, error) {
+		_, err := fs.Stat(fsWrapper.FS, filepath.Join(fsWrapper.Path, name))
 		if err != nil {
 			return false, ignoreNotExists(err)
 		}
@@ -75,13 +85,18 @@ func FileContains() cel.EnvOption {
 		},
 	}
 
-	return fsStringStringReturnsBoolErr("fileContains", func(fsWrapper filesystemWrapper, filename, substr string) (bool, error) {
-		b, err := fs.ReadFile(fsWrapper.FS, filepath.Join(fsWrapper.Path, filename))
-		if err != nil {
-			return false, err
-		}
-		return strings.Contains(string(b), substr), nil
-	})
+	return fsBinaryFunction[string, string, bool](
+		"fileContains",
+		[]*cel.Type{cel.StringType, cel.StringType},
+		cel.BoolType,
+		func(fsWrapper filesystemWrapper, filename, substr string) (bool, error) {
+			b, err := fs.ReadFile(fsWrapper.FS, filepath.Join(fsWrapper.Path, filename))
+			if err != nil {
+				return false, err
+			}
+			return strings.Contains(string(b), substr), nil
+		},
+	)
 }
 
 func FileGlob() cel.EnvOption {
@@ -90,7 +105,7 @@ func FileGlob() cel.EnvOption {
 		Args:    []ArgDoc{{"fs", ""}, {"pattern", ""}},
 	}
 
-	return fsStringReturnsListErr("glob", func(fsWrapper filesystemWrapper, pattern string) ([]string, error) {
+	return fsUnaryFunction[string, []string]("glob", cel.StringType, cel.ListType(cel.StringType), func(fsWrapper filesystemWrapper, pattern string) ([]string, error) {
 		return fs.Glob(fsWrapper.FS, filepath.Join(fsWrapper.Path, pattern))
 	})
 }
@@ -101,7 +116,7 @@ func FileRead() cel.EnvOption {
 		Args:    []ArgDoc{{"fs", ""}, {"filename", ""}},
 	}
 
-	return fsStringReturnsBytesErr("read", func(fsWrapper filesystemWrapper, path string) ([]byte, error) {
+	return fsUnaryFunction[string, []byte]("read", cel.StringType, cel.BytesType, func(fsWrapper filesystemWrapper, path string) ([]byte, error) {
 		return fs.ReadFile(fsWrapper.FS, filepath.Join(fsWrapper.Path, path))
 	})
 }
@@ -112,7 +127,7 @@ func FileIsDir() cel.EnvOption {
 		Args:    []ArgDoc{{"fs", ""}, {"name", ""}},
 	}
 
-	return fsStringReturnsBoolErr("isDir", func(fsWrapper filesystemWrapper, name string) (bool, error) {
+	return fsUnaryFunction[string, bool]("isDir", cel.StringType, cel.BoolType, func(fsWrapper filesystemWrapper, name string) (bool, error) {
 		stat, err := fs.Stat(fsWrapper.FS, filepath.Join(fsWrapper.Path, name))
 		if err != nil {
 			return false, ignoreNotExists(err)

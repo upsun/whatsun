@@ -33,9 +33,22 @@ func DepExists() cel.EnvOption {
 			{"pattern", "The dependency name, accepting `*` as a wildcard"},
 		},
 	}
-	return fsStringStringReturnsBoolErr("depExists", func(fsWrapper filesystemWrapper, manager, pattern string) (bool, error) {
-		return depExists(manager, fsWrapper, pattern)
-	})
+
+	return fsBinaryFunction[string, string, bool](
+		"depExists",
+		[]*cel.Type{cel.StringType, cel.StringType},
+		cel.BoolType,
+		func(fsWrapper filesystemWrapper, managerType string, pattern string) (bool, error) {
+			m, err := depGetCachedManager(managerType, fsWrapper)
+			if err != nil {
+				return false, err
+			}
+			if err := m.Init(); err != nil {
+				return false, err
+			}
+			return len(m.Find(pattern)) > 0, nil
+		},
+	)
 }
 
 func DepVersion() cel.EnvOption {
@@ -49,9 +62,22 @@ func DepVersion() cel.EnvOption {
 		},
 	}
 
-	return fsStringStringReturnsStringErr("depVersion", func(fsWrapper filesystemWrapper, manager, name string) (string, error) {
-		return depVersion(manager, fsWrapper, name)
-	})
+	return fsBinaryFunction[string, string, string](
+		"depVersion",
+		[]*cel.Type{cel.StringType, cel.StringType},
+		cel.StringType,
+		func(fsWrapper filesystemWrapper, managerType string, name string) (string, error) {
+			m, err := depGetCachedManager(managerType, fsWrapper)
+			if err != nil {
+				return "", err
+			}
+			if err := m.Init(); err != nil {
+				return "", err
+			}
+			d, _ := m.Get(name)
+			return d.Version, nil
+		},
+	)
 }
 
 type managerCacheKey struct {
@@ -73,27 +99,4 @@ func depGetCachedManager(managerType string, fsWrapper filesystemWrapper) (dep.M
 	}
 	managerCache.Store(cacheKey, m)
 	return m, nil
-}
-
-func depVersion(managerType string, fsWrapper filesystemWrapper, name string) (string, error) {
-	m, err := depGetCachedManager(managerType, fsWrapper)
-	if err != nil {
-		return "", err
-	}
-	if err := m.Init(); err != nil {
-		return "", err
-	}
-	d, _ := m.Get(name)
-	return d.Version, nil
-}
-
-func depExists(managerType string, fsWrapper filesystemWrapper, pattern string) (bool, error) {
-	m, err := depGetCachedManager(managerType, fsWrapper)
-	if err != nil {
-		return false, err
-	}
-	if err := m.Init(); err != nil {
-		return false, err
-	}
-	return len(m.Find(pattern)) > 0, nil
 }

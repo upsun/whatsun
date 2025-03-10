@@ -20,6 +20,7 @@ func TestCEL(t *testing.T) {
 		"subdir/foo.txt": &fstest.MapFile{Data: []byte("subdir/foo")},
 		"invalid.json":   &fstest.MapFile{Data: []byte(`{{}`)},
 		"package.json":   &fstest.MapFile{Data: []byte(`{"name": "test", "dependencies": {"express": "github:expressjs/express"}}`)},
+		"bun.lock":       &fstest.MapFile{Data: []byte(`{"packages": {"express": ["express@1.0.0"]}}`)},
 	}
 
 	env, err := cel.NewEnv(celfuncs.DefaultEnvOptions()...)
@@ -57,6 +58,7 @@ func TestCEL(t *testing.T) {
 		{expr: `jq(fs.read("package.json"), ".name")`, path: ".", expectResult: "test"},
 		{expr: `jq(fs.read("invalid.json"), ".test")`, path: ".", expectEvalErrContains: "invalid character"},
 		{expr: `fs.depExists("js", "express")`, path: ".", expectResult: true},
+		{expr: `fs.depVersion("js", "express")`, path: ".", expectResult: "1.0.0"},
 		{expr: `fs.depExists("js", "nextjs")`, path: ".", expectResult: false},
 		{expr: `fs.depExists("swift", "test")`, path: ".", expectEvalErrContains: "manager type not supported"},
 	}
