@@ -5,7 +5,7 @@ import (
 
 	"github.com/go-git/go-git/v5/plumbing/format/gitignore"
 
-	"what/internal/fsgitignore"
+	"github.com/upsun/whatsun/internal/fsgitignore"
 )
 
 // TODO: only use defaults if no gitignore files are in the parent tree

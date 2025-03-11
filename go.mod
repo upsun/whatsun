@@ -1,4 +1,4 @@
-module what
+module github.com/upsun/whatsun
 
 go 1.24
 

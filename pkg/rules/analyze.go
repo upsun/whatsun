@@ -16,10 +16,10 @@ import (
 	"github.com/google/cel-go/common/types"
 	"golang.org/x/sync/errgroup"
 
-	"what/internal/fsgitignore"
-	"what/internal/searchfs"
-	"what/pkg/eval"
-	"what/pkg/eval/celfuncs"
+	"github.com/upsun/whatsun/internal/fsgitignore"
+	"github.com/upsun/whatsun/internal/searchfs"
+	"github.com/upsun/whatsun/pkg/eval"
+	"github.com/upsun/whatsun/pkg/eval/celfuncs"
 )
 
 type AnalyzerConfig struct {

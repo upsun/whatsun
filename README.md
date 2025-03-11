@@ -1,6 +1,6 @@
-# what
+# WhatSun
 
-This is an experimental tool (and potentially library) for code analysis, intended to be useful for automatically generating configuration files.
+This is a tool and library for code analysis, intended to be useful for automatically generating configuration files.
 
 Build: `make build`
 
@@ -11,5 +11,3 @@ Options (these may change):
 * `-rulesets string`: A directory containing custom rulesets, replacing the [default ones](config)
 
 Analysis rules are defined in YAML inside the [config](config) directory. See [docs/rules.md](docs/rules.md) for more information.
-
-The Go import path may be set in future depending on this project's eventual home, e.g. perhaps it will be public on GitHub.

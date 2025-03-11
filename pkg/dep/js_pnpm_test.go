@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"what/pkg/dep"
+	"github.com/upsun/whatsun/pkg/dep"
 )
 
 //go:embed testdata/js_pnpm/package_.json

@@ -8,8 +8,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"what/pkg/eval"
-	"what/pkg/rules"
+	"github.com/upsun/whatsun/pkg/eval"
+	"github.com/upsun/whatsun/pkg/rules"
 )
 
 //go:embed testdata/rulesets

@@ -8,8 +8,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"what"
-	"what/pkg/rules"
+	"github.com/upsun/whatsun"
+	"github.com/upsun/whatsun/pkg/rules"
 )
 
 var testFs = fstest.MapFS{
@@ -70,9 +70,9 @@ var testFs = fstest.MapFS{
 }
 
 func setupAnalyzerWithEmbeddedConfig(t require.TestingT, ignore []string) *rules.Analyzer {
-	rulesets, err := what.LoadRulesets()
+	rulesets, err := whatsun.LoadRulesets()
 	require.NoError(t, err)
-	cache, err := what.LoadExpressionCache()
+	cache, err := whatsun.LoadExpressionCache()
 	require.NoError(t, err)
 	a, err := rules.NewAnalyzer(rulesets, &rules.AnalyzerConfig{
 		CELExpressionCache: cache,

@@ -14,9 +14,9 @@ import (
 
 	"github.com/jedib0t/go-pretty/v6/table"
 
-	"what"
-	"what/pkg/eval"
-	"what/pkg/rules"
+	"github.com/upsun/whatsun"
+	"github.com/upsun/whatsun/pkg/eval"
+	"github.com/upsun/whatsun/pkg/rules"
 )
 
 var ignore = flag.String("ignore", "", "Comma-separated list of paths (or patterns) to ignore, adding to defaults")
@@ -54,7 +54,7 @@ func main() {
 		if err != nil {
 			log.Fatalf("failed to get user cache dir: %v", err)
 		}
-		cacheDir := filepath.Join(userCacheDir, "what")
+		cacheDir := filepath.Join(userCacheDir, "whatsun")
 		if err := os.MkdirAll(cacheDir, 0700); err != nil {
 			log.Fatalf("failed to create cache dir: %v", err)
 		}
@@ -66,11 +66,11 @@ func main() {
 		analyzerConfig.CELExpressionCache = cache
 	} else {
 		var err error
-		rulesets, err = what.LoadRulesets()
+		rulesets, err = whatsun.LoadRulesets()
 		if err != nil {
 			log.Fatal(err)
 		}
-		exprCache, err := what.LoadExpressionCache()
+		exprCache, err := whatsun.LoadExpressionCache()
 		if err != nil {
 			log.Fatal(err)
 		}

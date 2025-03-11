@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"os"
 
-	"what"
-	"what/pkg/eval"
-	"what/pkg/eval/celfuncs"
-	"what/pkg/rules"
+	"github.com/upsun/whatsun"
+	"github.com/upsun/whatsun/pkg/eval"
+	"github.com/upsun/whatsun/pkg/eval/celfuncs"
+	"github.com/upsun/whatsun/pkg/rules"
 )
 
 func main() {
@@ -23,7 +23,7 @@ func main() {
 }
 
 func warmCache(filename string) error {
-	rulesets, err := what.LoadRulesets()
+	rulesets, err := whatsun.LoadRulesets()
 	if err != nil {
 		return err
 	}

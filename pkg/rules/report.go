@@ -4,7 +4,7 @@ import (
 	"slices"
 	"sort"
 
-	"what/pkg/eval"
+	"github.com/upsun/whatsun/pkg/eval"
 )
 
 // RulesetReports collects reports for each ruleset (keyed by the ruleset name).

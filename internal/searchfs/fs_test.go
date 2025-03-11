@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"what/internal/searchfs"
+	"github.com/upsun/whatsun/internal/searchfs"
 )
 
 var testFs = fstest.MapFS{
