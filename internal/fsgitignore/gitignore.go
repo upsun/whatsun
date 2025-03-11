@@ -4,6 +4,7 @@ package fsgitignore
 import (
 	"bufio"
 	"errors"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -29,10 +30,11 @@ func Split(path string) []string {
 }
 
 // ParsePatterns turns string patterns into parsed versions.
-func ParsePatterns(patterns, path []string) []gitignore.Pattern {
+// The domain is usually a relative path split into segments (see Split).
+func ParsePatterns(patterns, domain []string) []gitignore.Pattern {
 	var parsed = make([]gitignore.Pattern, len(patterns))
 	for i, pattern := range patterns {
-		parsed[i] = gitignore.ParsePattern(pattern, path)
+		parsed[i] = gitignore.ParsePattern(pattern, domain)
 	}
 	return parsed
 }
@@ -40,39 +42,46 @@ func ParsePatterns(patterns, path []string) []gitignore.Pattern {
 // ParseIgnoreFiles parses the gitignore files in a single directory.
 func ParseIgnoreFiles(fsys fs.FS, path string) ([]gitignore.Pattern, error) {
 	var ps []gitignore.Pattern
-	excludes, err := parseIgnoreFile(fsys, path, infoExcludeFile)
-	if err != nil {
-		return nil, err
+	domain := Split(path)
+	for _, filename := range []string{gitignoreFile, infoExcludeFile} {
+		if err := handleIfExists(fsys, path, filename, func(r io.Reader) {
+			ps = append(ps, ParseIgnoreFile(r, domain)...)
+		}); err != nil {
+			return nil, err
+		}
 	}
-	ps = append(ps, excludes...)
-	ignores, err := parseIgnoreFile(fsys, path, gitignoreFile)
-	if err != nil {
-		return nil, err
-	}
-	return append(ps, ignores...), nil
+	return ps, nil
 }
 
-// parseIgnoreFile reads a specific git ignore file.
-func parseIgnoreFile(fsys fs.FS, path, ignoreFile string) (ps []gitignore.Pattern, err error) {
-	f, err := fsys.Open(filepath.Join(path, ignoreFile))
-	if err != nil {
-		if errors.Is(err, fs.ErrNotExist) {
-			return nil, nil
-		}
-		if errors.Is(err, syscall.ENOTDIR) {
-			return nil, nil
-		}
-		return nil, err
-	}
-	defer f.Close()
-
-	scanner := bufio.NewScanner(f)
+// ParseIgnoreFile reads gitignore patterns from a specific file.
+// The domain is usually a relative path split into segments (see Split).
+// See ParsePatterns to handle a string slice directly.
+func ParseIgnoreFile(r io.Reader, domain []string) []gitignore.Pattern {
+	var ps []gitignore.Pattern
+	scanner := bufio.NewScanner(r)
 	for scanner.Scan() {
 		s := scanner.Text()
 		if !strings.HasPrefix(s, commentPrefix) && len(strings.TrimSpace(s)) > 0 {
-			ps = append(ps, gitignore.ParsePattern(s, Split(path)))
+			ps = append(ps, gitignore.ParsePattern(s, domain))
 		}
 	}
+	return ps
+}
 
-	return
+// handleIfExists opens a file, ignoring errors if the file does not exist or cannot be accessed, and runs a function.
+func handleIfExists(fsys fs.FS, path, filename string, handler func(r io.Reader)) error {
+	f, err := fsys.Open(filepath.Join(path, filename))
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return nil
+		}
+		if errors.Is(err, syscall.ENOTDIR) {
+			return nil
+		}
+		return err
+	}
+	defer f.Close()
+
+	handler(f)
+	return nil
 }

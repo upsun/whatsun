@@ -1,6 +1,8 @@
 package rules
 
 import (
+	"bytes"
+	_ "embed"
 	"sync"
 
 	"github.com/go-git/go-git/v5/plumbing/format/gitignore"
@@ -8,54 +10,10 @@ import (
 	"github.com/upsun/whatsun/internal/fsgitignore"
 )
 
-// TODO: only use defaults if no gitignore files are in the parent tree
-var defaultIgnorePatterns = fsgitignore.ParsePatterns([]string{
-	// IDE directories
-	".idea/",
-	".vscode/",
-	".vs/",
+//go:embed gitignore-defaults
+var defaultIgnoreFile []byte
 
-	// Local development tool directories
-	"/.ddev",
-
-	// Build tool directories
-	".build/",
-	"bower_components",
-	"elm-stuff/",
-	".workspace/",
-	"node_modules/",
-	".next",
-	".nuxt",
-
-	// Tests and fixtures
-	"tests/",
-	"testdata/",
-	"fixtures/",
-	"Fixtures/",
-	"__fixtures__/",
-
-	// Python
-	"__pycache__/",
-	"venv/",
-	"virtualenv/",
-	".virtualenv/",
-
-	// CI config
-	".github/",
-	".gitlab/",
-
-	// Version control (".git" is already excluded)
-	".hg/",
-	".svn/",
-	".bzr/",
-
-	// Misc.
-	".cache/",
-	"_asm/",
-
-	// TODO remove this when it can be parsed from e.g. composer.json
-	"vendor/",
-}, nil)
+var defaultIgnorePatterns = fsgitignore.ParseIgnoreFile(bytes.NewReader(defaultIgnoreFile), nil)
 
 type Ignorer interface {
 	GetIgnores() []string
