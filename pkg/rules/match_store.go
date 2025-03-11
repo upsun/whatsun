@@ -7,54 +7,37 @@ import (
 )
 
 type store struct {
-	then  map[string][]RuleSpec
+	results      map[string][]RuleSpec
+	resultGroups map[string]struct{}
+
 	maybe map[string][]RuleSpec
 
-	mutex sync.RWMutex
+	mutex sync.Mutex
 }
 
 func (s *store) List() ([]Match, error) {
-	s.mutex.RLock()
-	defer s.mutex.RUnlock()
-	if len(s.then) == 0 && len(s.maybe) == 0 {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	if len(s.results) == 0 && len(s.maybe) == 0 {
 		return nil, nil
 	}
 
 	// Validate and combine the lists.
-	var matches = make([]Match, len(s.then), len(s.then)+len(s.maybe))
-	var groupsWithResults = make(map[string]struct{})
+	var matches = make([]Match, len(s.results), len(s.results)+len(s.maybe))
 
-	// Add the "then" values.
+	// Add the results.
 	i := 0
-	for result, rules := range s.then {
+	for result, rules := range s.results {
 		matches[i] = Match{Result: result, Rules: rules}
 		i++
-		for _, rule := range rules {
-			if rg, ok := rule.(WithGroups); ok {
-				for _, g := range rg.GetGroups() {
-					groupsWithResults[g] = struct{}{}
-				}
-			}
-		}
 	}
 
-	// Add the remaining "maybe" values, if there are no "then" values within the same group.
+	// Add "maybe" values, if there are no actual results within the same group.
 	for result, rules := range s.maybe {
-		if _, exists := s.then[result]; exists {
+		if _, exists := s.results[result]; exists {
 			continue
 		}
-		var hasResultByGroup bool
-		for _, rule := range rules {
-			if rg, ok := rule.(WithGroups); ok {
-				for _, g := range rg.GetGroups() {
-					if _, ok := groupsWithResults[g]; ok {
-						hasResultByGroup = true
-						break
-					}
-				}
-			}
-		}
-		if hasResultByGroup {
+		if s.hasResultForGroups(rules) {
 			continue
 		}
 		matches = append(matches, Match{Result: result, Rules: rules, Maybe: true})
@@ -72,13 +55,27 @@ func (s *store) Add(rule RuleSpec) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
-	if s.then == nil {
-		s.then = make(map[string][]RuleSpec)
-	}
-	for _, v := range rule.GetResults() {
-		s.then[v] = append(s.then[v], rule)
+	// Save the results and associated groups.
+	if results := rule.GetResults(); len(results) > 0 {
+		if s.results == nil {
+			s.results = make(map[string][]RuleSpec)
+		}
+		for _, v := range results {
+			s.results[v] = append(s.results[v], rule)
+		}
+
+		// Save associated groups, if any.
+		if rg, ok := rule.(WithGroups); ok {
+			if s.resultGroups == nil {
+				s.resultGroups = make(map[string]struct{})
+			}
+			for _, g := range rg.GetGroups() {
+				s.resultGroups[g] = struct{}{}
+			}
+		}
 	}
 
+	// Save "maybe" results.
 	if m, ok := rule.(WithMaybeResults); ok {
 		if s.maybe == nil {
 			s.maybe = make(map[string][]RuleSpec)
@@ -87,4 +84,20 @@ func (s *store) Add(rule RuleSpec) {
 			s.maybe[v] = append(s.maybe[v], rule)
 		}
 	}
+}
+
+func (s *store) hasResultForGroups(rules []RuleSpec) bool {
+	if s.resultGroups == nil {
+		return false
+	}
+	for _, rule := range rules {
+		if rg, ok := rule.(WithGroups); ok {
+			for _, g := range rg.GetGroups() {
+				if _, ok := s.resultGroups[g]; ok {
+					return true
+				}
+			}
+		}
+	}
+	return false
 }
