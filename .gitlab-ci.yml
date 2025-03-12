@@ -1,6 +1,9 @@
 test:
-  stage: test
   image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/cimg/go:1.24
   script:
     - make lint govulncheck test-coverage
   coverage: '/total:\s+\(statements\)\s+\d+.\d+%/'
+
+golangci-lint:
+  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/golangci/golangci-lint:v1.64
+  script: golangci-lint run

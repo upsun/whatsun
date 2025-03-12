@@ -19,8 +19,9 @@ func TestCEL(t *testing.T) {
 		"subdir/bar.txt": &fstest.MapFile{Data: []byte("bar")},
 		"subdir/foo.txt": &fstest.MapFile{Data: []byte("subdir/foo")},
 		"invalid.json":   &fstest.MapFile{Data: []byte(`{{}`)},
-		"package.json":   &fstest.MapFile{Data: []byte(`{"name": "test", "dependencies": {"express": "github:expressjs/express"}}`)},
-		"bun.lock":       &fstest.MapFile{Data: []byte(`{"packages": {"express": ["express@1.0.0"]}}`)},
+		"package.json": &fstest.MapFile{Data: []byte(
+			`{"name": "test", "dependencies": {"express": "github:expressjs/express"}}`)},
+		"bun.lock": &fstest.MapFile{Data: []byte(`{"packages": {"express": ["express@1.0.0"]}}`)},
 	}
 
 	env, err := cel.NewEnv(celfuncs.DefaultEnvOptions()...)

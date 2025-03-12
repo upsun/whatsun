@@ -1,3 +1,5 @@
+GOLANGCI_LINT_VERSION=v1.64
+
 .PHONY: help
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -21,14 +23,7 @@ govulncheck: ## Check dependencies for vulnerabilities.
 	go tool govulncheck ./...
 
 .PHONY: lint
-lint: lint-gofmt lint-gomod lint-govet lint-staticcheck ## Run all linters.
-
-.PHONY: lint-gofmt
-lint-gofmt: ## Run linter `go fmt`.
-ifneq ($(shell gofmt -l . | wc -l),0)
-	gofmt -l -d .
-	@false
-endif
+lint: lint-gomod lint-golangci ## Run all linters.
 
 .PHONY: lint-gomod
 lint-gomod: ## Run linter `go mod`.
@@ -36,13 +31,10 @@ ifneq ($(shell go mod tidy -v 2>/dev/stdout | tee /dev/stderr | grep -c 'unused 
 	@false
 endif
 
-.PHONY: lint-govet
-lint-govet: ## Run linter `go vet`.
-	go vet ./...
-
-.PHONY: lint-staticcheck
-lint-staticcheck: ## Run linter `staticcheck`.
-	go tool staticcheck ./...
+.PHONY: lint-golangci
+lint-golangci:
+	command -v golangci-lint >/dev/null || go install github.com/golangci/golangci-lint/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
+	golangci-lint run
 
 .PHONY: test
 test: ## Run unit tests.

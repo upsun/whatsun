@@ -1,0 +1,19 @@
+linters:
+  disable-all: true
+  enable:
+    # Defaults:
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+
+    # Additional:
+    - gocritic
+    - gofmt
+    - goimports
+    - gosec
+    - lll
+    - misspell
+    - nolintlint

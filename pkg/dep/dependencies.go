@@ -11,6 +11,7 @@ import (
 )
 
 const (
+	ManagerTypeElixir     = "elixir"
 	ManagerTypeGo         = "go"
 	ManagerTypeJava       = "java"
 	ManagerTypeJavaScript = "js"
@@ -18,11 +19,17 @@ const (
 	ManagerTypePython     = "python"
 	ManagerTypeRuby       = "ruby"
 	ManagerTypeRust       = "rust"
-	ManagerTypeElixir     = "elixir"
 )
 
 var AllManagerTypes = []string{
-	ManagerTypeElixir, ManagerTypeGo, ManagerTypeJava, ManagerTypeJavaScript, ManagerTypePHP, ManagerTypePython, ManagerTypeRuby, ManagerTypeRust,
+	ManagerTypeElixir,
+	ManagerTypeGo,
+	ManagerTypeJava,
+	ManagerTypeJavaScript,
+	ManagerTypePHP,
+	ManagerTypePython,
+	ManagerTypeRuby,
+	ManagerTypeRust,
 }
 
 type Dependency struct {

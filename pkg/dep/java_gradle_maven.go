@@ -88,8 +88,10 @@ type mavenProject struct {
 }
 
 var (
-	gradleGroovyPatt = regexp.MustCompile(`^(?:implementation|compileOnly|runtimeOnly) ['"]?([^'":]+):([^'":]+):([^'"]+)['"]?$`)
-	gradleKotlinPatt = regexp.MustCompile(`^(?:implementation|compileOnly|runtimeOnly)\(['"]?([^'":]+):([^'":]+):([^'"]+)['"]?\)$`)
+	gradleGroovyPatt = regexp.MustCompile(
+		`^(?:implementation|compileOnly|runtimeOnly) ['"]?([^'":]+):([^'":]+):([^'"]+)['"]?$`)
+	gradleKotlinPatt = regexp.MustCompile(
+		`^(?:implementation|compileOnly|runtimeOnly)\(['"]?([^'":]+):([^'":]+):([^'"]+)['"]?\)$`)
 )
 
 func parsePomXML(fsys fs.FS, path string) ([]Dependency, error) {

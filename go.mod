@@ -27,7 +27,6 @@ require (
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/stoewer/go-strcase v1.2.0 // indirect
 	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56 // indirect
-	golang.org/x/exp/typeparams v0.0.0-20231108232855-2478ac86f678 // indirect
 	golang.org/x/net v0.35.0 // indirect
 	golang.org/x/sys v0.30.0 // indirect
 	golang.org/x/telemetry v0.0.0-20240522233618-39ace7a40ae7 // indirect
@@ -36,7 +35,6 @@ require (
 	golang.org/x/vuln v1.1.4 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240826202546-f6391c0de4c7 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
-	honnef.co/go/tools v0.6.0 // indirect
 )
 
 require (
@@ -46,7 +44,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1
 )
 
-tool (
-	golang.org/x/vuln/cmd/govulncheck
-	honnef.co/go/tools/cmd/staticcheck
-)
+tool golang.org/x/vuln/cmd/govulncheck

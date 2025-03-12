@@ -19,8 +19,10 @@ import (
 	"github.com/upsun/whatsun/pkg/rules"
 )
 
-var ignore = flag.String("ignore", "", "Comma-separated list of paths (or patterns) to ignore, adding to defaults")
-var customRulesets = flag.String("rulesets", "", "Path to a custom ruleset directory (replacing the default embedded rulesets)")
+var ignore = flag.String("ignore", "",
+	"Comma-separated list of paths (or patterns) to ignore, adding to defaults")
+var customRulesets = flag.String("rulesets", "",
+	"Path to a custom ruleset directory (replacing the default embedded rulesets)")
 
 func main() {
 	flag.Parse()
@@ -62,13 +64,13 @@ func main() {
 		if err != nil {
 			log.Fatalf("failed to create file cache: %v", err)
 		}
-		defer cache.Save()
+		defer cache.Save() //nolint:errcheck
 		analyzerConfig.CELExpressionCache = cache
 	} else {
 		var err error
 		rulesets, err = whatsun.LoadRulesets()
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal(err) //nolint: gocritic
 		}
 		exprCache, err := whatsun.LoadExpressionCache()
 		if err != nil {

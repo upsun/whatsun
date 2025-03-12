@@ -17,26 +17,29 @@ func main() {
 		fmt.Println("Usage: gen_docs <filename>")
 		os.Exit(1)
 	}
-	f, err := os.Create(os.Args[1])
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
-	defer f.Close()
 
-	// Make the CEL environment.
 	env, err := cel.NewEnv(celfuncs.DefaultEnvOptions()...)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 
-	if err := GenerateDocs(f, env); err != nil {
+	if err := writeFile(os.Args[1], func(f io.Writer) error {
+		return GenerateDocs(f, env)
+	}); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-
 	fmt.Fprintln(os.Stderr, "Documentation generated and saved to:", os.Args[1])
+}
+
+func writeFile(path string, fn func(io.Writer) error) error {
+	f, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	return fn(f)
 }
 
 // GenerateDocs generates documentation for CEL functions.
@@ -113,7 +116,13 @@ func GenerateDocs(w io.Writer, env *cel.Env) error {
 
 			switch {
 			case overload.IsMemberFunction():
-				b.WriteString(fmt.Sprintf("* `<%s>.%s(%s)` -> `%s`\n", argTypesStr[0], name, strings.Join(argTypesStr[1:], ", "), overload.ResultType()))
+				b.WriteString(fmt.Sprintf(
+					"* `<%s>.%s(%s)` -> `%s`\n",
+					argTypesStr[0],
+					name,
+					strings.Join(argTypesStr[1:], ", "),
+					overload.ResultType(),
+				))
 			case isOperator:
 				descr := f.Name()
 				for _, argTypeStr := range argTypesStr {

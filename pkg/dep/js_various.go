@@ -80,8 +80,10 @@ func (m *jsManager) vendorName(name string) string {
 	return ""
 }
 
-var npmNameVersion = regexp.MustCompile(`^((?:jsr:|npm:)?(?:@[\w-]+/)?[a-z0-9._](?:[a-z0-9\-.]*[a-z0-9]))?@([\dvx*]+(?:[-.](?:[\dx*]+|alpha|beta))*)`)
-var denoPackageURL = regexp.MustCompile(`^(https://(?:deno\.land/x|esm\.sh)/[^/@]+)@([\dvx*]+(?:[-.](?:[\dx*]+|alpha|beta))*)/$`)
+var npmNameVersion = regexp.MustCompile(
+	`^((?:jsr:|npm:)?(?:@[\w-]+/)?[a-z0-9._](?:[a-z0-9\-.]*[a-z0-9]))?@([\dvx*]+(?:[-.](?:[\dx*]+|alpha|beta))*)`)
+var denoPackageURL = regexp.MustCompile(
+	`^(https://(?:deno\.land/x|esm\.sh)/[^/@]+)@([\dvx*]+(?:[-.](?:[\dx*]+|alpha|beta))*)/$`)
 
 func (m *jsManager) parse() error {
 	var npmManifest packageJSON

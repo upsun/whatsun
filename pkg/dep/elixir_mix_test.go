@@ -53,7 +53,7 @@ defmodule Phx16.MixProject do
 end
 			`),
 		},
-		"mix.lock": {
+		"mix.lock": { //nolint:lll
 			Data: []byte(`
 {
   "phoenix": {:hex, :phoenix, "1.6.5", "07af307b28a5820b4394f27ac7003df052e065ff651520a58abb16be1eecd519", [:mix], [{:jason, "~> 1.0", [hex: :jason, repo: "hexpm", optional: true]}, {:phoenix_pubsub, "~> 2.0", [hex: :phoenix_pubsub, repo: "hexpm", optional: false]}, {:phoenix_view, "~> 1.0", [hex: :phoenix_view, repo: "hexpm", optional: false]}, {:plug, "~> 1.10", [hex: :plug, repo: "hexpm", optional: false]}, {:plug_cowboy, "~> 2.2", [hex: :plug_cowboy, repo: "hexpm", optional: true]}, {:plug_crypto, "~> 1.2", [hex: :plug_crypto, repo: "hexpm", optional: false]}, {:telemetry, "~> 0.4 or ~> 1.0", [hex: :telemetry, repo: "hexpm", optional: false]}], "hexpm", "97dc3052ca648499280e0636471f1d0439fc623ccdce27d2d8135651421ee80c"}

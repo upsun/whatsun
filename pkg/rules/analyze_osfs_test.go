@@ -21,7 +21,7 @@ func TestAnalyze_OSFS_MockRules(t *testing.T) {
 	require.NoError(t, err)
 	cache, err := eval.NewFileCache("testdata/expr.cache")
 	require.NoError(t, err)
-	defer cache.Save()
+	defer cache.Save() //nolint:errcheck
 
 	analyzer, err := rules.NewAnalyzer(rulesets, &rules.AnalyzerConfig{
 		CELExpressionCache: cache,

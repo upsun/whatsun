@@ -20,7 +20,8 @@ var testFs = fstest.MapFS{
 
 	// Definitely Composer.
 	`composer.json`: &fstest.MapFile{Data: []byte(`{"require": {"symfony/framework-bundle": "^7", "php": "^8.3"}}`)},
-	`composer.lock`: &fstest.MapFile{Data: []byte(`{"packages": [{"name": "symfony/framework-bundle", "version": "7.2.3"}]}`)},
+	`composer.lock`: &fstest.MapFile{Data: []byte(
+		`{"packages": [{"name": "symfony/framework-bundle", "version": "7.2.3"}]}`)},
 
 	// Ignored due to .gitignore.
 	"git-ignored/composer.json":                      &fstest.MapFile{Data: []byte("{}")},
