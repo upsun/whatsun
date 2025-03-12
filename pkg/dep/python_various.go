@@ -175,7 +175,9 @@ func parsePyprojectTOML(r io.Reader) (map[string]string, error) {
 		case string:
 			dependencies[pkg] = v
 		case map[string]any:
-			dependencies[pkg] = v["version"].(string)
+			if str, ok := v["version"].(string); ok {
+				dependencies[pkg] = str
+			}
 		default:
 			return nil, fmt.Errorf("unrecognized poetry version type %T: %v", version, version)
 		}

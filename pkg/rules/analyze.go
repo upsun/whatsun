@@ -185,7 +185,7 @@ func (a *Analyzer) evalFuncForDirectory(dir string, celInput map[string]any) fun
 			return false, fmt.Errorf("%v", asBool)
 		}
 
-		return bool(asBool.(types.Bool)), nil
+		return bool(asBool.(types.Bool)), nil //nolint:errcheck // the type is known
 	}
 }
 

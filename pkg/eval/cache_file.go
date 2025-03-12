@@ -94,13 +94,13 @@ func (c *FileCache) Save() error {
 	}
 	c.exprCache.Range(func(k, v any) bool {
 		// Only re-marshal for existing expressions.
-		if _, ok := marshalled[k.(string)]; !ok {
-			s, _err := marshalAST(v.(*cel.Ast))
+		if _, ok := marshalled[k.(string)]; !ok { //nolint:errcheck // the cached key type is known
+			s, _err := marshalAST(v.(*cel.Ast)) //nolint:errcheck // the cached value type is known
 			if _err != nil {
 				err = _err
 				return false
 			}
-			marshalled[k.(string)] = s
+			marshalled[k.(string)] = s //nolint:errcheck // the cached key type is known
 		}
 		return true
 	})
@@ -148,7 +148,7 @@ func (c *FileCache) load(r io.Reader) error {
 
 func (c *FileCache) Get(expr string) (*cel.Ast, bool) {
 	if a, ok := c.exprCache.Load(cleanExpr(expr)); ok {
-		return a.(*cel.Ast), true
+		return a.(*cel.Ast), true //nolint:errcheck // the cache type is known
 	}
 	return nil, false
 }

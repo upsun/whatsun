@@ -17,3 +17,14 @@ linters:
     - lll
     - misspell
     - nolintlint
+
+linters-settings:
+  errcheck:
+    check-type-assertions: true
+  goimports:
+    local-prefixes: github.com/upsun/whatsun
+  nolintlint:
+    allow-unused: false
+    require-specific: true
+  prealloc:
+    for-loops: true

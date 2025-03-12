@@ -22,7 +22,7 @@ func New(base fs.FS) *FS {
 
 func (sfs *FS) getDirEntries(name string) []fs.DirEntry {
 	if de, ok := sfs.dirEntries.Load(name); ok {
-		return de.([]fs.DirEntry)
+		return de.([]fs.DirEntry) //nolint:errcheck // the type is known
 	}
 	return nil
 }
@@ -47,7 +47,7 @@ func (sfs *FS) ReadDir(name string) ([]fs.DirEntry, error) {
 func (sfs *FS) Stat(name string) (fs.FileInfo, error) {
 	if name == "." {
 		if fi := sfs.rootInfo.Load(); fi != nil {
-			return fi.(fs.FileInfo), nil
+			return fi.(fs.FileInfo), nil //nolint:errcheck // the type is known
 		}
 		fi, err := fs.Stat(sfs.baseFS, ".")
 		if err != nil {

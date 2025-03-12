@@ -17,7 +17,7 @@ type memoryCache struct {
 
 func (c *memoryCache) Get(expr string) (*cel.Ast, bool) {
 	if a, ok := c.cache.Load(expr); ok {
-		return a.(*cel.Ast), true
+		return a.(*cel.Ast), true //nolint:errcheck // the cached type is known
 	}
 	return nil, false
 }

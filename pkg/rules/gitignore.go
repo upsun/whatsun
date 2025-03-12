@@ -27,7 +27,7 @@ func getIgnoreMatcher(i Ignorer) gitignore.Matcher {
 		return nil
 	}
 	if m, ok := ignoreMatcherCache.Load(i); ok {
-		return m.(gitignore.Matcher)
+		return m.(gitignore.Matcher) //nolint:errcheck // the cached type is known
 	}
 	m := gitignore.NewMatcher(fsgitignore.ParsePatterns(ignores, []string{}))
 	ignoreMatcherCache.Store(i, m)

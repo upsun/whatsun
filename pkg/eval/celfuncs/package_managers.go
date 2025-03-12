@@ -80,7 +80,7 @@ var managerCache sync.Map
 func depGetCachedManager(managerType string, fsWrapper filesystemWrapper) (dep.Manager, error) {
 	cacheKey := managerCacheKey{managerType: managerType, fsID: fsWrapper.ID, path: fsWrapper.Path}
 	if manager, ok := managerCache.Load(cacheKey); ok {
-		return manager.(dep.Manager), nil
+		return manager.(dep.Manager), nil //nolint:errcheck // the cached value is known
 	}
 	m, err := dep.GetManager(managerType, fsWrapper.FS, fsWrapper.Path)
 	if err != nil {

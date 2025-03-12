@@ -13,7 +13,7 @@ func binaryFunction[ARG1 any, ARG2 any, R any](name string, argTypes []*cel.Type
 		name,
 		cel.Overload(name, argTypes, returnType,
 			cel.BinaryBinding(func(lhs ref.Val, rhs ref.Val) ref.Val {
-				res, err := f(lhs.Value().(ARG1), rhs.Value().(ARG2))
+				res, err := f(lhs.Value().(ARG1), rhs.Value().(ARG2)) //nolint:errcheck
 				if err != nil {
 					return types.WrapErr(err)
 				}
@@ -35,7 +35,7 @@ func unaryReceiverFunction[REC any, ARG any, RET any](
 	return cel.Function(functionName,
 		cel.MemberOverload(overloadID, argTypes, returnType,
 			cel.BinaryBinding(func(lhs ref.Val, rhs ref.Val) ref.Val {
-				res, err := f(lhs.Value().(REC), rhs.Value().(ARG))
+				res, err := f(lhs.Value().(REC), rhs.Value().(ARG)) //nolint:errcheck
 				if err != nil {
 					return types.WrapErr(err)
 				}
@@ -57,7 +57,7 @@ func binaryReceiverFunction[REC any, ARG1 any, ARG2 any, RET any](
 	return cel.Function(functionName,
 		cel.MemberOverload(overloadID, argTypes, returnType,
 			cel.FunctionBinding(func(args ...ref.Val) ref.Val {
-				res, err := f(args[0].Value().(REC), args[1].Value().(ARG1), args[2].Value().(ARG2))
+				res, err := f(args[0].Value().(REC), args[1].Value().(ARG1), args[2].Value().(ARG2)) //nolint:errcheck
 				if err != nil {
 					return types.WrapErr(err)
 				}
