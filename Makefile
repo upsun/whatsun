@@ -1,4 +1,5 @@
-GOLANGCI_LINT_VERSION=v1.64
+GOLANGCI_LINT_VERSION := v1.64
+BUILD_FLAGS := -trimpath -ldflags='-s'
 
 .PHONY: help
 help:
@@ -8,7 +9,7 @@ help:
 
 .PHONY: build
 build: warm_cache
-	go build -o what ./cmd/what
+	go build $(BUILD_FLAGS) -o what ./cmd/what
 
 .PHONY: gen_docs
 gen_docs: ## Generates CEL function documentation
@@ -38,26 +39,26 @@ lint-golangci:
 
 .PHONY: test
 test: ## Run unit tests.
-	go test $(FLAGS) -race -count=1 ./...
+	go test -race -count=1 ./...
 
 .PHONY: bench-light
 bench-light: ## Run a single benchmark on the test filesystem.
-	go test $(FLAGS) -run=Analyze -bench=Analyze_TestFS ./...
+	go test -run=Analyze -bench=Analyze_TestFS ./...
 
 .PHONY: bench
 bench: ## Run benchmarks.
-	go test $(FLAGS) -run=Analyze -bench=Analyze -cpu 1,2,4,8 ./...
+	go test -run=Analyze -bench=Analyze -cpu 1,2,4,8 ./...
 
 .PHONY: test-coverage
 test-coverage: ## Run unit tests and generate code coverage.
-	go test $(FLAGS) -coverprofile=coverage.out ./...
+	go test -coverprofile=coverage.out ./...
 	go tool cover -func=coverage.out
 
 .PHONY: profile
 profile: ## Collect profiles saved as *.pprof.
-	go test $(FLAGS) -cpuprofile cpu.pprof -bench=Analyze_TestFS ./pkg/rules
-	go test $(FLAGS) -memprofile mem.pprof -bench=Analyze_TestFS ./pkg/rules
-	go test $(FLAGS) -mutexprofile mutex.pprof -bench=Analyze_TestFS ./pkg/rules
+	go test -cpuprofile cpu.pprof -bench=Analyze_TestFS ./pkg/rules
+	go test -memprofile mem.pprof -bench=Analyze_TestFS ./pkg/rules
+	go test -mutexprofile mutex.pprof -bench=Analyze_TestFS ./pkg/rules
 
 .PHONY: clean
 clean: ## Clean files generated from builds and tests.
