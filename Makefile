@@ -53,14 +53,12 @@ test-coverage: ## Run unit tests and generate code coverage.
 	go test $(FLAGS) -coverprofile=coverage.out ./...
 	go tool cover -func=coverage.out
 
-.PHONY: profile-cpu
-profile-cpu: ## Collect CPU profile in filename: cpu.pprof
-	go test $(FLAGS) -cpuprofile cpu.pprof -count=1 ./pkg/rules
+.PHONY: profile
+profile: ## Collect profiles saved as *.pprof.
+	go test $(FLAGS) -cpuprofile cpu.pprof -bench=Analyze_TestFS ./pkg/rules
+	go test $(FLAGS) -memprofile mem.pprof -bench=Analyze_TestFS ./pkg/rules
+	go test $(FLAGS) -mutexprofile mutex.pprof -bench=Analyze_TestFS ./pkg/rules
 
-.PHONY: profile-mem
-profile-mem: ## Collect memory profile in filename: mem.pprof
-	go test $(FLAGS) -memprofile mem.pprof -count=1 ./pkg/rules
-
-.PHONY: profile-mutex
-profile-mutex: ## Collect mutex profile in filename: mutex.pprof
-	go test $(FLAGS) -memprofile mem.pprof -count=1 ./pkg/rules
+.PHONY: clean
+clean: ## Clean files generated from builds and tests.
+	rm -f *.pprof what coverage.out rules.test
