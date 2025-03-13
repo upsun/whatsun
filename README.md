@@ -21,13 +21,17 @@ The analysis is intended for other developer tools to provide improved features,
 
 ## Library usage
 
-```
+```shell
 go get github.com/upsun/whatsun
 ```
 
 ## CLI usage
 
-Currently, you can build this as a CLI from a Git clone: `make build`
+Install the `what` command with:
+
+```shell
+GOPRIVATE=github.com/upsun go install github.com/upsun/whatsun/cmd/what@latest
+```
 
 Then run it with: `what [path]`
 

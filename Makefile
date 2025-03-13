@@ -8,7 +8,7 @@ help:
 
 .PHONY: build
 build: warm_cache
-	go build -o ./what cmd/analyze/main.go
+	go build -o what ./cmd/what
 
 .PHONY: gen_docs
 gen_docs: ## Generates CEL function documentation
