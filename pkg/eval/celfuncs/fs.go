@@ -5,9 +5,10 @@ import (
 	"io/fs"
 	"path/filepath"
 	"strings"
-	"unsafe"
 
 	"github.com/google/cel-go/cel"
+
+	"github.com/upsun/whatsun/pkg/fsdir"
 )
 
 const (
@@ -17,22 +18,12 @@ const (
 
 // FilesystemInput returns a CEL program input for a filesystem named "fs", and a file path variable named "path".
 // This can only be used alongside the FilesystemVariables options.
-func FilesystemInput(fsys fs.FS, root string) map[string]any {
+func FilesystemInput(fsys fs.FS, path string) map[string]any {
 	return map[string]any{
-		pathVariable: root,
-		fsVariable:   filesystemWrapper{fs: fsys, path: root, id: uintptr(unsafe.Pointer(&fsys))},
+		pathVariable: path,
+		fsVariable:   fsdir.New(fsys, path),
 	}
 }
-
-type filesystemWrapper struct {
-	fs   fs.FS
-	path string
-	id   uintptr
-}
-
-func (f filesystemWrapper) ID() uintptr  { return f.id }
-func (f filesystemWrapper) Path() string { return f.path }
-func (f filesystemWrapper) FS() fs.FS    { return f.fs }
 
 // FilesystemVariables returns CEL options to create variables corresponding to FilesystemInput.
 func FilesystemVariables() []cel.EnvOption {
@@ -61,8 +52,8 @@ func FileExists(docs *Docs) cel.EnvOption {
 	})
 
 	return fsUnaryFunction("fileExists", cel.StringType, cel.BoolType,
-		func(fsWrapper filesystemWrapper, name string) (bool, error) {
-			_, err := fs.Stat(fsWrapper.fs, filepath.Join(fsWrapper.path, name))
+		func(fsd fsdir.FSDir, name string) (bool, error) {
+			_, err := fs.Stat(fsd.FS(), filepath.Join(fsd.Path(), name))
 			if err != nil {
 				return false, ignoreNotExists(err)
 			}
@@ -82,8 +73,8 @@ func FileContains(docs *Docs) cel.EnvOption {
 	})
 
 	return fsBinaryFunction("fileContains", []*cel.Type{cel.StringType, cel.StringType}, cel.BoolType,
-		func(fsWrapper filesystemWrapper, filename, substr string) (bool, error) {
-			b, err := fs.ReadFile(fsWrapper.fs, filepath.Join(fsWrapper.path, filename))
+		func(fsd fsdir.FSDir, filename, substr string) (bool, error) {
+			b, err := fs.ReadFile(fsd.FS(), filepath.Join(fsd.Path(), filename))
 			if err != nil {
 				return false, err
 			}
@@ -99,8 +90,8 @@ func FileGlob(docs *Docs) cel.EnvOption {
 	})
 
 	return fsUnaryFunction("glob", cel.StringType, cel.ListType(cel.StringType),
-		func(fsWrapper filesystemWrapper, pattern string) ([]string, error) {
-			return fs.Glob(fsWrapper.fs, filepath.Join(fsWrapper.path, pattern))
+		func(fsd fsdir.FSDir, pattern string) ([]string, error) {
+			return fs.Glob(fsd.FS(), filepath.Join(fsd.Path(), pattern))
 		},
 	)
 }
@@ -112,8 +103,8 @@ func FileRead(docs *Docs) cel.EnvOption {
 	})
 
 	return fsUnaryFunction("read", cel.StringType, cel.BytesType,
-		func(fsWrapper filesystemWrapper, path string) ([]byte, error) {
-			return fs.ReadFile(fsWrapper.fs, filepath.Join(fsWrapper.path, path))
+		func(fsd fsdir.FSDir, path string) ([]byte, error) {
+			return fs.ReadFile(fsd.FS(), filepath.Join(fsd.Path(), path))
 		},
 	)
 }
@@ -125,8 +116,8 @@ func FileIsDir(docs *Docs) cel.EnvOption {
 	})
 
 	return fsUnaryFunction("isDir", cel.StringType, cel.BoolType,
-		func(fsWrapper filesystemWrapper, name string) (bool, error) {
-			stat, err := fs.Stat(fsWrapper.fs, filepath.Join(fsWrapper.path, name))
+		func(fsd fsdir.FSDir, name string) (bool, error) {
+			stat, err := fs.Stat(fsd.FS(), filepath.Join(fsd.Path(), name))
 			if err != nil {
 				return false, ignoreNotExists(err)
 			}

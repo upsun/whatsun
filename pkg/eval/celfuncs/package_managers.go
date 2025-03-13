@@ -7,6 +7,7 @@ import (
 	"github.com/google/cel-go/cel"
 
 	"github.com/upsun/whatsun/pkg/dep"
+	"github.com/upsun/whatsun/pkg/fsdir"
 )
 
 // AllPackageManagerFunctions returns CEL functions for reading package manager dependencies in an fs.FS filesystem.
@@ -27,15 +28,15 @@ func DepExists(docs *Docs) cel.EnvOption {
 		Comment:     "Check if a project has a dependency",
 		Description: "This supports a few package management tools: more may be added later.",
 		Args: []ArgDoc{
-			{"fs", "The filesystem wrapper"},
+			{"fs", "The filesystem, representing each directory"},
 			{"managerType", managerTypeComment()},
 			{"pattern", "The dependency name, accepting `*` as a wildcard"},
 		},
 	})
 
 	return fsBinaryFunction("depExists", []*cel.Type{cel.StringType, cel.StringType}, cel.BoolType,
-		func(fsWrapper filesystemWrapper, managerType string, pattern string) (bool, error) {
-			m, err := dep.GetCachedManager(managerType, fsWrapper)
+		func(fsd fsdir.FSDir, managerType string, pattern string) (bool, error) {
+			m, err := dep.GetCachedManager(managerType, fsd)
 			if err != nil {
 				return false, err
 			}
@@ -49,15 +50,15 @@ func DepVersion(docs *Docs) cel.EnvOption {
 		Comment:     "Find the version of a project dependency",
 		Description: "This returns an empty string if the dependency is not found.",
 		Args: []ArgDoc{
-			{"fs", "The filesystem wrapper"},
+			{"fs", "The filesystem, representing each directory"},
 			{"managerType", managerTypeComment()},
 			{"name", "The dependency name"},
 		},
 	})
 
 	return fsBinaryFunction("depVersion", []*cel.Type{cel.StringType, cel.StringType}, cel.StringType,
-		func(fsWrapper filesystemWrapper, managerType string, name string) (string, error) {
-			m, err := dep.GetCachedManager(managerType, fsWrapper)
+		func(fsd fsdir.FSDir, managerType string, name string) (string, error) {
+			m, err := dep.GetCachedManager(managerType, fsd)
 			if err != nil {
 				return "", err
 			}

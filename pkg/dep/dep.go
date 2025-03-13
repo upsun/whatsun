@@ -10,6 +10,8 @@ import (
 
 	"github.com/tidwall/jsonc"
 	"gopkg.in/yaml.v3"
+
+	"github.com/upsun/whatsun/pkg/fsdir"
 )
 
 const (
@@ -108,27 +110,19 @@ func parseYAML(fsys fs.FS, path, filename string, dest any) error {
 	return nil
 }
 
-type FilesystemWrapper interface {
-	ID() uintptr // Uniquely identify the filesystem (for use in a cache key).
-	FS() fs.FS
-	Path() string
-}
-
-type managerCacheKey struct {
-	managerType string
-	fsID        uintptr
-	path        string
-}
-
 var managerCache sync.Map
 
-// GetCachedManager returns a cached and initialized dep.Manager for the given FilesystemWrapper.
-func GetCachedManager(managerType string, fsWrapper FilesystemWrapper) (Manager, error) {
-	cacheKey := managerCacheKey{managerType: managerType, fsID: fsWrapper.ID(), path: fsWrapper.Path()}
+// GetCachedManager returns a cached and initialized dep.Manager for the given filesystem directory.
+func GetCachedManager(managerType string, fsd fsdir.FSDir) (Manager, error) {
+	type managerCacheKey struct {
+		managerType string
+		fsd         fsdir.FSDir
+	}
+	cacheKey := managerCacheKey{managerType, fsd}
 	if manager, ok := managerCache.Load(cacheKey); ok {
 		return manager.(Manager), nil //nolint:errcheck // the cached value is known
 	}
-	m, err := GetManager(managerType, fsWrapper.FS(), cacheKey.path)
+	m, err := GetManager(managerType, fsd.FS(), fsd.Path())
 	if err != nil {
 		return nil, err
 	}

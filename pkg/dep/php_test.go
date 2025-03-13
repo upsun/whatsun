@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/upsun/whatsun/pkg/dep"
+	"github.com/upsun/whatsun/pkg/fsdir"
 )
 
 func TestPHP(t *testing.T) {
@@ -29,7 +30,7 @@ func TestPHP(t *testing.T) {
 		},
 	}
 
-	m, err := dep.GetCachedManager(dep.ManagerTypePHP, newFilesystemWrapper(fsys, "."))
+	m, err := dep.GetCachedManager(dep.ManagerTypePHP, fsdir.New(fsys, "."))
 	require.NoError(t, err)
 
 	toFind := []struct {
