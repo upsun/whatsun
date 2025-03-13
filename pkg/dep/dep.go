@@ -1,3 +1,4 @@
+// Package dep provides utilities to find dependencies in the manifest files of many different package managers.
 package dep
 
 import (
@@ -5,6 +6,7 @@ import (
 	"fmt"
 	"io/fs"
 	"path/filepath"
+	"sync"
 
 	"github.com/tidwall/jsonc"
 	"gopkg.in/yaml.v3"
@@ -104,4 +106,35 @@ func parseYAML(fsys fs.FS, path, filename string, dest any) error {
 		return fmt.Errorf("failed to parse %s as YAML: %w", filepath.Join(path, filename), err)
 	}
 	return nil
+}
+
+type FilesystemWrapper interface {
+	ID() uintptr // Uniquely identify the filesystem (for use in a cache key).
+	FS() fs.FS
+	Path() string
+}
+
+type managerCacheKey struct {
+	managerType string
+	fsID        uintptr
+	path        string
+}
+
+var managerCache sync.Map
+
+// GetCachedManager returns a cached and initialized dep.Manager for the given FilesystemWrapper.
+func GetCachedManager(managerType string, fsWrapper FilesystemWrapper) (Manager, error) {
+	cacheKey := managerCacheKey{managerType: managerType, fsID: fsWrapper.ID(), path: fsWrapper.Path()}
+	if manager, ok := managerCache.Load(cacheKey); ok {
+		return manager.(Manager), nil //nolint:errcheck // the cached value is known
+	}
+	m, err := GetManager(managerType, fsWrapper.FS(), cacheKey.path)
+	if err != nil {
+		return nil, err
+	}
+	managerCache.Store(cacheKey, m)
+	if err := m.Init(); err != nil {
+		return nil, err
+	}
+	return m, nil
 }

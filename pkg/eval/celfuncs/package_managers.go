@@ -3,7 +3,6 @@ package celfuncs
 import (
 	"fmt"
 	"strings"
-	"sync"
 
 	"github.com/google/cel-go/cel"
 
@@ -36,7 +35,7 @@ func DepExists(docs *Docs) cel.EnvOption {
 
 	return fsBinaryFunction("depExists", []*cel.Type{cel.StringType, cel.StringType}, cel.BoolType,
 		func(fsWrapper filesystemWrapper, managerType string, pattern string) (bool, error) {
-			m, err := depGetCachedManager(managerType, fsWrapper)
+			m, err := dep.GetCachedManager(managerType, fsWrapper)
 			if err != nil {
 				return false, err
 			}
@@ -58,7 +57,7 @@ func DepVersion(docs *Docs) cel.EnvOption {
 
 	return fsBinaryFunction("depVersion", []*cel.Type{cel.StringType, cel.StringType}, cel.StringType,
 		func(fsWrapper filesystemWrapper, managerType string, name string) (string, error) {
-			m, err := depGetCachedManager(managerType, fsWrapper)
+			m, err := dep.GetCachedManager(managerType, fsWrapper)
 			if err != nil {
 				return "", err
 			}
@@ -66,29 +65,4 @@ func DepVersion(docs *Docs) cel.EnvOption {
 			return d.Version, nil
 		},
 	)
-}
-
-type managerCacheKey struct {
-	managerType string
-	fsID        uintptr
-	path        string
-}
-
-var managerCache sync.Map
-
-// depGetCachedManager returns a cached and initialized dep.Manager for the given input.
-func depGetCachedManager(managerType string, fsWrapper filesystemWrapper) (dep.Manager, error) {
-	cacheKey := managerCacheKey{managerType: managerType, fsID: fsWrapper.ID, path: fsWrapper.Path}
-	if manager, ok := managerCache.Load(cacheKey); ok {
-		return manager.(dep.Manager), nil //nolint:errcheck // the cached value is known
-	}
-	m, err := dep.GetManager(managerType, fsWrapper.FS, fsWrapper.Path)
-	if err != nil {
-		return nil, err
-	}
-	managerCache.Store(cacheKey, m)
-	if err := m.Init(); err != nil {
-		return nil, err
-	}
-	return m, nil
 }

@@ -29,10 +29,8 @@ func TestPHP(t *testing.T) {
 		},
 	}
 
-	m, err := dep.GetManager(dep.ManagerTypePHP, fsys, ".")
+	m, err := dep.GetCachedManager(dep.ManagerTypePHP, newFilesystemWrapper(fsys, "."))
 	require.NoError(t, err)
-
-	require.NoError(t, m.Init())
 
 	toFind := []struct {
 		pattern      string
