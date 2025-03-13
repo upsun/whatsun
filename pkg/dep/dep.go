@@ -114,15 +114,15 @@ var managerCache sync.Map
 
 // GetCachedManager returns a cached and initialized dep.Manager for the given filesystem directory.
 func GetCachedManager(managerType string, fsd fsdir.FSDir) (Manager, error) {
-	type managerCacheKey struct {
+	cacheKey := struct {
 		managerType string
-		fsd         fsdir.FSDir
-	}
-	cacheKey := managerCacheKey{managerType, fsd}
+		fsID        uintptr
+		path        string
+	}{managerType, fsd.ID(), fsd.Path()}
 	if manager, ok := managerCache.Load(cacheKey); ok {
 		return manager.(Manager), nil //nolint:errcheck // the cached value is known
 	}
-	m, err := GetManager(managerType, fsd.FS(), fsd.Path())
+	m, err := GetManager(managerType, fsd.FS(), cacheKey.path)
 	if err != nil {
 		return nil, err
 	}
