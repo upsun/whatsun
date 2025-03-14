@@ -8,15 +8,15 @@ help:
 		| awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
 .PHONY: build
-build: warm_cache
+build: warm_cache ## Build the 'what' binary.
 	go build $(BUILD_FLAGS) -o what ./cmd/what
 
 .PHONY: gen_docs
-gen_docs: ## Generates CEL function documentation
+gen_docs: ## Generate CEL function documentation.
 	go run cmd/gen_docs/main.go docs/functions.md
 
 .PHONY: warm_cache
-warm_cache: ## Warms the expression cache (run this when expressions change).
+warm_cache:
 	go run cmd/warm_cache/main.go expr.cache
 
 .PHONY: govulncheck
@@ -24,10 +24,10 @@ govulncheck: ## Check dependencies for vulnerabilities.
 	go tool govulncheck ./...
 
 .PHONY: lint
-lint: lint-gomod lint-golangci ## Run all linters.
+lint: lint-gomod lint-golangci ## Run linters.
 
 .PHONY: lint-gomod
-lint-gomod: ## Run linter `go mod`.
+lint-gomod:
 ifneq ($(shell go mod tidy -v 2>/dev/stdout | tee /dev/stderr | grep -c 'unused '),0)
 	@false
 endif
@@ -41,16 +41,16 @@ lint-golangci:
 test: ## Run unit tests.
 	go test -race -count=1 ./...
 
-.PHONY: bench-light
-bench-light: ## Run a single benchmark on the test filesystem.
-	go test -run=Analyze -bench=Analyze_TestFS ./...
-
 .PHONY: bench
 bench: ## Run benchmarks.
 	go test -run=Analyze -bench=Analyze -cpu 1,2,4,8 ./...
 
+.PHONY: bench-light
+bench-light: ## Run a single benchmark on the test filesystem.
+	go test -run=Analyze -bench=Analyze_TestFS ./...
+
 .PHONY: test-coverage
-test-coverage: ## Run unit tests and generate code coverage.
+test-coverage: ## Run unit tests and generate a code coverage report.
 	go test -coverprofile=coverage.out ./...
 	go tool cover -func=coverage.out
 
@@ -61,5 +61,5 @@ profile: ## Collect profiles saved as *.pprof.
 	go test -mutexprofile mutex.pprof -bench=Analyze_TestFS ./pkg/rules
 
 .PHONY: clean
-clean: ## Clean files generated from builds and tests.
+clean: ## Delete files generated from builds and tests.
 	rm -f *.pprof what coverage.out rules.test
