@@ -27,13 +27,13 @@ go get github.com/upsun/whatsun
 
 ## CLI usage
 
-Install the `what` command with:
+Install the `whatsun` command with:
 
 ```shell
-GOPRIVATE=github.com/upsun go install github.com/upsun/whatsun/cmd/what@latest
+GOPRIVATE=github.com/upsun go install github.com/upsun/whatsun/cmd/whatsun@latest
 ```
 
-Then run it with: `what [path]`
+Then run it with: `whatsun [path]`
 
 Options (these may change):
 * `-ignore string`: Comma-separated list of directory paths to ignore, adding to defaults

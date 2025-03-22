@@ -8,8 +8,8 @@ help:
 		| awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
 .PHONY: build
-build: warm_cache ## Build the 'what' binary.
-	go build $(BUILD_FLAGS) -o what ./cmd/what
+build: warm_cache ## Build the 'whatsun' binary.
+	go build $(BUILD_FLAGS) -o whatsun ./cmd/whatsun
 
 .PHONY: gen_docs
 gen_docs: ## Generate CEL function documentation.
@@ -62,4 +62,4 @@ profile: ## Collect profiles saved as *.pprof.
 
 .PHONY: clean
 clean: ## Delete files generated from builds and tests.
-	rm -f *.pprof what coverage.out rules.test
+	rm -f *.pprof whatsun coverage.out rules.test
