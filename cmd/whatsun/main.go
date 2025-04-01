@@ -131,6 +131,9 @@ func main() {
 	if *simple {
 		pathResults := map[string][]string{} // Map of path to results.
 		for _, report := range reports {
+			if report.Maybe {
+				continue
+			}
 			pathResults[report.Path] = append(pathResults[report.Path], report.Result)
 		}
 		paths := make([]string, 0, len(pathResults))
