@@ -36,8 +36,12 @@ GOPRIVATE=github.com/upsun go install github.com/upsun/whatsun/cmd/whatsun@lates
 Then run it with: `whatsun [path]`
 
 Options (these may change):
+* `-filter string`: Filter the rulesets to ones matching the wildcard pattern(s), separated by commas
 * `-ignore string`: Comma-separated list of directory paths to ignore, adding to defaults
+* `-json`: Print output in JSON format
+* `-no-meta`: Skip calculating and returning metadata
 * `-rulesets string`: A directory containing custom rulesets, replacing the [default ones](config)
+* `-simple`: Only output a simple list of results per path, with no other context.
 
 ## Configuration and contributions
 

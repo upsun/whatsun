@@ -2,9 +2,9 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/IGLOU-EU/go-wildcard/v2"
 	"github.com/jedib0t/go-pretty/v6/table"
 
 	"github.com/upsun/whatsun"
@@ -23,6 +24,12 @@ var ignore = flag.String("ignore", "",
 	"Comma-separated list of paths (or patterns) to ignore, adding to defaults")
 var customRulesets = flag.String("rulesets", "",
 	"Path to a custom ruleset directory (replacing the default embedded rulesets)")
+var filter = flag.String("filter", "",
+	"Filter the rulesets to ones matching the wildcard pattern(s), separated by commas")
+var asJSON = flag.Bool("json", false, "Print output in JSON format")
+var noMetadata = flag.Bool("no-meta", false, "Skip calculating and returning metadata.")
+var simple = flag.Bool("simple", false,
+	"Only output a simple list of results per path, with no metadata or other context.")
 
 func main() {
 	flag.Parse()
@@ -32,11 +39,12 @@ func main() {
 	}
 	absPath, err := filepath.Abs(path)
 	if err != nil {
-		log.Fatal(err)
+		fatalErr(err)
 	}
 
 	var analyzerConfig = &rules.AnalyzerConfig{
-		IgnoreDirs: strings.Split(*ignore, ","),
+		IgnoreDirs:      strings.Split(*ignore, ","),
+		DisableMetadata: *noMetadata || *simple,
 	}
 	var rulesets []rules.RulesetSpec
 	if *customRulesets != "" {
@@ -47,22 +55,22 @@ func main() {
 		}
 		rulesets, err = rules.LoadFromYAMLDir(os.DirFS(dirName), fileName)
 		if err != nil {
-			log.Fatalf("failed to load custom rulesets: %v", err)
+			fatalf("failed to load custom rulesets: %v", err)
 		}
 		if len(rulesets) == 0 {
-			log.Fatalf("no rulesets found in directory: %s", *customRulesets)
+			fatalf("no rulesets found in directory: %s", *customRulesets)
 		}
 		userCacheDir, err := os.UserCacheDir()
 		if err != nil {
-			log.Fatalf("failed to get user cache dir: %v", err)
+			fatalf("failed to get user cache dir: %v", err)
 		}
 		cacheDir := filepath.Join(userCacheDir, "whatsun")
 		if err := os.MkdirAll(cacheDir, 0700); err != nil {
-			log.Fatalf("failed to create cache dir: %v", err)
+			fatalf("failed to create cache dir: %v", err)
 		}
 		cache, err := eval.NewFileCache(filepath.Join(cacheDir, "expr.cache"))
 		if err != nil {
-			log.Fatalf("failed to create file cache: %v", err)
+			fatalf("failed to create file cache: %v", err)
 		}
 		defer cache.Save() //nolint:errcheck
 		analyzerConfig.CELExpressionCache = cache
@@ -70,50 +78,103 @@ func main() {
 		var err error
 		rulesets, err = whatsun.LoadRulesets()
 		if err != nil {
-			log.Fatal(err) //nolint: gocritic
+			fatalErr(err)
 		}
 		exprCache, err := whatsun.LoadExpressionCache()
 		if err != nil {
-			log.Fatal(err)
+			fatalErr(err)
 		}
 		analyzerConfig.CELExpressionCache = exprCache
 	}
 
+	if *filter != "" {
+		patterns := strings.Split(*filter, ",")
+		var filtered = make([]rules.RulesetSpec, 0, len(rulesets))
+		for _, rs := range rulesets {
+			for _, p := range patterns {
+				if wildcard.Match(strings.TrimSpace(p), rs.GetName()) {
+					filtered = append(filtered, rs)
+					break
+				}
+			}
+		}
+		rulesets = filtered
+	}
+
+	if len(rulesets) == 0 {
+		fatalf("No rulesets found")
+	}
+
 	analyzer, err := rules.NewAnalyzer(rulesets, analyzerConfig)
 	if err != nil {
-		log.Fatal(err)
+		fatalErr(err)
 	}
 
 	start := time.Now()
 
-	results, err := analyzer.Analyze(context.Background(), os.DirFS(absPath), ".")
+	reports, err := analyzer.Analyze(context.Background(), os.DirFS(absPath), ".")
 	if err != nil {
-		log.Fatalf("analysis failed: %v", err)
+		fatalf("analysis failed: %v", err)
 	}
 
-	names := make([]string, 0, len(results))
-	for name := range results {
-		if len(results[name]) == 0 {
-			continue
+	if len(reports) == 0 {
+		if *asJSON {
+			fmt.Fprint(os.Stdout, "[]\n")
+			return
 		}
-		names = append(names, name)
-	}
-	sort.Strings(names)
-
-	if len(names) == 0 {
-		fmt.Fprintln(os.Stdout, "No results found")
+		fatalf("No results found")
 		return
 	}
 
-	fmt.Fprintf(os.Stdout, "Received result in %s:\n", time.Since(start))
+	calcTime := time.Since(start)
+
+	if *simple {
+		pathResults := map[string][]string{} // Map of path to results.
+		for _, report := range reports {
+			pathResults[report.Path] = append(pathResults[report.Path], report.Result)
+		}
+		paths := make([]string, 0, len(pathResults))
+		for path := range pathResults {
+			paths = append(paths, path)
+		}
+		sort.Strings(paths)
+		for _, path := range paths {
+			fmt.Fprintf(os.Stdout, "%s\t%s\n", path, strings.Join(pathResults[path], ", "))
+		}
+		return
+	}
+
+	if *asJSON {
+		if err := json.NewEncoder(os.Stdout).Encode(reports); err != nil {
+			fatalErr(err)
+		}
+		return
+	}
+
+	fmt.Fprintf(os.Stderr, "Received result in %s:\n", calcTime)
+
+	var byRuleset = make(map[string][]rules.Report)
+	for _, report := range reports {
+		byRuleset[report.Ruleset] = append(byRuleset[report.Ruleset], report)
+	}
+
+	names := make([]string, 0, len(byRuleset))
+	for name := range byRuleset {
+		names = append(names, name)
+	}
+	sort.Strings(names)
 
 	for _, name := range names {
 		fmt.Fprintln(os.Stdout, "\nRuleset:", name)
 		tbl := table.NewWriter()
 		tbl.SetOutputMirror(os.Stdout)
-		tbl.AppendHeader(table.Row{"Path", "Result", "Groups", "With"})
+		if *noMetadata {
+			tbl.AppendHeader(table.Row{"Path", "Result", "Groups"})
+		} else {
+			tbl.AppendHeader(table.Row{"Path", "Result", "Groups", "With"})
+		}
 
-		for _, report := range results[name] {
+		for _, report := range byRuleset[name] {
 			if report.Maybe {
 				continue
 			}
@@ -126,10 +187,23 @@ func main() {
 				}
 				with = strings.TrimSpace(with)
 			}
-			tbl.AppendRow(table.Row{report.Path, report.Result, strings.Join(report.Groups, ", "), with})
+			if *noMetadata {
+				tbl.AppendRow(table.Row{report.Path, report.Result, strings.Join(report.Groups, ", ")})
+			} else {
+				tbl.AppendRow(table.Row{report.Path, report.Result, strings.Join(report.Groups, ", "), with})
+			}
 		}
 		tbl.Render()
 	}
+}
+
+func fatalErr(err error) {
+	fatalf("%v", err)
+}
+
+func fatalf(msg string, args ...interface{}) {
+	fmt.Fprintf(os.Stderr, msg+"\n", args...)
+	os.Exit(1)
 }
 
 func isEmpty(v any) bool {

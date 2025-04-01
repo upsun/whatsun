@@ -1,18 +1,12 @@
 package rules
 
-import (
-	"slices"
-	"sort"
-
-	"github.com/upsun/whatsun/pkg/eval"
-)
-
-// RulesetReports collects reports for each ruleset (keyed by the ruleset name).
-type RulesetReports map[string][]Report
+import "sort"
 
 // Report contains results and other metadata after applying rules.
 type Report struct {
-	Path   string   `json:"path"`
+	Ruleset string `json:"ruleset,omitempty"`
+	Path    string `json:"path,omitempty"`
+
 	Result string   `json:"result,omitempty"`
 	Error  string   `json:"error,omitempty"`
 	Rules  []string `json:"rules,omitempty"`
@@ -27,45 +21,6 @@ type Report struct {
 type ReportValue struct {
 	Value any    `json:"value,omitempty"`
 	Error string `json:"error,omitempty"`
-}
-
-func matchToReport(ev *eval.Evaluator, input any, match Match, path string) Report {
-	rep := Report{
-		Path:   path,
-		Result: match.Result,
-		Maybe:  match.Maybe,
-		Rules:  make([]string, len(match.Rules)),
-	}
-	if match.Err != nil {
-		rep.Error = match.Err.Error()
-	}
-
-	var groupMap = make(map[string]struct{})
-	for i, rule := range match.Rules {
-		if rg, ok := rule.(WithGroups); ok {
-			for _, g := range rg.GetGroups() {
-				groupMap[g] = struct{}{}
-			}
-		}
-		rep.Rules[i] = rule.GetName()
-		if rm, ok := rule.(WithMetadata); ok && len(rm.GetMetadata()) > 0 {
-			if rep.With == nil {
-				rep.With = make(map[string]ReportValue)
-			}
-			for name, expr := range rm.GetMetadata() {
-				val, err := ev.Eval(expr, input)
-				if err != nil {
-					rep.With[name] = ReportValue{Error: err.Error()}
-					continue
-				}
-				rep.With[name] = ReportValue{Value: val.Value()}
-			}
-		}
-	}
-	rep.Groups = sortedMapKeys(groupMap)
-	slices.Sort(rep.Rules)
-
-	return rep
 }
 
 func sortedMapKeys(m map[string]struct{}) []string {

@@ -87,63 +87,46 @@ func setupAnalyzerWithEmbeddedConfig(t require.TestingT, ignore []string) *rules
 func TestAnalyze_TestFS_ActualRules(t *testing.T) {
 	analyzer := setupAnalyzerWithEmbeddedConfig(t, []string{"arg-ignore"})
 
-	result, err := analyzer.Analyze(t.Context(), testFs, ".")
+	reports, err := analyzer.Analyze(t.Context(), testFs, ".")
 	require.NoError(t, err)
 
-	assert.EqualValues(t, rules.RulesetReports{
-		"build_tools": {
-			{Path: "rake", Result: "rake", Rules: []string{"rake"}, Groups: []string{"ruby"}},
-		},
-		"package_managers": {
-			{
-				Path:   ".",
-				Result: "composer",
-				Rules:  []string{"composer"},
-				Groups: []string{"php"},
-				With:   map[string]rules.ReportValue{"php_version": {Value: "^8.3"}},
-			},
-			{Path: "ambiguous", Result: "bun", Maybe: true, Rules: []string{"js-packages"}, Groups: []string{"js"}},
-			{Path: "ambiguous", Result: "npm", Maybe: true, Rules: []string{"js-packages"}, Groups: []string{"js"}},
-			{Path: "ambiguous", Result: "pnpm", Maybe: true, Rules: []string{"js-packages"}, Groups: []string{"js"}},
-			{Path: "ambiguous", Result: "yarn", Maybe: true, Rules: []string{"js-packages"}, Groups: []string{"js"}},
-			{Path: "another-app", Result: "npm", Rules: []string{"npm-lockfile"}, Groups: []string{"js"}},
-			{Path: "deep/1/2/3/4/5", Result: "composer", Rules: []string{"composer"}, Groups: []string{"php"},
-				With: map[string]rules.ReportValue{"php_version": {Value: ""}}},
-			{Path: "deep/a/b/c/d/e", Result: "npm", Rules: []string{"npm-lockfile"}, Groups: []string{"js"}},
-			{Path: "meteor", Result: "meteor", Rules: []string{"meteor"}, Groups: []string{"js"}},
-			{Path: "meteor", Result: "npm", Rules: []string{"npm-lockfile"}, Groups: []string{"js"}},
-		},
-		"frameworks": {
-			{
-				Path:   ".",
-				Result: "symfony",
-				Rules:  []string{"symfony-framework"},
-				With:   map[string]rules.ReportValue{"version": {Value: "7.2.3"}},
-				Groups: []string{"php", "symfony"},
-			},
-			{
-				Path:   "ambiguous",
-				Result: "gatsby",
-				Rules:  []string{"gatsby"},
-				With:   map[string]rules.ReportValue{"version": {Value: ""}},
-				Groups: []string{"js"},
-			},
-			{
-				Path:   "configured-app",
-				Result: "platformsh-app",
-				Rules:  []string{"platformsh-app"},
-				With:   map[string]rules.ReportValue{"name": {Value: "app"}},
-				Groups: []string{"cloud"},
-			},
-			{
-				Path:   "eleventy",
-				Result: "eleventy",
-				Rules:  []string{"eleventy"},
-				With:   map[string]rules.ReportValue{"version": {Value: ""}},
-				Groups: []string{"js", "static"},
-			},
-		},
-	}, result)
+	assert.EqualValues(t, []rules.Report{
+		// Build tool results.
+		{Ruleset: "build_tools", Path: "rake", Result: "rake", Rules: []string{"rake"}, Groups: []string{"ruby"}},
+
+		// Framework results.
+		{Ruleset: "frameworks", Path: ".", Result: "symfony", Rules: []string{"symfony-framework"},
+			With: map[string]rules.ReportValue{"version": {Value: "7.2.3"}}, Groups: []string{"php", "symfony"}},
+		{Ruleset: "frameworks", Path: "ambiguous", Result: "gatsby", Rules: []string{"gatsby"},
+			With: map[string]rules.ReportValue{"version": {Value: ""}}, Groups: []string{"js"}},
+		{Ruleset: "frameworks", Path: "configured-app", Result: "platformsh-app", Rules: []string{"platformsh-app"},
+			With: map[string]rules.ReportValue{"name": {Value: "app"}}, Groups: []string{"cloud"}},
+		{Ruleset: "frameworks", Path: "eleventy", Result: "eleventy", Rules: []string{"eleventy"},
+			With: map[string]rules.ReportValue{"version": {Value: ""}}, Groups: []string{"js", "static"}},
+
+		// Package manager results.
+		{Ruleset: "package_managers", Path: ".", Result: "composer", Rules: []string{"composer"}, Groups: []string{"php"},
+			With: map[string]rules.ReportValue{"php_version": {Value: "^8.3"}}},
+		{Ruleset: "package_managers", Path: "ambiguous", Result: "bun", Maybe: true,
+			Rules: []string{"js-packages"}, Groups: []string{"js"}},
+		{Ruleset: "package_managers", Path: "ambiguous", Result: "npm", Maybe: true,
+			Rules: []string{"js-packages"}, Groups: []string{"js"}},
+		{Ruleset: "package_managers", Path: "ambiguous", Result: "pnpm", Maybe: true,
+			Rules: []string{"js-packages"}, Groups: []string{"js"}},
+		{Ruleset: "package_managers", Path: "ambiguous", Result: "yarn", Maybe: true,
+			Rules: []string{"js-packages"}, Groups: []string{"js"}},
+		{Ruleset: "package_managers", Path: "another-app", Result: "npm",
+			Rules: []string{"npm-lockfile"}, Groups: []string{"js"}},
+		{Ruleset: "package_managers", Path: "deep/1/2/3/4/5", Result: "composer",
+			Rules: []string{"composer"}, Groups: []string{"php"},
+			With: map[string]rules.ReportValue{"php_version": {Value: ""}}},
+		{Ruleset: "package_managers", Path: "deep/a/b/c/d/e", Result: "npm",
+			Rules: []string{"npm-lockfile"}, Groups: []string{"js"}},
+		{Ruleset: "package_managers", Path: "meteor", Result: "meteor",
+			Rules: []string{"meteor"}, Groups: []string{"js"}},
+		{Ruleset: "package_managers", Path: "meteor", Result: "npm",
+			Rules: []string{"npm-lockfile"}, Groups: []string{"js"}},
+	}, reports)
 }
 
 // Benchmark analysis on the test filesystem, but with real rulesets.
@@ -205,11 +188,9 @@ func TestAnalyze_CustomRules(t *testing.T) {
 	result, err := analyzer.Analyze(t.Context(), fsys, ".")
 	require.NoError(t, err)
 
-	assert.EqualValues(t, rules.RulesetReports{
-		"custom": {
-			{Path: "bar", Result: "foo", Rules: []string{"foo-json"}},
-			{Path: "deep/a/b/c", Result: "foo", Rules: []string{"foo-json"}},
-			{Path: "foo", Result: "foo", Rules: []string{"foo-json"}},
-		},
+	assert.EqualValues(t, []rules.Report{
+		{Ruleset: "custom", Path: "bar", Result: "foo", Rules: []string{"foo-json"}},
+		{Ruleset: "custom", Path: "deep/a/b/c", Result: "foo", Rules: []string{"foo-json"}},
+		{Ruleset: "custom", Path: "foo", Result: "foo", Rules: []string{"foo-json"}},
 	}, result)
 }

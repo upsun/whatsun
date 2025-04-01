@@ -34,6 +34,8 @@ type AnalyzerConfig struct {
 	DisableGitIgnore bool
 
 	IgnoreDirs []string // Additional directory ignore rules, using git's exclude syntax.
+
+	DisableMetadata bool // Skip calculating or reporting rule metadata.
 }
 
 type Analyzer struct {
@@ -60,7 +62,7 @@ func NewAnalyzer(rulesets []RulesetSpec, cnf *AnalyzerConfig) (*Analyzer, error)
 	return &Analyzer{evaluator: ev, rulesets: rulesets, cnf: cnf}, nil
 }
 
-func (a *Analyzer) Analyze(ctx context.Context, fsys fs.FS, root string) (RulesetReports, error) {
+func (a *Analyzer) Analyze(ctx context.Context, fsys fs.FS, root string) ([]Report, error) {
 	fsys = searchfs.New(fsys)
 
 	var (
@@ -74,12 +76,7 @@ func (a *Analyzer) Analyze(ctx context.Context, fsys fs.FS, root string) (Rulese
 		return a.collectDirectories(ctx, fsys, root, dirChan)
 	})
 
-	type reportsKeyed struct {
-		set     string
-		reports []Report
-	}
-
-	var reportsChan = make(chan reportsKeyed, numWorkers)
+	var reportsChan = make(chan []Report, numWorkers)
 	errGroup.Go(func() error {
 		var dirGroup errgroup.Group
 		dirGroup.SetLimit(numWorkers)
@@ -97,7 +94,7 @@ func (a *Analyzer) Analyze(ctx context.Context, fsys fs.FS, root string) (Rulese
 					if err != nil {
 						return err
 					}
-					reportsChan <- reportsKeyed{ruleset.GetName(), subReports}
+					reportsChan <- subReports
 				}
 				return nil
 			})
@@ -105,10 +102,10 @@ func (a *Analyzer) Analyze(ctx context.Context, fsys fs.FS, root string) (Rulese
 		return dirGroup.Wait()
 	})
 
-	var rulesetReports = make(RulesetReports)
+	var reports []Report
 	errGroup.Go(func() error {
 		for rk := range reportsChan {
-			rulesetReports[rk.set] = append(rulesetReports[rk.set], rk.reports...)
+			reports = append(reports, rk...)
 		}
 		return nil
 	})
@@ -117,13 +114,14 @@ func (a *Analyzer) Analyze(ctx context.Context, fsys fs.FS, root string) (Rulese
 		return nil, err
 	}
 
-	for _, rr := range rulesetReports {
-		slices.SortFunc(rr, func(a, b Report) int {
+	slices.SortStableFunc(reports, func(a, b Report) int {
+		if a.Ruleset == b.Ruleset {
 			return strings.Compare(a.Path, b.Path)
-		})
-	}
+		}
+		return strings.Compare(a.Ruleset, b.Ruleset)
+	})
 
-	return rulesetReports, nil
+	return reports, nil
 }
 
 func (a *Analyzer) collectDirectories(ctx context.Context, fsys fs.FS, root string, dirChan chan<- string) error {
@@ -197,10 +195,56 @@ func (a *Analyzer) applyRuleset(rs RulesetSpec, fsys fs.FS, path string) ([]Repo
 		return nil, fmt.Errorf("in directory %s: %w", path, err)
 	}
 
-	var reports = make([]Report, len(matches))
+	var (
+		rulesetName = rs.GetName()
+		reports     = make([]Report, len(matches))
+	)
 	for i, m := range matches {
-		reports[i] = matchToReport(a.evaluator, celInput, m, path)
+		reports[i] = a.matchToReport(celInput, m, path, rulesetName)
 	}
 
 	return reports, nil
+}
+
+func (a *Analyzer) matchToReport(input any, match Match, path, rulesetName string) Report {
+	rep := Report{
+		Path:    path,
+		Result:  match.Result,
+		Maybe:   match.Maybe,
+		Ruleset: rulesetName,
+		Rules:   make([]string, len(match.Rules)),
+	}
+	if match.Err != nil {
+		rep.Error = match.Err.Error()
+	}
+
+	var groupMap = make(map[string]struct{})
+	for i, rule := range match.Rules {
+		if rg, ok := rule.(WithGroups); ok {
+			for _, g := range rg.GetGroups() {
+				groupMap[g] = struct{}{}
+			}
+		}
+		rep.Rules[i] = rule.GetName()
+
+		if rm, ok := rule.(WithMetadata); ok && !a.cnf.DisableMetadata {
+			if md := rm.GetMetadata(); len(md) > 0 {
+				if rep.With == nil {
+					rep.With = make(map[string]ReportValue)
+				}
+				for name, expr := range md {
+					val, err := a.evaluator.Eval(expr, input)
+					if err != nil {
+						rep.With[name] = ReportValue{Error: err.Error()}
+						continue
+					}
+					rep.With[name] = ReportValue{Value: val.Value()}
+				}
+			}
+		}
+	}
+	rep.Groups = sortedMapKeys(groupMap)
+	slices.Sort(rep.Rules)
+
+	return rep
 }

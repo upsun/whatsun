@@ -32,15 +32,14 @@ func TestAnalyze_OSFS_MockRules(t *testing.T) {
 	result, err := analyzer.Analyze(t.Context(), os.DirFS("testdata/mock-project"), ".")
 	require.NoError(t, err)
 
-	assert.EqualValues(t, rules.RulesetReports{
-		"package_managers": {
-			{Path: ".", Result: "npm", Rules: []string{"npm"}, Groups: []string{"js"}},
-			{Path: "deep/1/2/3", Result: "npm", Rules: []string{"npm"}, Groups: []string{"js"}},
-			{Path: "deep/1/2/python", Result: "pip", Rules: []string{"pip"}, Groups: []string{"python"}},
-			{Path: "deep/1/2/python", Result: "poetry", Rules: []string{"poetry"}, Groups: []string{"python"}},
-			{Path: "drupal", Result: "composer", Rules: []string{"composer"}, Groups: []string{"php"}},
-			{Path: "symfony", Result: "composer", Rules: []string{"composer"}, Groups: []string{"php"}},
-		},
+	rs := "package_managers"
+	assert.EqualValues(t, []rules.Report{
+		{Path: ".", Result: "npm", Ruleset: rs, Rules: []string{"npm"}, Groups: []string{"js"}},
+		{Path: "deep/1/2/3", Result: "npm", Ruleset: rs, Rules: []string{"npm"}, Groups: []string{"js"}},
+		{Path: "deep/1/2/python", Result: "pip", Ruleset: rs, Rules: []string{"pip"}, Groups: []string{"python"}},
+		{Path: "deep/1/2/python", Result: "poetry", Ruleset: rs, Rules: []string{"poetry"}, Groups: []string{"python"}},
+		{Path: "drupal", Result: "composer", Ruleset: rs, Rules: []string{"composer"}, Groups: []string{"php"}},
+		{Path: "symfony", Result: "composer", Ruleset: rs, Rules: []string{"composer"}, Groups: []string{"php"}},
 	}, result)
 }
 
