@@ -61,8 +61,8 @@ func BenchmarkAnalyze_OSFS_MockRules(b *testing.B) {
 	ctx := b.Context()
 
 	b.ReportAllocs()
-	b.ResetTimer()
-	for n := 0; n < b.N; n++ {
+
+	for b.Loop() {
 		_, err = analyzer.Analyze(ctx, fsys, ".")
 		require.NoError(b, err)
 	}
