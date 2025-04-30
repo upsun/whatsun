@@ -32,6 +32,16 @@ type TreeConfig struct {
 	IgnoreDirs []string // Additional directory ignore rules, using git's exclude syntax.
 }
 
+// MinimalTreeConfig creates a small, token-efficient tree.
+var MinimalTreeConfig = TreeConfig{
+	MaxDepth:              8,
+	MaxEntries:            32,
+	MaxEntriesPerLevel:    0.5,
+	EntryConnector:        " ",
+	LastEntryConnector:    " ",
+	ContinuationConnector: " ",
+}
+
 // GetTree returns a slice of strings representing the tree structure.
 func GetTree(fsys fs.FS, cfg TreeConfig) ([]string, error) {
 	var result = []string{"." + cfg.DirectorySuffix}

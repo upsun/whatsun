@@ -17,6 +17,7 @@ import (
 
 	"github.com/upsun/whatsun"
 	"github.com/upsun/whatsun/pkg/eval"
+	"github.com/upsun/whatsun/pkg/files"
 	"github.com/upsun/whatsun/pkg/rules"
 )
 
@@ -30,6 +31,7 @@ var asJSON = flag.Bool("json", false, "Print output in JSON format")
 var noMetadata = flag.Bool("no-meta", false, "Skip calculating and returning metadata.")
 var simple = flag.Bool("simple", false,
 	"Only output a simple list of results per path, with no metadata or other context.")
+var tree = flag.Bool("tree", false, "Only output a file tree")
 
 func main() {
 	flag.Parse()
@@ -40,6 +42,15 @@ func main() {
 	absPath, err := filepath.Abs(path)
 	if err != nil {
 		fatalErr(err)
+	}
+
+	if *tree {
+		result, err := files.GetTree(os.DirFS(absPath), files.MinimalTreeConfig)
+		if err != nil {
+			fatalErr(err)
+		}
+		fmt.Fprintln(os.Stdout, strings.Join(result, "\n"))
+		return
 	}
 
 	var analyzerConfig = &rules.AnalyzerConfig{
