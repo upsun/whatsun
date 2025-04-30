@@ -1,0 +1,69 @@
+package files
+
+import (
+	"testing"
+	"testing/fstest"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+func TestGetTree(t *testing.T) {
+	fsys := fstest.MapFS{
+		"a.txt":              &fstest.MapFile{},
+		"b.txt":              &fstest.MapFile{},
+		"dir/c.txt":          &fstest.MapFile{},
+		"vendor/foo/bar.txt": &fstest.MapFile{},
+	}
+
+	got, err := GetTree(fsys, TreeConfig{})
+	require.NoError(t, err)
+
+	assert.EqualValues(t, []string{
+		".",
+		"├ a.txt",
+		"├ b.txt",
+		"└ dir",
+		"  └ c.txt",
+	}, got)
+}
+
+func TestGetTree_MaxEntriesPerLevel(t *testing.T) {
+	fsys := fstest.MapFS{
+		"fileA.txt":           &fstest.MapFile{},
+		"fileB.txt":           &fstest.MapFile{},
+		"fileC.txt":           &fstest.MapFile{},
+		"fileD.txt":           &fstest.MapFile{},
+		"dir1/fileA.txt":      &fstest.MapFile{},
+		"dir1/fileB.txt":      &fstest.MapFile{},
+		"dir1/fileC.txt":      &fstest.MapFile{},
+		"dir1/fileD.txt":      &fstest.MapFile{},
+		"dir1/dir2/fileA.txt": &fstest.MapFile{},
+		"dir1/dir2/fileB.txt": &fstest.MapFile{},
+		"dir1/dir2/fileC.txt": &fstest.MapFile{},
+		"dir1/dir2/fileD.txt": &fstest.MapFile{},
+	}
+
+	got, err := GetTree(fsys, TreeConfig{
+		MaxEntries:         8,
+		MaxEntriesPerLevel: 0.5,
+	})
+	require.NoError(t, err)
+
+	assert.EqualValues(t, []string{
+		".",
+		"├ dir1",
+		"│ ├ dir2",
+		"│ │ ├ fileA.txt",
+		"│ │ ├ fileB.txt",
+		"│ │ └ ... (2 more)",
+		"│ ├ fileA.txt",
+		"│ ├ fileB.txt",
+		"│ ├ fileC.txt",
+		"│ └ ... (1 more)",
+		"├ fileA.txt",
+		"├ fileB.txt",
+		"├ fileC.txt",
+		"└ fileD.txt",
+	}, got)
+}

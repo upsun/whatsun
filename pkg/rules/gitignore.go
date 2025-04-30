@@ -1,7 +1,6 @@
 package rules
 
 import (
-	"bytes"
 	_ "embed"
 	"sync"
 
@@ -9,11 +8,6 @@ import (
 
 	"github.com/upsun/whatsun/internal/fsgitignore"
 )
-
-//go:embed gitignore-defaults
-var defaultIgnoreFile []byte
-
-var defaultIgnorePatterns = fsgitignore.ParseIgnoreFile(bytes.NewReader(defaultIgnoreFile), nil)
 
 type Ignorer interface {
 	GetIgnores() []string

@@ -3,12 +3,15 @@ package fsgitignore
 
 import (
 	"bufio"
+	"bytes"
+	_ "embed"
 	"errors"
 	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"syscall"
 
 	"github.com/go-git/go-git/v5/plumbing/format/gitignore"
@@ -84,4 +87,18 @@ func handleIfExists(fsys fs.FS, path, filename string, handler func(r io.Reader)
 
 	handler(f)
 	return nil
+}
+
+//go:embed gitignore-defaults
+var defaultIgnoreFile []byte
+
+var defaultIgnores []gitignore.Pattern
+var parsedDefaultIgnores sync.Once
+
+// GetDefaultIgnorePatterns parses and returns common ignore patterns.
+func GetDefaultIgnorePatterns() []gitignore.Pattern {
+	parsedDefaultIgnores.Do(func() {
+		defaultIgnores = ParseIgnoreFile(bytes.NewReader(defaultIgnoreFile), nil)
+	})
+	return defaultIgnores
 }

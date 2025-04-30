@@ -125,7 +125,7 @@ func (a *Analyzer) Analyze(ctx context.Context, fsys fs.FS, root string) ([]Repo
 }
 
 func (a *Analyzer) collectDirectories(ctx context.Context, fsys fs.FS, root string, dirChan chan<- string) error {
-	var ignorePatterns = defaultIgnorePatterns
+	var ignorePatterns = fsgitignore.GetDefaultIgnorePatterns()
 	if len(a.cnf.IgnoreDirs) > 0 {
 		ignorePatterns = append(ignorePatterns, fsgitignore.ParsePatterns(a.cnf.IgnoreDirs, fsgitignore.Split(root))...)
 	}
