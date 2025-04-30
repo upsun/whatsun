@@ -17,6 +17,11 @@ type TreeConfig struct {
 	MaxEntries         int     // 0 = unlimited entries
 	MaxEntriesPerLevel float64 // 0.0 = no scaling, otherwise multiplied per level (e.g., 0.5 halves each level)
 
+	EntryConnector        string // Entry connector, if empty defaults to "├"
+	LastEntryConnector    string // Last entry connector, if empty defaults to "└"
+	ContinuationConnector string // Vertical continuation connector, if empty defaults to "│"
+	DirectorySuffix       string // Directory suffix, e.g. "/" (defaults to no suffix)
+
 	// DisableGitIgnore disables handling of .gitignore and .git/info/exclude files.
 	//
 	// The IgnoreDirs setting will still be respected, and certain directories will
@@ -29,7 +34,18 @@ type TreeConfig struct {
 
 // GetTree returns a slice of strings representing the tree structure.
 func GetTree(fsys fs.FS, cfg TreeConfig) ([]string, error) {
-	var result = []string{"."}
+	var result = []string{"." + cfg.DirectorySuffix}
+
+	// Apply defaults.
+	if cfg.EntryConnector == "" {
+		cfg.EntryConnector = "├"
+	}
+	if cfg.LastEntryConnector == "" {
+		cfg.LastEntryConnector = "└"
+	}
+	if cfg.ContinuationConnector == "" {
+		cfg.ContinuationConnector = "│"
+	}
 
 	var ignorePatterns = fsgitignore.GetDefaultIgnorePatterns()
 	if len(cfg.IgnoreDirs) > 0 {
@@ -71,12 +87,15 @@ func GetTree(fsys fs.FS, cfg TreeConfig) ([]string, error) {
 		}
 
 		for i, entry := range displayEntries {
-			connector := "├ "
+			connector := cfg.EntryConnector + " "
 			if i == len(displayEntries)-1 && removed == 0 {
-				connector = "└ "
+				connector = cfg.LastEntryConnector + " "
 			}
 
 			line := prefix + connector + entry.Name()
+			if entry.IsDir() {
+				line += cfg.DirectorySuffix
+			}
 			result = append(result, line)
 
 			if entry.IsDir() {
@@ -84,7 +103,7 @@ func GetTree(fsys fs.FS, cfg TreeConfig) ([]string, error) {
 				if i == len(displayEntries)-1 && removed == 0 {
 					newPrefix += "  "
 				} else {
-					newPrefix += "│ "
+					newPrefix += cfg.ContinuationConnector + " "
 				}
 				nextMaxEntries := maxEntries
 				if cfg.MaxEntriesPerLevel > 0 {
@@ -99,7 +118,7 @@ func GetTree(fsys fs.FS, cfg TreeConfig) ([]string, error) {
 
 		// Truncated marker
 		if removed > 0 {
-			line := prefix + "└ " + fmt.Sprintf("... (%d more)", removed)
+			line := prefix + cfg.LastEntryConnector + " " + fmt.Sprintf("... (%d more)", removed)
 			result = append(result, line)
 		}
 

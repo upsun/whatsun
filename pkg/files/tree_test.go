@@ -16,16 +16,62 @@ func TestGetTree(t *testing.T) {
 		"vendor/foo/bar.txt": &fstest.MapFile{},
 	}
 
-	got, err := GetTree(fsys, TreeConfig{})
-	require.NoError(t, err)
+	cases := []struct {
+		name   string
+		config TreeConfig
+		expect []string
+	}{
+		{
+			"default",
+			TreeConfig{},
+			[]string{
+				".",
+				"├ a.txt",
+				"├ b.txt",
+				"└ dir",
+				"  └ c.txt",
+			},
+		},
+		{
+			"plain",
+			TreeConfig{
+				EntryConnector:        "|-",
+				LastEntryConnector:    "|_",
+				ContinuationConnector: "|",
+			},
+			[]string{
+				".",
+				"|- a.txt",
+				"|- b.txt",
+				"|_ dir",
+				"  |_ c.txt",
+			},
+		},
+		{
+			"whitespace",
+			TreeConfig{
+				EntryConnector:        " ",
+				LastEntryConnector:    " ",
+				ContinuationConnector: " ",
+				DirectorySuffix:       "/",
+			},
+			[]string{
+				"./",
+				"  a.txt",
+				"  b.txt",
+				"  dir/",
+				"    c.txt",
+			},
+		},
+	}
 
-	assert.EqualValues(t, []string{
-		".",
-		"├ a.txt",
-		"├ b.txt",
-		"└ dir",
-		"  └ c.txt",
-	}, got)
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			result, err := GetTree(fsys, c.config)
+			require.NoError(t, err)
+			assert.EqualValues(t, c.expect, result)
+		})
+	}
 }
 
 func TestGetTree_MaxEntriesPerLevel(t *testing.T) {
