@@ -10,10 +10,13 @@ import (
 
 func TestGetTree(t *testing.T) {
 	fsys := fstest.MapFS{
-		"a.txt":              &fstest.MapFile{},
-		"b.txt":              &fstest.MapFile{},
-		"dir/c.txt":          &fstest.MapFile{},
-		"vendor/foo/bar.txt": &fstest.MapFile{},
+		".gitignore":            &fstest.MapFile{Data: []byte("custom-ignore")},
+		"a.txt":                 &fstest.MapFile{},
+		"b.txt":                 &fstest.MapFile{},
+		"dir/c.txt":             &fstest.MapFile{},
+		"custom-ignore/foo.txt": &fstest.MapFile{},
+		"node_modules/foo.txt":  &fstest.MapFile{},
+		"vendor/foo/bar.txt":    &fstest.MapFile{},
 	}
 
 	cases := []struct {
@@ -26,6 +29,7 @@ func TestGetTree(t *testing.T) {
 			TreeConfig{},
 			[]string{
 				".",
+				"├ .gitignore",
 				"├ a.txt",
 				"├ b.txt",
 				"└ dir",
@@ -41,6 +45,7 @@ func TestGetTree(t *testing.T) {
 			},
 			[]string{
 				".",
+				"|- .gitignore",
 				"|- a.txt",
 				"|- b.txt",
 				"|_ dir",
@@ -57,6 +62,7 @@ func TestGetTree(t *testing.T) {
 			},
 			[]string{
 				"./",
+				"  .gitignore",
 				"  a.txt",
 				"  b.txt",
 				"  dir/",

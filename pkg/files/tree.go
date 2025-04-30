@@ -51,7 +51,6 @@ func GetTree(fsys fs.FS, cfg TreeConfig) ([]string, error) {
 	if len(cfg.IgnoreDirs) > 0 {
 		ignorePatterns = append(ignorePatterns, fsgitignore.ParsePatterns(cfg.IgnoreDirs, []string{})...)
 	}
-	ignorer := gitignore.NewMatcher(ignorePatterns)
 
 	var walk func(currentPath, prefix string, depth int, maxEntries float64) error
 	walk = func(currentPath, prefix string, depth int, maxEntries float64) error {
@@ -68,6 +67,14 @@ func GetTree(fsys fs.FS, cfg TreeConfig) ([]string, error) {
 			return entries[i].Name() < entries[j].Name()
 		})
 
+		if !cfg.DisableGitIgnore {
+			patterns, err := fsgitignore.ParseIgnoreFiles(fsys, currentPath)
+			if err != nil {
+				return err
+			}
+			ignorePatterns = append(ignorePatterns, patterns...)
+		}
+
 		var removed int
 		if maxEntries > 0 && int(maxEntries) < len(entries) {
 			removed += len(entries) - int(maxEntries)
@@ -80,7 +87,7 @@ func GetTree(fsys fs.FS, cfg TreeConfig) ([]string, error) {
 				continue
 			}
 			subPath := filepath.Join(currentPath, entry.Name())
-			if ignorer.Match(fsgitignore.Split(subPath), entry.IsDir()) {
+			if gitignore.NewMatcher(ignorePatterns).Match(fsgitignore.Split(subPath), entry.IsDir()) {
 				continue
 			}
 			displayEntries = append(displayEntries, entry)
