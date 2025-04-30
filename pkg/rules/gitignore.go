@@ -6,7 +6,7 @@ import (
 
 	"github.com/go-git/go-git/v5/plumbing/format/gitignore"
 
-	"github.com/upsun/whatsun/internal/fsgitignore"
+	"github.com/upsun/whatsun/pkg/fsgitignore"
 )
 
 type Ignorer interface {
