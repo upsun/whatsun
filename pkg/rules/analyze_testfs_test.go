@@ -92,6 +92,8 @@ func TestAnalyze_TestFS_ActualRules(t *testing.T) {
 
 	assert.EqualValues(t, []rules.Report{
 		// Build tool results.
+		{Ruleset: "build_tools", Path: "configured-app", Result: "platformsh-app", Rules: []string{"platformsh-app"},
+			With: map[string]rules.ReportValue{"name": {Value: "app"}}, Groups: []string{"cloud"}},
 		{Ruleset: "build_tools", Path: "rake", Result: "rake", Rules: []string{"rake"}, Groups: []string{"ruby"}},
 
 		// Framework results.
@@ -99,8 +101,6 @@ func TestAnalyze_TestFS_ActualRules(t *testing.T) {
 			With: map[string]rules.ReportValue{"version": {Value: "7.2.3"}}, Groups: []string{"php", "symfony"}},
 		{Ruleset: "frameworks", Path: "ambiguous", Result: "gatsby", Rules: []string{"gatsby"},
 			With: map[string]rules.ReportValue{"version": {Value: ""}}, Groups: []string{"js"}},
-		{Ruleset: "frameworks", Path: "configured-app", Result: "platformsh-app", Rules: []string{"platformsh-app"},
-			With: map[string]rules.ReportValue{"name": {Value: "app"}}, Groups: []string{"cloud"}},
 		{Ruleset: "frameworks", Path: "eleventy", Result: "eleventy", Rules: []string{"eleventy"},
 			With: map[string]rules.ReportValue{"version": {Value: ""}}, Groups: []string{"js", "static"}},
 

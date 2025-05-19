@@ -55,3 +55,10 @@ build_tools:
       when: fs.fileExists("fabfile.py")
       then: fabric
       group: python
+
+    platformsh-app:
+      when: fs.fileExists(".platform.app.yaml")
+      then: platformsh-app
+      with:
+        name: yq(fs.read(".platform.app.yaml"), ".name")
+      group: cloud
