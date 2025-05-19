@@ -41,7 +41,8 @@ Options (these may change):
 * `-json`: Print output in JSON format
 * `-no-meta`: Skip calculating and returning metadata
 * `-rulesets string`: A directory containing custom rulesets, replacing the [default ones](config)
-* `-simple`: Only output a simple list of results per path, with no other context.
+* `-simple`: Only output a simple list of results per path, with no other context
+* `-tree`: Only output a file tree
 
 ## Configuration and contributions
 

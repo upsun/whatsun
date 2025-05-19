@@ -16,10 +16,10 @@ import (
 	"github.com/google/cel-go/common/types"
 	"golang.org/x/sync/errgroup"
 
-	"github.com/upsun/whatsun/internal/fsgitignore"
-	"github.com/upsun/whatsun/internal/searchfs"
 	"github.com/upsun/whatsun/pkg/eval"
 	"github.com/upsun/whatsun/pkg/eval/celfuncs"
+	"github.com/upsun/whatsun/pkg/fsgitignore"
+	"github.com/upsun/whatsun/pkg/searchfs"
 )
 
 type AnalyzerConfig struct {
@@ -125,7 +125,7 @@ func (a *Analyzer) Analyze(ctx context.Context, fsys fs.FS, root string) ([]Repo
 }
 
 func (a *Analyzer) collectDirectories(ctx context.Context, fsys fs.FS, root string, dirChan chan<- string) error {
-	var ignorePatterns = defaultIgnorePatterns
+	var ignorePatterns = fsgitignore.GetDefaultIgnorePatterns()
 	if len(a.cnf.IgnoreDirs) > 0 {
 		ignorePatterns = append(ignorePatterns, fsgitignore.ParsePatterns(a.cnf.IgnoreDirs, fsgitignore.Split(root))...)
 	}

@@ -47,6 +47,4 @@ virtualenv/
 # Misc.
 .cache/
 _asm/
-
-# TODO remove this when it can be parsed from e.g. composer.json
 vendor/
