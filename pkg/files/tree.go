@@ -86,7 +86,8 @@ func GetTree(fsys fs.FS, cfg TreeConfig) ([]string, error) {
 		}
 
 		var removed int
-		if maxEntries > 0 && int(maxEntries) < len(entries) {
+		// Tolerate exceeding the max by +1, to avoid printing a redundant "1 more" line.
+		if maxEntries > 0 && len(entries) > int(maxEntries)+1 {
 			removed += len(entries) - int(maxEntries)
 			entries = entries[:int(maxEntries)]
 		}

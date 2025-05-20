@@ -112,7 +112,7 @@ func TestGetTree_MaxEntriesPerLevel(t *testing.T) {
 		"│ ├ fileA.txt",
 		"│ ├ fileB.txt",
 		"│ ├ fileC.txt",
-		"│ └ ... (1 more)",
+		"│ └ fileD.txt",
 		"├ fileA.txt",
 		"├ fileB.txt",
 		"├ fileC.txt",
