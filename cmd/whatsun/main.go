@@ -3,8 +3,8 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"flag"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -13,7 +13,9 @@ import (
 	"time"
 
 	"github.com/IGLOU-EU/go-wildcard/v2"
+	"github.com/fatih/color"
 	"github.com/jedib0t/go-pretty/v6/table"
+	"github.com/spf13/cobra"
 
 	"github.com/upsun/whatsun"
 	"github.com/upsun/whatsun/pkg/eval"
@@ -21,67 +23,117 @@ import (
 	"github.com/upsun/whatsun/pkg/rules"
 )
 
-var ignore = flag.String("ignore", "",
-	"Comma-separated list of paths (or patterns) to ignore, adding to defaults")
-var customRulesets = flag.String("rulesets", "",
-	"Path to a custom ruleset directory (replacing the default embedded rulesets)")
-var filter = flag.String("filter", "",
-	"Filter the rulesets to ones matching the wildcard pattern(s), separated by commas")
-var asJSON = flag.Bool("json", false, "Print output in JSON format")
-var noMetadata = flag.Bool("no-meta", false, "Skip calculating and returning metadata.")
-var simple = flag.Bool("simple", false,
-	"Only output a simple list of results per path, with no metadata or other context.")
-var tree = flag.Bool("tree", false, "Only output a file tree")
-
 func main() {
-	flag.Parse()
-	path := "."
-	if flag.NArg() > 0 {
-		path = flag.Arg(0)
-	}
-	absPath, err := filepath.Abs(path)
-	if err != nil {
-		fatalErr(err)
+	var cnf = &config{}
+	var cmd = &cobra.Command{
+		Use:   "whatsun [path]",
+		Short: "Analyze a code repository",
+		Args:  cobra.RangeArgs(0, 1),
+		ValidArgsFunction: func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
+			return nil, cobra.ShellCompDirectiveFilterDirs
+		},
+		SilenceErrors: true,
+		SilenceUsage:  true,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "."
+			if len(args) > 0 {
+				path = args[0]
+			}
+			absPath, err := filepath.Abs(path)
+			if err != nil {
+				return err
+			}
+			cnf.path = absPath
+
+			return run(
+				cmd.Context(),
+				cnf,
+				cmd.OutOrStdout(),
+				cmd.ErrOrStderr(),
+			)
+		},
 	}
 
-	if *tree {
-		result, err := files.GetTree(os.DirFS(absPath), files.MinimalTreeConfig)
+	// Add flags to the command
+	cmd.Flags().StringVar(&cnf.customRulesets, "rulesets", "",
+		"Path to a custom ruleset directory (replacing the default embedded rulesets)")
+	cmd.Flags().StringSliceVar(&cnf.ignore, "ignore", []string{},
+		"Paths (or patterns) to ignore, adding to defaults")
+	cmd.Flags().StringSliceVar(&cnf.filter, "filter", []string{},
+		"Filter the rulesets to ones matching the wildcard pattern(s)")
+	cmd.Flags().BoolVar(&cnf.asJSON, "json", false,
+		"Print output in JSON format")
+	cmd.Flags().BoolVar(&cnf.noMetadata, "no-meta", false,
+		"Skip calculating and returning metadata.")
+	cmd.Flags().BoolVar(&cnf.simple, "simple", false,
+		"Only output a simple list of results per path, with no metadata or other context.")
+	cmd.Flags().BoolVar(&cnf.tree, "tree", false,
+		"Only output a file tree")
+
+	if err := cmd.Execute(); err != nil {
+		fmt.Println(color.RedString(err.Error()))
+		os.Exit(1)
+	}
+}
+
+func isEmpty(v any) bool {
+	if v == nil || v == "" {
+		return true
+	}
+	val := reflect.ValueOf(v)
+	return val.IsZero() || val.Len() == 0
+}
+
+type config struct {
+	path           string
+	ignore         []string
+	customRulesets string
+	filter         []string
+	asJSON         bool
+	noMetadata     bool
+	simple         bool
+	tree           bool
+}
+
+func run(ctx context.Context, cnf *config, stdout, stderr io.Writer) error {
+	if cnf.tree {
+		result, err := files.GetTree(os.DirFS(cnf.path), files.MinimalTreeConfig)
 		if err != nil {
-			fatalErr(err)
+			return err
 		}
-		fmt.Fprintln(os.Stdout, strings.Join(result, "\n"))
-		return
+		fmt.Fprintln(stdout, strings.Join(result, "\n"))
+		return nil
 	}
 
 	var analyzerConfig = &rules.AnalyzerConfig{
-		IgnoreDirs:      strings.Split(*ignore, ","),
-		DisableMetadata: *noMetadata || *simple,
+		IgnoreDirs:      cnf.ignore,
+		DisableMetadata: cnf.noMetadata || cnf.simple,
 	}
 	var rulesets []rules.RulesetSpec
-	if *customRulesets != "" {
+	if cnf.customRulesets != "" {
 		var err error
-		dirName, fileName := filepath.Split(*customRulesets)
+		dirName, fileName := filepath.Split(cnf.customRulesets)
 		if dirName == "" {
 			dirName = "."
 		}
 		rulesets, err = rules.LoadFromYAMLDir(os.DirFS(dirName), fileName)
 		if err != nil {
-			fatalf("failed to load custom rulesets: %v", err)
+			return fmt.Errorf("failed to load custom rulesets: %v", err)
 		}
 		if len(rulesets) == 0 {
-			fatalf("no rulesets found in directory: %s", *customRulesets)
+			return fmt.Errorf("no rulesets found in directory: %s", cnf.customRulesets)
 		}
 		userCacheDir, err := os.UserCacheDir()
 		if err != nil {
-			fatalf("failed to get user cache dir: %v", err)
+			return fmt.Errorf("failed to get user cache dir: %v", err)
 		}
 		cacheDir := filepath.Join(userCacheDir, "whatsun")
 		if err := os.MkdirAll(cacheDir, 0700); err != nil {
-			fatalf("failed to create cache dir: %v", err)
+			return fmt.Errorf("failed to create cache dir: %v", err)
 		}
 		cache, err := eval.NewFileCache(filepath.Join(cacheDir, "expr.cache"))
 		if err != nil {
-			fatalf("failed to create file cache: %v", err)
+			return fmt.Errorf("failed to create file cache: %v", err)
 		}
 		defer cache.Save() //nolint:errcheck
 		analyzerConfig.CELExpressionCache = cache
@@ -89,20 +141,19 @@ func main() {
 		var err error
 		rulesets, err = whatsun.LoadRulesets()
 		if err != nil {
-			fatalErr(err)
+			return err
 		}
 		exprCache, err := whatsun.LoadExpressionCache()
 		if err != nil {
-			fatalErr(err)
+			return err
 		}
 		analyzerConfig.CELExpressionCache = exprCache
 	}
 
-	if *filter != "" {
-		patterns := strings.Split(*filter, ",")
+	if len(cnf.filter) > 0 {
 		var filtered = make([]rules.RulesetSpec, 0, len(rulesets))
 		for _, rs := range rulesets {
-			for _, p := range patterns {
+			for _, p := range cnf.filter {
 				if wildcard.Match(strings.TrimSpace(p), rs.GetName()) {
 					filtered = append(filtered, rs)
 					break
@@ -113,33 +164,32 @@ func main() {
 	}
 
 	if len(rulesets) == 0 {
-		fatalf("No rulesets found")
+		return fmt.Errorf("no rulesets found")
 	}
 
 	analyzer, err := rules.NewAnalyzer(rulesets, analyzerConfig)
 	if err != nil {
-		fatalErr(err)
+		return err
 	}
 
 	start := time.Now()
 
-	reports, err := analyzer.Analyze(context.Background(), os.DirFS(absPath), ".")
+	reports, err := analyzer.Analyze(ctx, os.DirFS(cnf.path), ".")
 	if err != nil {
-		fatalf("analysis failed: %v", err)
+		return fmt.Errorf("analysis failed: %v", err)
 	}
 
 	if len(reports) == 0 {
-		if *asJSON {
-			fmt.Fprint(os.Stdout, "[]\n")
-			return
+		if cnf.asJSON {
+			fmt.Fprintln(stdout, "[]")
+			return nil
 		}
-		fatalf("No results found")
-		return
+		return fmt.Errorf("no results found")
 	}
 
 	calcTime := time.Since(start)
 
-	if *simple {
+	if cnf.simple {
 		pathResults := map[string][]string{} // Map of path to results.
 		for _, report := range reports {
 			if report.Maybe {
@@ -153,19 +203,19 @@ func main() {
 		}
 		sort.Strings(paths)
 		for _, path := range paths {
-			fmt.Fprintf(os.Stdout, "%s\t%s\n", path, strings.Join(pathResults[path], ", "))
+			fmt.Fprintf(stdout, "%s\t%s\n", path, strings.Join(pathResults[path], ", "))
 		}
-		return
+		return nil
 	}
 
-	if *asJSON {
-		if err := json.NewEncoder(os.Stdout).Encode(reports); err != nil {
-			fatalErr(err)
+	if cnf.asJSON {
+		if err := json.NewEncoder(stdout).Encode(reports); err != nil {
+			return err
 		}
-		return
+		return nil
 	}
 
-	fmt.Fprintf(os.Stderr, "Received result in %s:\n", calcTime)
+	fmt.Fprintf(stderr, "Received result in %s:\n", calcTime)
 
 	var byRuleset = make(map[string][]rules.Report)
 	for _, report := range reports {
@@ -179,10 +229,10 @@ func main() {
 	sort.Strings(names)
 
 	for _, name := range names {
-		fmt.Fprintln(os.Stdout, "\nRuleset:", name)
+		fmt.Fprintln(stdout, "\nRuleset:", name)
 		tbl := table.NewWriter()
-		tbl.SetOutputMirror(os.Stdout)
-		if *noMetadata {
+		tbl.SetOutputMirror(stdout)
+		if cnf.noMetadata {
 			tbl.AppendHeader(table.Row{"Path", "Result", "Groups"})
 		} else {
 			tbl.AppendHeader(table.Row{"Path", "Result", "Groups", "With"})
@@ -201,7 +251,7 @@ func main() {
 				}
 				with = strings.TrimSpace(with)
 			}
-			if *noMetadata {
+			if cnf.noMetadata {
 				tbl.AppendRow(table.Row{report.Path, report.Result, strings.Join(report.Groups, ", ")})
 			} else {
 				tbl.AppendRow(table.Row{report.Path, report.Result, strings.Join(report.Groups, ", "), with})
@@ -209,21 +259,6 @@ func main() {
 		}
 		tbl.Render()
 	}
-}
 
-func fatalErr(err error) {
-	fatalf("%v", err)
-}
-
-func fatalf(msg string, args ...interface{}) {
-	fmt.Fprintf(os.Stderr, msg+"\n", args...)
-	os.Exit(1)
-}
-
-func isEmpty(v any) bool {
-	if v == nil || v == "" {
-		return true
-	}
-	val := reflect.ValueOf(v)
-	return val.IsZero() || val.Len() == 0
+	return nil
 }
