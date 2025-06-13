@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -35,15 +36,10 @@ func main() {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			path := "."
+			cnf.path = "."
 			if len(args) > 0 {
-				path = args[0]
+				cnf.path = args[0]
 			}
-			absPath, err := filepath.Abs(path)
-			if err != nil {
-				return err
-			}
-			cnf.path = absPath
 
 			return run(
 				cmd.Context(),
@@ -96,8 +92,32 @@ type config struct {
 }
 
 func run(ctx context.Context, cnf *config, stdout, stderr io.Writer) error {
+	note := func(format string, args ...any) {
+		fmt.Fprintf(stderr, strings.TrimRight(color.CyanString(format+"\n"), "\n"), args...)
+	}
+
+	var (
+		fsys fs.FS
+		err  error
+	)
+	if files.IsLocal(cnf.path) {
+		note("Processing local path: %s", cnf.path)
+		fsys, err = files.LocalFS(cnf.path)
+		if err != nil {
+			return err
+		}
+	} else {
+		preClone := time.Now()
+		note("Cloning remote repository (into memory): %s", cnf.path)
+		fsys, err = files.Clone(ctx, cnf.path, "")
+		if err != nil {
+			return err
+		}
+		note("Cloned repository in %v", time.Since(preClone).Truncate(time.Millisecond))
+	}
+
 	if cnf.tree {
-		result, err := files.GetTree(os.DirFS(cnf.path), files.MinimalTreeConfig)
+		result, err := files.GetTree(fsys, files.MinimalTreeConfig)
 		if err != nil {
 			return err
 		}
@@ -174,7 +194,7 @@ func run(ctx context.Context, cnf *config, stdout, stderr io.Writer) error {
 
 	start := time.Now()
 
-	reports, err := analyzer.Analyze(ctx, os.DirFS(cnf.path), ".")
+	reports, err := analyzer.Analyze(ctx, fsys, ".")
 	if err != nil {
 		return fmt.Errorf("analysis failed: %v", err)
 	}
