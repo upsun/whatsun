@@ -219,10 +219,16 @@ func (a *Analyzer) matchToReport(input any, match Match, path, rulesetName strin
 	}
 
 	var groupMap = make(map[string]struct{})
+	var readFilesMap = make(map[string]struct{})
 	for i, rule := range match.Rules {
 		if rg, ok := rule.(WithGroups); ok {
 			for _, g := range rg.GetGroups() {
 				groupMap[g] = struct{}{}
+			}
+		}
+		if rf, ok := rule.(WithReadFiles); ok {
+			for _, f := range rf.GetReadFiles() {
+				readFilesMap[f] = struct{}{}
 			}
 		}
 		rep.Rules[i] = rule.GetName()
@@ -245,6 +251,8 @@ func (a *Analyzer) matchToReport(input any, match Match, path, rulesetName strin
 	}
 	rep.Groups = sortedMapKeys(groupMap)
 	slices.Sort(rep.Rules)
+	rep.ReadFiles = sortedMapKeys(readFilesMap)
+	slices.Sort(rep.ReadFiles)
 
 	return rep
 }

@@ -25,10 +25,12 @@ package_managers:
       when: fs.fileExists("deno.json") || fs.fileExists("deno.lock")
       then: deno
       group: js
+      read_files: [deno.json]
     js-packages:
       when: fs.fileExists("package.json")
       maybe: [npm, pnpm, yarn, bun]
       group: js
+      read_files: [package.json]
 
     composer:
       when: fs.fileExists("composer.json")
@@ -38,6 +40,7 @@ package_managers:
       ignore:
         - modules/
       group: php
+      read_files: [composer.json]
 
     pip:
       when: fs.fileExists("requirements.txt")

@@ -37,13 +37,13 @@ Then run it with: `whatsun [path]`
 
 Options (these may change):
 * `--help` (`-h`): Display command help
-* `--filter strings`: Filter the rulesets to ones matching the wildcard pattern(s), separated by commas
-* `--ignore strings`: Comma-separated list of directory paths to ignore, adding to defaults
-* `--json`: Print output in JSON format
-* `--no-meta`: Skip calculating and returning metadata
-* `--rulesets string`: A directory containing custom rulesets, replacing the [default ones](config)
-* `--simple`: Only output a simple list of results per path, with no other context
-* `--tree`: Only output a file tree
+* `--ignore strings`: Paths (or patterns) to ignore, adding to defaults.
+* `--digest`: Output a digest of the repository including the file tree, reports, and the contents of selected files.
+* `--tree`: Only output a file tree.
+* `--rulesets string`: Path to a custom ruleset directory (replacing the [default ones](config)).
+* `--filter strings`: Filter the rulesets to ones matching the wildcard pattern(s).
+* `--no-meta`: Skip calculating and returning metadata.
+* `--json`: Print output in JSON format. Ignored if --digest is set.
 
 ## Configuration and contributions
 

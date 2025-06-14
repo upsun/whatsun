@@ -35,6 +35,8 @@ type Rule struct {
 	GroupList YAMLListOrString `yaml:"group"`
 
 	Ignore YAMLListOrString `yaml:"ignore"`
+
+	ReadFiles []string `yaml:"read_files"`
 }
 
 func (r *Rule) GetMetadata() map[string]string {
@@ -65,6 +67,10 @@ func (r *Rule) GetIgnores() []string {
 	return r.Ignore
 }
 
+func (r *Rule) GetReadFiles() []string {
+	return r.ReadFiles
+}
+
 // WithMaybeResults adds to a RuleSpec the possibility of a rule having uncertain results.
 type WithMaybeResults interface {
 	GetMaybeResults() []string
@@ -78,4 +84,8 @@ type WithGroups interface {
 // WithMetadata adds to a RuleSpec the feature of a rule having metadata.
 type WithMetadata interface {
 	GetMetadata() map[string]string
+}
+
+type WithReadFiles interface {
+	GetReadFiles() []string
 }

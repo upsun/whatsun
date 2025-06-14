@@ -209,12 +209,14 @@ frameworks:
       with:
         version: fs.depVersion("php", "drupal/drupal")
       group: php
+      read_files: [ sites/default/settings.php ]
 
     # Drupal (detection when installed without Composer).
     drupal-direct:
       when: fs.fileExists("index.php") && fs.fileContains("index.php", "drupal_bootstrap(DRUPAL_BOOTSTRAP_FULL);")
       then: drupal
       group: php
+      read_files: [ sites/default/settings.php ]
 
     # Any Composer "project" requiring a Symfony dependency.
     symfony-project:
@@ -228,6 +230,7 @@ frameworks:
       with:
         version: fs.depVersion("php", "symfony/framework-bundle")
       group: [php, symfony]
+      read_files: [compose.yaml]
 
     laravel-framework:
       when: fs.depExists("php", "laravel/framework")
@@ -263,6 +266,7 @@ frameworks:
       with:
         version: fs.depVersion("php", "wordpress/wordpress")
       group: php
+      read_files: [wp-config.php]
 
     matomo: # Matomo (formerly Piwik) analytics app. See: https://matomo.org/
       when: fs.fileExists("matomo.php") || (fs.fileExists("config/config.ini.php") && fs.fileContains("config/config.ini.php", "Matomo"))
@@ -469,6 +473,7 @@ frameworks:
       with:
         version: fs.depVersion("ruby", "rails")
       group: ruby
+      read_files: [config/database.yml]
 
     jekyll:
       when: fs.depExists("ruby", "jekyll")

@@ -13,8 +13,9 @@ type Report struct {
 
 	Maybe bool `json:"maybe,omitempty"`
 
-	Groups []string               `json:"groups,omitempty"`
-	With   map[string]ReportValue `json:"with,omitempty"`
+	Groups    []string               `json:"groups,omitempty"`
+	ReadFiles []string               `json:"read_files,omitempty"`
+	With      map[string]ReportValue `json:"with,omitempty"`
 }
 
 // ReportValue contains a reported value or an error message.

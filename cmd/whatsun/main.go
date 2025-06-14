@@ -51,20 +51,20 @@ func main() {
 	}
 
 	// Add flags to the command
-	cmd.Flags().StringVar(&cnf.customRulesets, "rulesets", "",
-		"Path to a custom ruleset directory (replacing the default embedded rulesets)")
+	cmd.Flags().BoolVar(&cnf.digest, "digest", false,
+		"Output a digest of the repository including the file tree, reports, and the contents of selected files.")
 	cmd.Flags().StringSliceVar(&cnf.ignore, "ignore", []string{},
-		"Paths (or patterns) to ignore, adding to defaults")
-	cmd.Flags().StringSliceVar(&cnf.filter, "filter", []string{},
-		"Filter the rulesets to ones matching the wildcard pattern(s)")
+		"Paths (or patterns) to ignore, adding to defaults.")
 	cmd.Flags().BoolVar(&cnf.asJSON, "json", false,
-		"Print output in JSON format")
+		"Print output in JSON format. Ignored if --digest is set.")
 	cmd.Flags().BoolVar(&cnf.noMetadata, "no-meta", false,
 		"Skip calculating and returning metadata.")
-	cmd.Flags().BoolVar(&cnf.simple, "simple", false,
-		"Only output a simple list of results per path, with no metadata or other context.")
+	cmd.Flags().StringVar(&cnf.customRulesets, "rulesets", "",
+		"Path to a custom ruleset directory (replacing the default embedded rulesets).")
+	cmd.Flags().StringSliceVar(&cnf.filter, "filter", []string{},
+		"Filter the rulesets to ones matching the wildcard pattern(s).")
 	cmd.Flags().BoolVar(&cnf.tree, "tree", false,
-		"Only output a file tree")
+		"Only output a file tree.")
 
 	if err := cmd.Execute(); err != nil {
 		fmt.Println(color.RedString(err.Error()))
@@ -87,7 +87,7 @@ type config struct {
 	filter         []string
 	asJSON         bool
 	noMetadata     bool
-	simple         bool
+	digest         bool
 	tree           bool
 }
 
@@ -97,8 +97,9 @@ func run(ctx context.Context, cnf *config, stdout, stderr io.Writer) error {
 	}
 
 	var (
-		fsys fs.FS
-		err  error
+		fsys             fs.FS
+		err              error
+		disableGitIgnore bool
 	)
 	if files.IsLocal(cnf.path) {
 		note("Processing local path: %s", cnf.path)
@@ -114,6 +115,7 @@ func run(ctx context.Context, cnf *config, stdout, stderr io.Writer) error {
 			return err
 		}
 		note("Cloned repository in %v", time.Since(preClone).Truncate(time.Millisecond))
+		disableGitIgnore = true
 	}
 
 	if cnf.tree {
@@ -126,8 +128,9 @@ func run(ctx context.Context, cnf *config, stdout, stderr io.Writer) error {
 	}
 
 	var analyzerConfig = &rules.AnalyzerConfig{
-		IgnoreDirs:      cnf.ignore,
-		DisableMetadata: cnf.noMetadata || cnf.simple,
+		IgnoreDirs:       cnf.ignore,
+		DisableMetadata:  cnf.noMetadata,
+		DisableGitIgnore: disableGitIgnore,
 	}
 	var rulesets []rules.RulesetSpec
 	if cnf.customRulesets != "" {
@@ -187,12 +190,31 @@ func run(ctx context.Context, cnf *config, stdout, stderr io.Writer) error {
 		return fmt.Errorf("no rulesets found")
 	}
 
+	if cnf.digest {
+		digestCnf, err := files.DefaultDigestConfig()
+		if err != nil {
+			return err
+		}
+		digestCnf.DisableGitIgnore = disableGitIgnore
+		digestCnf.IgnoreFiles = cnf.ignore
+		digestCnf.Rulesets = rulesets
+		digester, err := files.NewDigester(fsys, digestCnf)
+		if err != nil {
+			return err
+		}
+		digest, err := digester.GetDigest(ctx)
+		if err != nil {
+			return err
+		}
+		return json.NewEncoder(stdout).Encode(digest)
+	}
+
+	start := time.Now()
+
 	analyzer, err := rules.NewAnalyzer(rulesets, analyzerConfig)
 	if err != nil {
 		return err
 	}
-
-	start := time.Now()
 
 	reports, err := analyzer.Analyze(ctx, fsys, ".")
 	if err != nil {
@@ -208,25 +230,6 @@ func run(ctx context.Context, cnf *config, stdout, stderr io.Writer) error {
 	}
 
 	calcTime := time.Since(start)
-
-	if cnf.simple {
-		pathResults := map[string][]string{} // Map of path to results.
-		for _, report := range reports {
-			if report.Maybe {
-				continue
-			}
-			pathResults[report.Path] = append(pathResults[report.Path], report.Result)
-		}
-		paths := make([]string, 0, len(pathResults))
-		for path := range pathResults {
-			paths = append(paths, path)
-		}
-		sort.Strings(paths)
-		for _, path := range paths {
-			fmt.Fprintf(stdout, "%s\t%s\n", path, strings.Join(pathResults[path], ", "))
-		}
-		return nil
-	}
 
 	if cnf.asJSON {
 		if err := json.NewEncoder(stdout).Encode(reports); err != nil {
