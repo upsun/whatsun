@@ -6,6 +6,8 @@ import (
 	"io"
 	"io/fs"
 	"path/filepath"
+	"slices"
+	"strings"
 	"syscall"
 
 	"github.com/go-git/go-git/v5/plumbing/format/gitignore"
@@ -41,17 +43,19 @@ func ReadMultiple(fsys fs.FS, maxLength int, patterns ...string) ([]FileData, er
 		return nil, err
 	}
 
-	var globMatches []string
+	var globMatches = make(map[string]struct{})
 	for _, p := range patterns {
 		m, err := fs.Glob(fsys, p)
 		if err != nil {
 			return nil, err
 		}
-		globMatches = append(globMatches, m...)
+		for _, match := range m {
+			globMatches[match] = struct{}{}
+		}
 	}
 
 	var contents = make([]FileData, 0, len(globMatches))
-	for _, name := range globMatches {
+	for name := range globMatches {
 		f, err := fsys.Open(name)
 		if err != nil {
 			if errors.Is(err, fs.ErrNotExist) || errors.Is(err, fs.ErrPermission) {
@@ -86,6 +90,11 @@ func ReadMultiple(fsys fs.FS, maxLength int, patterns ...string) ([]FileData, er
 			Truncated: truncated,
 		})
 	}
+
+	slices.SortFunc(contents, func(a, b FileData) int {
+		return strings.Compare(a.Name, b.Name)
+	})
+
 	return contents, nil
 }
 

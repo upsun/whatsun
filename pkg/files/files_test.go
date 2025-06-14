@@ -254,19 +254,19 @@ func TestReadMultiple(t *testing.T) {
 			name:      "empty file",
 			fsys:      testFS,
 			maxLength: 100,
-			filenames: []string{"file1.txt", "empty.txt", "file2.txt"},
+			filenames: []string{"file*.txt", "empty.txt", "file2.txt"},
 			want: []files.FileData{
-				{
-					Name:      "file1.txt",
-					Content:   file1Content,
-					Size:      int64(len(file1Content)),
-					Truncated: false,
-					Cleaned:   false,
-				},
 				{
 					Name:      "empty.txt",
 					Content:   emptyContent,
 					Size:      int64(len(emptyContent)),
+					Truncated: false,
+					Cleaned:   false,
+				},
+				{
+					Name:      "file1.txt",
+					Content:   file1Content,
+					Size:      int64(len(file1Content)),
 					Truncated: false,
 					Cleaned:   false,
 				},
