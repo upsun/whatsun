@@ -81,7 +81,7 @@ func (d *Digester) GetDigest(_ context.Context) (*Digest, error) {
 func customReadFiles(reports []rules.Report) []string {
 	var readFiles []string
 	for _, report := range reports {
-		for _, f := range defaultReadFiles {
+		for _, f := range append(defaultReadFiles, report.ReadFiles...) {
 			readFiles = append(readFiles, filepath.Join(report.Path, f))
 		}
 	}
