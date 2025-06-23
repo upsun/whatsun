@@ -247,7 +247,7 @@ frameworks:
       group: php
 
     laminas:
-      when: fs.depExists("php", "laminas/laminas-mvc")
+      when: fs.depExists("php", "laminas/laminas-mvc") && jq(fs.read("composer.json"), ".type") == "project"
       then: laminas
       with:
         version: fs.depVersion("php", "laminas/laminas-router")
@@ -408,6 +408,8 @@ frameworks:
       with:
         version: fs.depVersion("php", "magento/magento-composer-installer")
       group: php
+      ignore:
+        - Magento/
 
     gin:
       when: fs.depExists("go", "github.com/gin-gonic/gin")

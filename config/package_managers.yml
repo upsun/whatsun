@@ -38,7 +38,8 @@ package_managers:
       with:
         php_version: jq(fs.read("composer.json"), ".require.php")
       ignore:
-        - modules/
+        - modules/ # Drupal modules
+        - Magento/ # Magento plugins and themes
       group: php
       read_files: [composer.json]
 
