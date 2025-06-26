@@ -36,7 +36,7 @@ type Rule struct {
 
 	Ignore YAMLListOrString `yaml:"ignore"`
 
-	ReadFiles []string `yaml:"read_files"`
+	ReadFiles YAMLListOrString `yaml:"read_files"`
 }
 
 func (r *Rule) GetMetadata() map[string]string {

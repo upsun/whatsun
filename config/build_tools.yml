@@ -59,6 +59,9 @@ build_tools:
     platformsh-app:
       when: fs.fileExists(".platform.app.yaml")
       then: platformsh-app
-      with:
-        name: yq(fs.read(".platform.app.yaml"), ".name")
       group: cloud
+      ignore: .platform/local
+      read_files:
+        - .platform.app.yaml
+        - .platform/services.yaml
+        - .platform/routes.yaml

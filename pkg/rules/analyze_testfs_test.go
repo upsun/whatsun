@@ -104,7 +104,8 @@ func TestAnalyze_TestFS_ActualRules(t *testing.T) {
 	assert.EqualValues(t, []rules.Report{
 		// Build tool results.
 		{Ruleset: "build_tools", Path: "configured-app", Result: "platformsh-app", Rules: []string{"platformsh-app"},
-			With: map[string]rules.ReportValue{"name": {Value: "app"}}, Groups: []string{"cloud"}},
+			Groups:    []string{"cloud"},
+			ReadFiles: []string{".platform.app.yaml", ".platform/routes.yaml", ".platform/services.yaml"}},
 		{Ruleset: "build_tools", Path: "rake", Result: "rake", Rules: []string{"rake"}, Groups: []string{"ruby"}},
 
 		// Framework results.
