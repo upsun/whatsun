@@ -22,6 +22,7 @@ type FileCache struct {
 	exprCache sync.Map
 	filename  string
 	needsSave bool
+	mu        sync.Mutex
 }
 
 // NewFileCacheWithContent creates a FileCache with existing content, e.g. from an embedded file.
@@ -58,9 +59,12 @@ func NewFileCache(filename string) (*FileCache, error) {
 }
 
 func (c *FileCache) Save() error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	if !c.needsSave {
 		return nil
 	}
+	c.needsSave = false
 	if c.filename == "" {
 		return errors.New("no cache filename specified")
 	}
@@ -154,7 +158,9 @@ func (c *FileCache) Get(expr string) (*cel.Ast, bool) {
 }
 
 func (c *FileCache) Set(expr string, ast *cel.Ast) error {
+	c.mu.Lock()
 	c.needsSave = true
+	c.mu.Unlock() // the mutex guards needsSave but not exprCache
 	c.exprCache.Store(cleanExpr(expr), ast)
 	return nil
 }
