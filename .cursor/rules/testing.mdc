@@ -1,0 +1,12 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+When you need to run the project's unit tests, use:
+
+```
+make test
+```
+
+This uses the Makefile target to execute all unit tests.

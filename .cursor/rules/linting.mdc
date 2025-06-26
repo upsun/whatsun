@@ -1,0 +1,12 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+When you need to lint the project, run:
+
+```
+make lint
+```
+
+This uses the Makefile target to perform linting.
