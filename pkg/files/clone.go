@@ -18,7 +18,7 @@ import (
 )
 
 func IsLocal(gitURL string) bool {
-	return !strings.Contains(gitURL, "//")
+	return !strings.Contains(gitURL, "//") && !strings.HasPrefix(gitURL, "git@")
 }
 
 func LocalFS(path string) (fs.FS, error) {
