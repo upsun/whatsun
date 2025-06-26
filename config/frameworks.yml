@@ -462,11 +462,15 @@ frameworks:
     django:
       when: fs.depExists("python", "django")
       then: django
+      with:
+        version: fs.depVersion("python", "django")
       group: [python, django]
 
     wagtail: # Wagtail CMS. See: https://wagtail.org
       when: fs.depExists("python", "wagtail")
       then: wagtail
+      with:
+        version: fs.depVersion("python", "wagtail")
       group: [python, django]
 
     rails:

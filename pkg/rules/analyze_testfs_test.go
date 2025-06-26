@@ -1,6 +1,7 @@
 package rules_test
 
 import (
+	_ "embed"
 	"io/fs"
 	"testing"
 	"testing/fstest"
@@ -11,6 +12,12 @@ import (
 	"github.com/upsun/whatsun"
 	"github.com/upsun/whatsun/pkg/rules"
 )
+
+//go:embed testdata/mock-django/pyproject.toml
+var djangoPyProject []byte
+
+//go:embed testdata/mock-django/uv.lock
+var djangoUvLock []byte
 
 var testFs = fstest.MapFS{
 	".gitignore": &fstest.MapFile{Data: []byte("/git-ignored/\n" +
@@ -64,6 +71,10 @@ var testFs = fstest.MapFS{
 	"meteor/.meteor/versions":  &fstest.MapFile{},
 	"meteor/package-lock.json": &fstest.MapFile{},
 
+	// Python using uv.lock.
+	"python/pyproject.toml": &fstest.MapFile{Data: djangoPyProject},
+	"python/uv.lock":        &fstest.MapFile{Data: djangoUvLock},
+
 	// Additional directories to increase time taken.
 	"deep/1/2/3/4/5/composer.json":     &fstest.MapFile{Data: []byte("{}")},
 	"deep/a/b/c/d/e/package.json":      &fstest.MapFile{Data: []byte("{}")},
@@ -104,6 +115,8 @@ func TestAnalyze_TestFS_ActualRules(t *testing.T) {
 			With: map[string]rules.ReportValue{"version": {Value: ""}}, Groups: []string{"js"}},
 		{Ruleset: "frameworks", Path: "eleventy", Result: "eleventy", Rules: []string{"eleventy"},
 			With: map[string]rules.ReportValue{"version": {Value: ""}}, Groups: []string{"js", "static"}},
+		{Ruleset: "frameworks", Path: "python", Result: "django", Rules: []string{"django"},
+			With: map[string]rules.ReportValue{"version": {Value: "5.2.3"}}, Groups: []string{"django", "python"}},
 
 		// Package manager results.
 		{Ruleset: "package_managers", Path: ".", Result: "composer", Rules: []string{"composer"}, Groups: []string{"php"},
@@ -133,6 +146,8 @@ func TestAnalyze_TestFS_ActualRules(t *testing.T) {
 			Rules: []string{"meteor"}, Groups: []string{"js"}},
 		{Ruleset: "package_managers", Path: "meteor", Result: "npm",
 			Rules: []string{"npm-lockfile"}, Groups: []string{"js"}},
+		{Ruleset: "package_managers", Path: "python", Result: "uv",
+			Rules: []string{"uv"}, Groups: []string{"python"}},
 	}, reports)
 }
 

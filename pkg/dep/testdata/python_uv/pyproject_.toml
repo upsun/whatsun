@@ -1,0 +1,12 @@
+[project]
+name = "tmp-uvtest1"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "numpy==1.26.0",
+    "pandas>=2.2.0",
+    "python-dateutil>=2.8.0,<3.0.0",
+    "six>=1.15.0",
+]

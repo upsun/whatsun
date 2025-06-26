@@ -20,7 +20,8 @@ type pythonManager struct {
 	path string
 
 	initOnce     sync.Once
-	requirements map[string]string
+	requirements map[string]string // constraints from pyproject.toml, requirements.txt, etc.
+	resolved     map[string]string // resolved versions from uv.lock
 }
 
 func newPythonManager(fsys fs.FS, path string) Manager {
@@ -38,7 +39,11 @@ func (m *pythonManager) Init() error {
 	return err
 }
 
-func (m *pythonManager) parseFile(filename string, parseFunc func(io.Reader) (map[string]string, error)) error {
+func (m *pythonManager) parseFile(
+	filename string,
+	parseFunc func(io.Reader) (map[string]string, error),
+	targetMap *map[string]string,
+) error {
 	f, err := m.fsys.Open(filepath.Join(m.path, filename))
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
@@ -51,35 +56,55 @@ func (m *pythonManager) parseFile(filename string, parseFunc func(io.Reader) (ma
 	if err != nil {
 		return err
 	}
-	if m.requirements == nil {
-		m.requirements = make(map[string]string)
+	if *targetMap == nil {
+		*targetMap = make(map[string]string)
 	}
 	for k, v := range reqs {
-		m.requirements[k] = v
+		(*targetMap)[k] = v
 	}
 	return nil
 }
 
 func (m *pythonManager) parse() error {
-	if err := m.parseFile("requirements.txt", parseRequirementsTXT); err != nil {
+	// Always try to parse both pyproject.toml and uv.lock if present
+	if err := m.parseFile("pyproject.toml", parsePyprojectTOML, &m.requirements); err != nil {
 		return err
 	}
-	if err := m.parseFile("Pipfile", parsePipfile); err != nil {
+	if err := m.parseFile("uv.lock", parseUvLock, &m.resolved); err != nil {
 		return err
 	}
-	if err := m.parseFile("pyproject.toml", parsePyprojectTOML); err != nil {
-		return err
+	// Fallbacks for constraints if pyproject.toml is missing
+	if len(m.requirements) == 0 {
+		if err := m.parseFile("requirements.txt", parseRequirementsTXT, &m.requirements); err != nil {
+			return err
+		}
+		if err := m.parseFile("Pipfile", parsePipfile, &m.requirements); err != nil {
+			return err
+		}
 	}
 	return nil
 }
 
 func (m *pythonManager) Find(pattern string) []Dependency {
+	seen := make(map[string]struct{})
 	var deps []Dependency
+	// First, add all with constraints
 	for name, constraint := range m.requirements {
 		if wildcard.Match(pattern, name) {
 			deps = append(deps, Dependency{
 				Name:       name,
 				Constraint: constraint,
+				Version:    m.resolved[name],
+			})
+			seen[name] = struct{}{}
+		}
+	}
+	// Then, add any resolved-only deps not already included
+	for name, version := range m.resolved {
+		if _, already := seen[name]; !already && wildcard.Match(pattern, name) {
+			deps = append(deps, Dependency{
+				Name:    name,
+				Version: version,
 			})
 		}
 	}
@@ -87,17 +112,19 @@ func (m *pythonManager) Find(pattern string) []Dependency {
 }
 
 func (m *pythonManager) Get(name string) (Dependency, bool) {
-	constraint, ok := m.requirements[name]
-	if !ok {
+	constraint, hasConstraint := m.requirements[name]
+	version, hasVersion := m.resolved[name]
+	if !hasConstraint && !hasVersion {
 		return Dependency{}, false
 	}
 	return Dependency{
 		Name:       name,
 		Constraint: constraint,
+		Version:    version,
 	}, true
 }
 
-var pipPattern = regexp.MustCompile(`^([\w-]+)([<>=!~]+[\w.-]*)?$`)
+var pipPattern = regexp.MustCompile(`^([\w\-\.]+(?:\[[^\]]+\])?)(.*)$`)
 
 // parseRequirementsTXT parses a requirements.txt file
 func parseRequirementsTXT(r io.Reader) (map[string]string, error) {
@@ -185,6 +212,10 @@ func parsePyprojectTOML(r io.Reader) (map[string]string, error) {
 
 	// Handle PEP 508/621 dependencies (pip and Poetry 2.0)
 	for _, dep := range pyProject.Project.Dependencies {
+		dep = strings.TrimSpace(dep)
+		if dep == "" {
+			continue
+		}
 		matches := pipPattern.FindStringSubmatch(dep)
 		if len(matches) > 1 {
 			packageName := matches[1]
@@ -192,9 +223,33 @@ func parsePyprojectTOML(r io.Reader) (map[string]string, error) {
 			if len(matches) > 2 {
 				versionConstraint = matches[2]
 			}
-			dependencies[packageName] = versionConstraint
+			if packageName != "" {
+				dependencies[packageName] = versionConstraint
+			}
 		}
 	}
 
+	return dependencies, nil
+}
+
+// parseUvLock parses a uv.lock TOML file and extracts dependencies
+func parseUvLock(r io.Reader) (map[string]string, error) {
+	type UvPackage struct {
+		Name    string `toml:"name"`
+		Version string `toml:"version"`
+	}
+	type UvLock struct {
+		Packages []UvPackage `toml:"package"`
+	}
+
+	var lock UvLock
+	_, err := toml.NewDecoder(r).Decode(&lock)
+	if err != nil {
+		return nil, err
+	}
+	dependencies := make(map[string]string)
+	for _, pkg := range lock.Packages {
+		dependencies[pkg.Name] = pkg.Version
+	}
 	return dependencies, nil
 }

@@ -63,6 +63,11 @@ package_managers:
       then: poetry
       group: python
 
+    uv:
+      when: fs.fileExists("uv.lock")
+      then: uv
+      group: python
+
     bundler:
       when: fs.glob("Gemfile*").size() > 0
       then: bundler
