@@ -52,6 +52,11 @@ func (m *javaManager) parse() error {
 		return err
 	}
 	m.deps = append(m.deps, deps...)
+	deps, err = parseBuildSBT(m.fsys, m.path)
+	if err != nil {
+		return err
+	}
+	m.deps = append(m.deps, deps...)
 	return nil
 }
 
@@ -151,4 +156,86 @@ func parseBuildGradleGroovy(fsys fs.FS, path string) ([]Dependency, error) {
 
 func parseBuildGradleKotlin(fsys fs.FS, path string) ([]Dependency, error) {
 	return parseBuildGradle(fsys, path, "build.gradle.kts", gradleKotlinPatt)
+}
+
+func parseBuildSBT(fsys fs.FS, path string) ([]Dependency, error) {
+	f, err := fsys.Open(filepath.Join(path, "build.sbt"))
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	defer f.Close()
+
+	var deps []Dependency
+	scanner := bufio.NewScanner(f)
+	var currentLine strings.Builder
+
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+
+		// Skip empty lines and comments
+		if line == "" || strings.HasPrefix(line, "//") {
+			continue
+		}
+
+		// If we find a libraryDependencies line, start collecting
+		if strings.Contains(line, "libraryDependencies") {
+			currentLine.WriteString(line)
+
+			// If the line ends with a closing parenthesis, we have a complete declaration
+			if strings.HasSuffix(line, ")") {
+				deps = append(deps, parseSBTDependencies(currentLine.String())...)
+				currentLine.Reset()
+			}
+		} else if currentLine.Len() > 0 {
+			// Continue building the current line
+			currentLine.WriteString(" " + line)
+
+			// If we reach the end of the declaration
+			if strings.HasSuffix(line, ")") {
+				deps = append(deps, parseSBTDependencies(currentLine.String())...)
+				currentLine.Reset()
+			}
+		}
+	}
+
+	return deps, nil
+}
+
+func parseSBTDependencies(line string) []Dependency {
+	var deps []Dependency
+
+	// Pattern to match individual dependencies within SBT syntax
+	// Matches: "groupId" %% "artifactId" % "version" (Scala dependencies)
+	// and: "groupId" % "artifactId" % "version" (Java dependencies)
+	scalaDepPattern := regexp.MustCompile(`['"]([^'"]+)['"]\s*%%\s*['"]([^'"]+)['"]\s*%\s*['"]([^'"]+)['"]`)
+	javaDepPattern := regexp.MustCompile(`['"]([^'"]+)['"]\s*%\s*['"]([^'"]+)['"]\s*%\s*['"]([^'"]+)['"]`)
+
+	// Find Scala dependencies first
+	scalaMatches := scalaDepPattern.FindAllStringSubmatch(line, -1)
+	for _, match := range scalaMatches {
+		if len(match) == 4 {
+			deps = append(deps, Dependency{
+				Vendor:  match[1],
+				Name:    match[1] + ":" + match[2],
+				Version: match[3],
+			})
+		}
+	}
+
+	// Find Java dependencies
+	javaMatches := javaDepPattern.FindAllStringSubmatch(line, -1)
+	for _, match := range javaMatches {
+		if len(match) == 4 {
+			deps = append(deps, Dependency{
+				Vendor:  match[1],
+				Name:    match[1] + ":" + match[2],
+				Version: match[3],
+			})
+		}
+	}
+
+	return deps
 }

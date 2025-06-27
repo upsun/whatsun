@@ -112,3 +112,9 @@ package_managers:
       when: fs.isDir("quicklisp")
       then: quicklisp
       group: lisp
+
+    sbt:
+      when: fs.fileExists("build.sbt")
+      then: sbt
+      group: java
+      ignore: '*-plugin'

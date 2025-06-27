@@ -604,3 +604,8 @@ frameworks:
       with:
         version: fs.depVersion("elixir", "phoenix")
       group: elixir
+
+    play:
+      when: fs.depExists("java", "com.typesafe.play:*")
+      then: play
+      group: [java]
