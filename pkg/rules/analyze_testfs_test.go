@@ -73,8 +73,8 @@ var testFs = fstest.MapFS{
 
 	// Meteor and NPM directory ("conflicting").
 	"meteor/.meteor":           &fstest.MapFile{Mode: fs.ModeDir},
-	"meteor/.meteor/packages":  &fstest.MapFile{},
-	"meteor/.meteor/versions":  &fstest.MapFile{},
+	"meteor/.meteor/packages":  &fstest.MapFile{Data: []byte("meteor-base")},
+	"meteor/.meteor/versions":  &fstest.MapFile{Data: []byte("meteor-base@1.5.1")},
 	"meteor/package-lock.json": &fstest.MapFile{},
 
 	// Python using uv.lock.
@@ -127,6 +127,8 @@ func TestAnalyze_TestFS_ActualRules(t *testing.T) {
 			With: map[string]rules.ReportValue{"version": {Value: "8.0.0"}}, Groups: []string{"blazor", "dotnet"}},
 		{Ruleset: "frameworks", Path: "eleventy", Result: "eleventy", Rules: []string{"eleventy"},
 			With: map[string]rules.ReportValue{"version": {Value: ""}}, Groups: []string{"js", "static"}},
+		{Ruleset: "frameworks", Path: "meteor", Result: "meteor.js", Rules: []string{"meteor.js"},
+			With: map[string]rules.ReportValue{"version": {Value: "1.5.1"}}, Groups: []string{"js"}},
 		{Ruleset: "frameworks", Path: "python", Result: "django", Rules: []string{"django"},
 			With: map[string]rules.ReportValue{"version": {Value: "5.2.3"}}, Groups: []string{"django", "python"}},
 
