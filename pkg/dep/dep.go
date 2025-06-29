@@ -15,6 +15,7 @@ import (
 )
 
 const (
+	ManagerTypeDotnet     = "dotnet"
 	ManagerTypeElixir     = "elixir"
 	ManagerTypeGo         = "go"
 	ManagerTypeJava       = "java"
@@ -26,6 +27,7 @@ const (
 )
 
 var AllManagerTypes = []string{
+	ManagerTypeDotnet,
 	ManagerTypeElixir,
 	ManagerTypeGo,
 	ManagerTypeJava,
@@ -56,6 +58,7 @@ type Manager interface {
 }
 
 var managerFuncs = map[string]func(fs.FS, string) Manager{
+	ManagerTypeDotnet:     newDotnetManager,
 	ManagerTypeGo:         newGoManager,
 	ManagerTypeJava:       newJavaManager,
 	ManagerTypeJavaScript: newJSManager,

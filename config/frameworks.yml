@@ -604,3 +604,17 @@ frameworks:
       with:
         version: fs.depVersion("elixir", "phoenix")
       group: elixir
+
+    aspnetcore:
+      when: fs.depExists("dotnet", "Microsoft.AspNetCore.*")
+      then: aspnetcore
+      with:
+        version: fs.depVersion("dotnet", "Microsoft.AspNetCore.App")
+      group: [dotnet]
+
+    blazor:
+      when: fs.depExists("dotnet", "Microsoft.AspNetCore.Components.WebAssembly")
+      then: blazor
+      with:
+        version: fs.depVersion("dotnet", "Microsoft.AspNetCore.Components.WebAssembly")
+      group: [dotnet]
