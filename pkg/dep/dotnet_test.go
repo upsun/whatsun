@@ -4,6 +4,8 @@ import (
 	"os"
 	"testing"
 
+	"testing/fstest"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -123,7 +125,7 @@ func TestDotnetManagerWithoutLockFile(t *testing.T) {
 	assert.True(t, found)
 	assert.Equal(t, "Newtonsoft.Json", dep.Name)
 	assert.Equal(t, "13.0.1", dep.Constraint)
-	assert.Equal(t, "", dep.Version) // No lock file, so no resolved version
+	assert.Equal(t, "13.0.1", dep.Version) // Now returns constraint as version when it's specific
 }
 
 func TestDotnetManagerRegistration(t *testing.T) {
@@ -245,4 +247,54 @@ func TestDotnetManagerRealisticExample(t *testing.T) {
 	// Test non-existent package
 	_, found = manager.Get("NonExistentPackage")
 	assert.False(t, found)
+}
+
+func TestDotnetManagerWebAssemblyPackage(t *testing.T) {
+	fsys := fstest.MapFS{
+		"test.csproj": &fstest.MapFile{
+			Data: []byte(`<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="9.0.6" />
+  </ItemGroup>
+</Project>`),
+		},
+	}
+
+	manager := newDotnetManager(fsys, ".")
+	err := manager.Init()
+	assert.NoError(t, err)
+
+	dep, found := manager.Get("Microsoft.AspNetCore.Components.WebAssembly")
+	assert.True(t, found)
+	assert.Equal(t, "Microsoft.AspNetCore.Components.WebAssembly", dep.Name)
+	assert.Equal(t, "9.0.6", dep.Constraint)
+	assert.Equal(t, "9.0.6", dep.Version) // Now returns constraint as version when it's specific
+}
+
+func TestDotnetManagerVersionRange(t *testing.T) {
+	fsys := fstest.MapFS{
+		"test.csproj": &fstest.MapFile{
+			Data: []byte(`<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="[8.0.0,9.0.0)" />
+  </ItemGroup>
+</Project>`),
+		},
+	}
+
+	manager := newDotnetManager(fsys, ".")
+	err := manager.Init()
+	assert.NoError(t, err)
+
+	dep, found := manager.Get("Microsoft.AspNetCore.Components.WebAssembly")
+	assert.True(t, found)
+	assert.Equal(t, "Microsoft.AspNetCore.Components.WebAssembly", dep.Name)
+	assert.Equal(t, "[8.0.0,9.0.0)", dep.Constraint)
+	assert.Equal(t, "", dep.Version) // Should be empty for version ranges
 }

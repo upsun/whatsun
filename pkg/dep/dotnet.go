@@ -22,7 +22,10 @@ type dotnetManager struct {
 }
 
 type csprojFile struct {
-	XMLName    xml.Name `xml:"Project"`
+	XMLName       xml.Name `xml:"Project"`
+	PropertyGroup []struct {
+		TargetFramework string `xml:"TargetFramework"`
+	} `xml:"PropertyGroup"`
 	ItemGroups []struct {
 		PackageReferences []struct {
 			Include string `xml:"Include,attr"`
@@ -100,16 +103,36 @@ func (m *dotnetManager) Get(name string) (Dependency, bool) {
 		for _, itemGroup := range csproj.ItemGroups {
 			for _, pkgRef := range itemGroup.PackageReferences {
 				if pkgRef.Include == name {
+					version := m.getLockedVersion(pkgRef.Include)
+					if version == "" && m.isSpecificVersion(pkgRef.Version) {
+						version = pkgRef.Version
+					} else if version == "" {
+						version = ""
+					}
 					return Dependency{
 						Name:       pkgRef.Include,
 						Constraint: pkgRef.Version,
-						Version:    m.getLockedVersion(pkgRef.Include),
+						Version:    version,
 					}, true
 				}
 			}
 		}
 	}
 	return Dependency{}, false
+}
+
+// isSpecificVersion checks if a version string represents a specific version (not a range)
+func (m *dotnetManager) isSpecificVersion(version string) bool {
+	if version == "" {
+		return false
+	}
+	// Exclude NuGet range syntax: [1.0.0,2.0.0), (1.0.0,2.0.0], etc.
+	if strings.HasPrefix(version, "[") || strings.HasPrefix(version, "(") {
+		return false
+	}
+	// Check if it's a simple version number like "1.0.0" or "9.0.6"
+	// Exclude ranges like ">=1.0.0", "^1.0.0", "1.0.0-*", etc.
+	return !strings.ContainsAny(version, "><=^~*")
 }
 
 func (m *dotnetManager) Find(pattern string) []Dependency {
