@@ -623,8 +623,8 @@ frameworks:
 
     # Regular ASP.NET Core (non-Blazor web apps)
     aspnetcore:
-      when: fs.depExists("dotnet", "Microsoft.AspNetCore.*") && 
-            !fs.depExists("dotnet", "Microsoft.AspNetCore.Components.*")
+      when: >
+        fs.depExists("dotnet", "Microsoft.AspNetCore.*") && !fs.depExists("dotnet", "Microsoft.AspNetCore.Components.*")
       then: aspnetcore
       with:
         version: fs.depVersion("dotnet", "Microsoft.AspNetCore.App")
