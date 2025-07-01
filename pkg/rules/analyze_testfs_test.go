@@ -13,17 +13,17 @@ import (
 	"github.com/upsun/whatsun/pkg/rules"
 )
 
-//go:embed testdata/mock-django/pyproject.toml
-var djangoPyProject []byte
+var (
+	//go:embed testdata/mock-django/pyproject.toml
+	djangoPyProject []byte
+	//go:embed testdata/mock-django/uv.lock
+	djangoUvLock []byte
 
-//go:embed testdata/mock-django/uv.lock
-var djangoUvLock []byte
-
-//go:embed testdata/mock-blazor/BlazorApp.csproj
-var blazorCsproj []byte
-
-//go:embed testdata/mock-blazor/packages.lock.json
-var blazorLock []byte
+	//go:embed testdata/mock-blazor/BlazorApp.csproj
+	blazorCsproj []byte
+	//go:embed testdata/mock-blazor/packages.lock.json
+	blazorLock []byte
+)
 
 var testFs = fstest.MapFS{
 	".gitignore": &fstest.MapFile{Data: []byte("/git-ignored/\n" +
