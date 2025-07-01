@@ -204,30 +204,15 @@ func parseBuildSBT(fsys fs.FS, path string) ([]Dependency, error) {
 	return deps, nil
 }
 
+// Pattern to match individual dependencies within SBT syntax.
+// Matches: "groupId" %%? "artifactId" % "version" (Scala or Java dependencies)
+var sbtDepPattern = regexp.MustCompile(`['"]([^'"]+)['"]\s*%{1,2}\s*['"]([^'"]+)['"]\s*%\s*['"]([^'"]+)['"]`)
+
 func parseSBTDependencies(line string) []Dependency {
 	var deps []Dependency
 
-	// Pattern to match individual dependencies within SBT syntax
-	// Matches: "groupId" %% "artifactId" % "version" (Scala dependencies)
-	// and: "groupId" % "artifactId" % "version" (Java dependencies)
-	scalaDepPattern := regexp.MustCompile(`['"]([^'"]+)['"]\s*%%\s*['"]([^'"]+)['"]\s*%\s*['"]([^'"]+)['"]`)
-	javaDepPattern := regexp.MustCompile(`['"]([^'"]+)['"]\s*%\s*['"]([^'"]+)['"]\s*%\s*['"]([^'"]+)['"]`)
-
-	// Find Scala dependencies first
-	scalaMatches := scalaDepPattern.FindAllStringSubmatch(line, -1)
-	for _, match := range scalaMatches {
-		if len(match) == 4 {
-			deps = append(deps, Dependency{
-				Vendor:  match[1],
-				Name:    match[1] + ":" + match[2],
-				Version: match[3],
-			})
-		}
-	}
-
-	// Find Java dependencies
-	javaMatches := javaDepPattern.FindAllStringSubmatch(line, -1)
-	for _, match := range javaMatches {
+	sbtMatches := sbtDepPattern.FindAllStringSubmatch(line, -1)
+	for _, match := range sbtMatches {
 		if len(match) == 4 {
 			deps = append(deps, Dependency{
 				Vendor:  match[1],
