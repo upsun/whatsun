@@ -16,7 +16,7 @@ type dotnetManager struct {
 	path string
 
 	csprojFiles []csprojFile
-	lockFile    *packagesLock
+	lockFile    packagesLock
 
 	initOnce sync.Once
 }
@@ -157,10 +157,6 @@ func (m *dotnetManager) Find(pattern string) []Dependency {
 }
 
 func (m *dotnetManager) getLockedVersion(packageName string) string {
-	if m.lockFile == nil {
-		return ""
-	}
-
 	// Look through all targets for the package
 	for _, target := range m.lockFile.Targets {
 		// The key format in NuGet lock files is typically "PackageName/Version"
