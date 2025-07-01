@@ -147,6 +147,9 @@ func parseBuildGradle(fsys fs.FS, path, filename string, patt *regexp.Regexp) ([
 			deps = append(deps, Dependency{Vendor: matches[1], Name: matches[1] + ":" + matches[2], Version: matches[3]})
 		}
 	}
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
 	return deps, nil
 }
 
@@ -200,7 +203,9 @@ func parseBuildSBT(fsys fs.FS, path string) ([]Dependency, error) {
 			}
 		}
 	}
-
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
 	return deps, nil
 }
 
