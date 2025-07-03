@@ -182,7 +182,7 @@ func parseDenoDeps(fsys fs.FS, path string) (map[string]Dependency, error) {
 func parseNpmLockDeps(fsys fs.FS, path string, deps map[string]Dependency, vendorName func(string) string) error {
 	var locked packageLockJSON
 	if err := parseJSON(fsys, path, "package-lock.json", &locked); err != nil {
-		return nil
+		return err
 	}
 	for name, pkg := range locked.Dependencies {
 		if d, ok := deps[name]; ok {

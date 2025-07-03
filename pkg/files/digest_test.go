@@ -96,7 +96,7 @@ var digestTestCases = []digestTestCase{
 			"meteor/.meteor":           &fstest.MapFile{Mode: fs.ModeDir},
 			"meteor/.meteor/packages":  &fstest.MapFile{Data: []byte("meteor-base")},
 			"meteor/.meteor/versions":  &fstest.MapFile{Data: []byte("meteor-base@1.5.1")},
-			"meteor/package-lock.json": &fstest.MapFile{},
+			"meteor/package-lock.json": &fstest.MapFile{Data: []byte("{}")},
 
 			// Additional directories to increase time taken.
 			"deep/1/2/3/4/5/composer.json":     &fstest.MapFile{Data: []byte("{}")},

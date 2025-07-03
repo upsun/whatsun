@@ -75,7 +75,7 @@ var testFs = fstest.MapFS{
 	"meteor/.meteor":           &fstest.MapFile{Mode: fs.ModeDir},
 	"meteor/.meteor/packages":  &fstest.MapFile{Data: []byte("meteor-base")},
 	"meteor/.meteor/versions":  &fstest.MapFile{Data: []byte("meteor-base@1.5.1")},
-	"meteor/package-lock.json": &fstest.MapFile{},
+	"meteor/package-lock.json": &fstest.MapFile{Data: []byte("{}")},
 
 	// Python using uv.lock.
 	"python/pyproject.toml": &fstest.MapFile{Data: djangoPyProject},
