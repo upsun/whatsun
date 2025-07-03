@@ -94,9 +94,9 @@ var digestTestCases = []digestTestCase{
 
 			// Meteor and NPM directory ("conflicting").
 			"meteor/.meteor":           &fstest.MapFile{Mode: fs.ModeDir},
-			"meteor/.meteor/packages":  &fstest.MapFile{},
-			"meteor/.meteor/versions":  &fstest.MapFile{},
-			"meteor/package-lock.json": &fstest.MapFile{},
+			"meteor/.meteor/packages":  &fstest.MapFile{Data: []byte("meteor-base")},
+			"meteor/.meteor/versions":  &fstest.MapFile{Data: []byte("meteor-base@1.5.1")},
+			"meteor/package-lock.json": &fstest.MapFile{Data: []byte("{}")},
 
 			// Additional directories to increase time taken.
 			"deep/1/2/3/4/5/composer.json":     &fstest.MapFile{Data: []byte("{}")},
@@ -135,6 +135,7 @@ var digestTestCases = []digestTestCase{
 				"eleventy": {{Result: "eleventy", Ruleset: "frameworks", Groups: []string{"js", "static"},
 					With: map[string]any{}}},
 				"meteor": {
+					{Result: "meteor.js", Ruleset: "frameworks", Groups: []string{"js"}, With: map[string]any{"version": "1.5.1"}},
 					{Result: "meteor", Ruleset: "package_managers", Groups: []string{"js"}, With: map[string]any{}},
 					{Result: "npm", Ruleset: "package_managers", Groups: []string{"js"}, With: map[string]any{}},
 				},

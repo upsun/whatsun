@@ -1,0 +1,5 @@
+# Meteor packages used by this project
+meteor-base
+# ECMAScript support
+ecmascript
+random 
