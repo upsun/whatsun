@@ -8,7 +8,7 @@ import (
 
 	"github.com/go-git/go-git/v5/plumbing/format/gitignore"
 
-	"github.com/upsun/whatsun/pkg/fsgitignore"
+	"github.com/upsun/whatsun/internal/fsgitignore"
 )
 
 // TreeConfig configures the GetTree behavior.

@@ -14,7 +14,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
 	"github.com/go-git/go-git/v5/storage/memory"
 
-	"github.com/upsun/whatsun/pkg/searchfs"
+	"github.com/upsun/whatsun/internal/searchfs"
 )
 
 func IsLocal(gitURL string) bool {

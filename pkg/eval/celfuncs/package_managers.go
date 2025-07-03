@@ -6,8 +6,8 @@ import (
 
 	"github.com/google/cel-go/cel"
 
+	"github.com/upsun/whatsun/internal/fsdir"
 	"github.com/upsun/whatsun/pkg/dep"
-	"github.com/upsun/whatsun/pkg/fsdir"
 )
 
 // AllPackageManagerFunctions returns CEL functions for reading package manager dependencies in an fs.FS filesystem.

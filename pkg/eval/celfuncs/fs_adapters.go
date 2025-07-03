@@ -3,7 +3,7 @@ package celfuncs
 import (
 	"github.com/google/cel-go/cel"
 
-	"github.com/upsun/whatsun/pkg/fsdir"
+	"github.com/upsun/whatsun/internal/fsdir"
 )
 
 // fsUnaryFunction returns a CEL environment option for a receiver method on the "fs" variable that takes 1 argument.

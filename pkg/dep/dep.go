@@ -11,7 +11,7 @@ import (
 	"github.com/tidwall/jsonc"
 	"gopkg.in/yaml.v3"
 
-	"github.com/upsun/whatsun/pkg/fsdir"
+	"github.com/upsun/whatsun/internal/fsdir"
 )
 
 const (

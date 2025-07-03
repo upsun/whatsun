@@ -7,8 +7,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/upsun/whatsun/internal/fsdir"
 	"github.com/upsun/whatsun/pkg/dep"
-	"github.com/upsun/whatsun/pkg/fsdir"
 )
 
 func TestPHP(t *testing.T) {

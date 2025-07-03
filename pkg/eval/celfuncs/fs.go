@@ -8,7 +8,7 @@ import (
 
 	"github.com/google/cel-go/cel"
 
-	"github.com/upsun/whatsun/pkg/fsdir"
+	"github.com/upsun/whatsun/internal/fsdir"
 )
 
 const (
