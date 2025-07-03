@@ -1,6 +1,7 @@
 package dep_test
 
 import (
+	_ "embed"
 	"slices"
 	"strings"
 	"testing"
@@ -11,6 +12,9 @@ import (
 
 	"github.com/upsun/whatsun/pkg/dep"
 )
+
+//go:embed testdata/java_sbt/build_.sbt
+var sbtBuild []byte
 
 func TestGradle(t *testing.T) {
 	fsys := fstest.MapFS{
@@ -226,6 +230,81 @@ func TestMaven(t *testing.T) {
 	}{
 		{name: "org.apache.commons:commons-lang3"},
 		{name: "org.springframework.boot:spring-boot-maven-plugin"},
+	}
+	for _, c := range toGet {
+		d, ok := m.Get(c.name)
+		assert.Equal(t, c.found, ok, c.name)
+		assert.Equal(t, c.dependency, d, c.name)
+	}
+}
+
+func TestSBT(t *testing.T) {
+	fsys := fstest.MapFS{
+		"build.sbt": {Data: sbtBuild},
+	}
+
+	m, err := dep.GetManager(dep.ManagerTypeJava, fsys, ".")
+	require.NoError(t, err)
+	require.NoError(t, m.Init())
+
+	toFind := []struct {
+		pattern      string
+		dependencies []dep.Dependency
+	}{
+		{"com.typesafe.play*", []dep.Dependency{
+			{
+				Vendor:  "com.typesafe.play",
+				Name:    "com.typesafe.play:play-akka-http-server",
+				Version: "2.8.20",
+			},
+			{
+				Vendor:  "com.typesafe.play",
+				Name:    "com.typesafe.play:play-json",
+				Version: "2.9.4",
+			},
+			{
+				Vendor:  "com.typesafe.play",
+				Name:    "com.typesafe.play:play-slick",
+				Version: "5.1.0",
+			},
+			{
+				Vendor:  "com.typesafe.play",
+				Name:    "com.typesafe.play:play-slick-evolutions",
+				Version: "5.1.0",
+			},
+		}},
+		{"org.postgresql*", []dep.Dependency{
+			{
+				Vendor:  "org.postgresql",
+				Name:    "org.postgresql:postgresql",
+				Version: "42.6.0",
+			},
+		}},
+	}
+	for _, c := range toFind {
+		deps := m.Find(c.pattern)
+		slices.SortFunc(deps, func(a, b dep.Dependency) int {
+			return strings.Compare(a.Name, b.Name)
+		})
+		assert.Equal(t, c.dependencies, deps)
+	}
+
+	toGet := []struct {
+		name       string
+		dependency dep.Dependency
+		found      bool
+	}{
+		{"com.typesafe.play:play-json", dep.Dependency{
+			Vendor:  "com.typesafe.play",
+			Name:    "com.typesafe.play:play-json",
+			Version: "2.9.4",
+		}, true},
+		{"org.postgresql:postgresql", dep.Dependency{
+			Vendor:  "org.postgresql",
+			Name:    "org.postgresql:postgresql",
+			Version: "42.6.0",
+		}, true},
+		{"org.apache.commons:commons-lang3", dep.Dependency{}, false},
 	}
 	for _, c := range toGet {
 		d, ok := m.Get(c.name)

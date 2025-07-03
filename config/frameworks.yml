@@ -613,6 +613,12 @@ frameworks:
         version: fs.depVersion("elixir", "phoenix")
       group: elixir
 
+    # Play Framework (https://www.playframework.com/)
+    play:
+      when: fs.depExists("java", "com.typesafe.play:*")
+      then: play
+      group: [java, scala]
+
     # Blazor WebAssembly (client-side Blazor)
     blazor-wasm:
       when: fs.depExists("dotnet", "Microsoft.AspNetCore.Components.WebAssembly")
