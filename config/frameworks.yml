@@ -604,3 +604,28 @@ frameworks:
       with:
         version: fs.depVersion("elixir", "phoenix")
       group: elixir
+
+    # Blazor WebAssembly (client-side Blazor)
+    blazor-wasm:
+      when: fs.depExists("dotnet", "Microsoft.AspNetCore.Components.WebAssembly")
+      then: blazor-wasm
+      with:
+        version: fs.depVersion("dotnet", "Microsoft.AspNetCore.Components.WebAssembly")
+      group: [dotnet, blazor]
+
+    # Blazor Server (server-side Blazor)
+    blazor-server:
+      when: fs.depExists("dotnet", "Microsoft.AspNetCore.Components.Server")
+      then: blazor-server
+      with:
+        version: fs.depVersion("dotnet", "Microsoft.AspNetCore.Components.Server")
+      group: [dotnet, blazor]
+
+    # Regular ASP.NET Core (non-Blazor web apps)
+    aspnetcore:
+      when: >
+        fs.depExists("dotnet", "Microsoft.AspNetCore.*") && !fs.depExists("dotnet", "Microsoft.AspNetCore.Components.*")
+      then: aspnetcore
+      with:
+        version: fs.depVersion("dotnet", "Microsoft.AspNetCore.App")
+      group: [dotnet]

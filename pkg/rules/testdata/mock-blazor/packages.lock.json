@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "targets": {
+    "net8.0": {
+      "Microsoft.AspNetCore.Components.WebAssembly/8.0.0": {
+        "type": "package",
+        "dependencies": {}
+      }
+    }
+  }
+} 

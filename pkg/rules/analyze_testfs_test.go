@@ -13,11 +13,17 @@ import (
 	"github.com/upsun/whatsun/pkg/rules"
 )
 
-//go:embed testdata/mock-django/pyproject.toml
-var djangoPyProject []byte
+var (
+	//go:embed testdata/mock-django/pyproject.toml
+	djangoPyProject []byte
+	//go:embed testdata/mock-django/uv.lock
+	djangoUvLock []byte
 
-//go:embed testdata/mock-django/uv.lock
-var djangoUvLock []byte
+	//go:embed testdata/mock-blazor/BlazorApp.csproj
+	blazorCsproj []byte
+	//go:embed testdata/mock-blazor/packages.lock.json
+	blazorLock []byte
+)
 
 var testFs = fstest.MapFS{
 	".gitignore": &fstest.MapFile{Data: []byte("/git-ignored/\n" +
@@ -75,6 +81,10 @@ var testFs = fstest.MapFS{
 	"python/pyproject.toml": &fstest.MapFile{Data: djangoPyProject},
 	"python/uv.lock":        &fstest.MapFile{Data: djangoUvLock},
 
+	// Blazor project.
+	"blazor-app/BlazorApp.csproj":   &fstest.MapFile{Data: blazorCsproj},
+	"blazor-app/packages.lock.json": &fstest.MapFile{Data: blazorLock},
+
 	// Additional directories to increase time taken.
 	"deep/1/2/3/4/5/composer.json":     &fstest.MapFile{Data: []byte("{}")},
 	"deep/a/b/c/d/e/package.json":      &fstest.MapFile{Data: []byte("{}")},
@@ -113,6 +123,8 @@ func TestAnalyze_TestFS_ActualRules(t *testing.T) {
 			With:      map[string]rules.ReportValue{"version": {Value: "7.2.3"}}, Groups: []string{"php", "symfony"}},
 		{Ruleset: "frameworks", Path: "ambiguous", Result: "gatsby", Rules: []string{"gatsby"},
 			With: map[string]rules.ReportValue{"version": {Value: ""}}, Groups: []string{"js"}},
+		{Ruleset: "frameworks", Path: "blazor-app", Result: "blazor-wasm", Rules: []string{"blazor-wasm"},
+			With: map[string]rules.ReportValue{"version": {Value: "8.0.0"}}, Groups: []string{"blazor", "dotnet"}},
 		{Ruleset: "frameworks", Path: "eleventy", Result: "eleventy", Rules: []string{"eleventy"},
 			With: map[string]rules.ReportValue{"version": {Value: ""}}, Groups: []string{"js", "static"}},
 		{Ruleset: "frameworks", Path: "python", Result: "django", Rules: []string{"django"},
@@ -136,6 +148,8 @@ func TestAnalyze_TestFS_ActualRules(t *testing.T) {
 			Rules:     []string{"js-packages"}, Groups: []string{"js"}},
 		{Ruleset: "package_managers", Path: "another-app", Result: "npm",
 			Rules: []string{"npm-lockfile"}, Groups: []string{"js"}},
+		{Ruleset: "package_managers", Path: "blazor-app", Result: "msbuild",
+			Rules: []string{"msbuild"}, Groups: []string{"dotnet"}},
 		{Ruleset: "package_managers", Path: "deep/1/2/3/4/5", Result: "composer",
 			ReadFiles: []string{"composer.json"},
 			Rules:     []string{"composer"}, Groups: []string{"php"},
