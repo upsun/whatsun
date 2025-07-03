@@ -5,10 +5,12 @@ package_managers:
       when: fs.fileExists("package-lock.json")
       then: npm
       group: js
+      read_files: [package.json]
     yarn-lockfile:
       when: fs.fileExists("yarn.lock")
       then: yarn
       group: js
+      read_files: [package.json]
     # Meteor package manager (https://www.meteor.com/)
     meteor:
       when: fs.fileExists(".meteor/packages")
@@ -18,10 +20,12 @@ package_managers:
       when: fs.fileExists("pnpm-lock.yaml") || fs.fileExists("pnpm-workspace.yaml")
       then: pnpm
       group: js
+      read_files: [package.json]
     bun:
       when: fs.fileExists("bun.lock") || fs.fileExists("bun.lockb")
       then: bun
       group: js
+      read_files: [bun.lock, package.json]
     deno:
       when: fs.fileExists("deno.json") || fs.fileExists("deno.lock")
       then: deno

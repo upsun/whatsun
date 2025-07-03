@@ -144,9 +144,11 @@ var digestTestCases = []digestTestCase{
 			SelectedFiles: []files.FileData{
 				{Name: "ambiguous/package.json", Content: `{"dependencies":{"gatsby":"^5.14.1"}}`,
 					Cleaned: true, Size: 37},
+				{Name: "another-app/package.json", Content: "{}", Cleaned: true, Size: 2},
 				{Name: "composer.json", Content: `{"require": {"symfony/framework-bundle": "^7", "php": "^8.3"}}`,
 					Cleaned: true, Size: 62},
 				{Name: "deep/1/2/3/4/5/composer.json", Content: "{}", Cleaned: true, Size: 2},
+				{Name: "deep/a/b/c/d/e/package.json", Content: "{}", Cleaned: true, Size: 2},
 			},
 		},
 	},
