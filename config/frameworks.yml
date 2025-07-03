@@ -598,6 +598,14 @@ frameworks:
         version: fs.depVersion("js", "@docusaurus/core")
       group: [js, static]
 
+    # Meteor.js web framework (https://www.meteor.com/)
+    meteor.js:
+      when: fs.depExists("js", "meteor-base")
+      then: meteor.js
+      with:
+        version: fs.depVersion("js", "meteor-base")
+      group: js
+
     phoenix:
       when: fs.depExists("elixir", "phoenix")
       then: phoenix
@@ -605,7 +613,33 @@ frameworks:
         version: fs.depVersion("elixir", "phoenix")
       group: elixir
 
+    # Play Framework (https://www.playframework.com/)
     play:
       when: fs.depExists("java", "com.typesafe.play:*")
       then: play
-      group: [java]
+      group: [java, scala]
+
+    # Blazor WebAssembly (client-side Blazor)
+    blazor-wasm:
+      when: fs.depExists("dotnet", "Microsoft.AspNetCore.Components.WebAssembly")
+      then: blazor-wasm
+      with:
+        version: fs.depVersion("dotnet", "Microsoft.AspNetCore.Components.WebAssembly")
+      group: [dotnet, blazor]
+
+    # Blazor Server (server-side Blazor)
+    blazor-server:
+      when: fs.depExists("dotnet", "Microsoft.AspNetCore.Components.Server")
+      then: blazor-server
+      with:
+        version: fs.depVersion("dotnet", "Microsoft.AspNetCore.Components.Server")
+      group: [dotnet, blazor]
+
+    # Regular ASP.NET Core (non-Blazor web apps)
+    aspnetcore:
+      when: >
+        fs.depExists("dotnet", "Microsoft.AspNetCore.*") && !fs.depExists("dotnet", "Microsoft.AspNetCore.Components.*")
+      then: aspnetcore
+      with:
+        version: fs.depVersion("dotnet", "Microsoft.AspNetCore.App")
+      group: [dotnet]

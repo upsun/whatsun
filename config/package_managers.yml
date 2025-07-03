@@ -9,6 +9,7 @@ package_managers:
       when: fs.fileExists("yarn.lock")
       then: yarn
       group: js
+    # Meteor package manager (https://www.meteor.com/)
     meteor:
       when: fs.fileExists(".meteor/packages")
       then: meteor
