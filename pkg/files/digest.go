@@ -48,7 +48,16 @@ type Digest struct {
 	SelectedFiles []FileData          `json:"selected_files" yaml:"selected_files"`
 }
 
-var defaultReadFiles = []string{"docker-compose.yml", "Dockerfile", "Makefile", "README", "README.md"}
+var defaultReadFiles = []string{
+	"docker-compose.yml",
+	"Dockerfile",
+	"Makefile",
+	"README",
+	"README.md",
+	"AGENT.md",
+	"AGENTS.md",
+	"CLAUDE.md",
+}
 
 func (d *Digester) GetDigest(_ context.Context) (*Digest, error) {
 	tree, err := GetTree(d.fsys, MinimalTreeConfig)
