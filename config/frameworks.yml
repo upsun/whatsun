@@ -148,6 +148,7 @@ frameworks:
       with:
         version: fs.depVersion("php", "aimeos/aimeos-core")
       group: [php, laravel]
+      read_files: [ config/database.php ]
 
     oro-commerce: # OroCommerce. See: https://github.com/oroinc/orocommerce
       when: fs.depExists("php", "oro/commerce")
@@ -238,6 +239,7 @@ frameworks:
       with:
         version: fs.depVersion("php", "laravel/framework")
       group: [php, laravel]
+      read_files: [ config/database.php ]
 
     cakephp:
       when: fs.depExists("php", "cakephp/cakephp")
