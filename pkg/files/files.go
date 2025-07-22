@@ -77,6 +77,32 @@ func ReadMultiple(fsys fs.FS, maxLength int, patterns ...string) ([]FileData, er
 
 // readSingleFile reads a single file, returning nil if the file should be skipped.
 func readSingleFile(fsys fs.FS, name string, maxLength int, ignoreMatcher gitignore.Matcher) (*FileData, error) {
+	// Check if it's a symbolic link before opening (avoids following the link).
+	if statFS, ok := fsys.(fs.StatFS); ok {
+		fi, err := statFS.Stat(name)
+		if err != nil {
+			if errors.Is(err, fs.ErrNotExist) || errors.Is(err, fs.ErrPermission) {
+				return nil, nil
+			}
+			return nil, fmt.Errorf("failed to stat file %s: %w", name, err)
+		}
+
+		// Skip directories.
+		if fi.IsDir() {
+			return nil, nil
+		}
+
+		// Skip symbolic links.
+		if fi.Mode()&fs.ModeSymlink != 0 {
+			return nil, nil
+		}
+	}
+
+	// Check if the file should be ignored.
+	if ignoreMatcher.Match(fsgitignore.Split(name), false) {
+		return nil, nil
+	}
+
 	f, err := fsys.Open(name)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) || errors.Is(err, fs.ErrPermission) {
@@ -86,27 +112,13 @@ func readSingleFile(fsys fs.FS, name string, maxLength int, ignoreMatcher gitign
 	}
 	defer f.Close()
 
+	// Get the total file size for later.
 	fi, err := f.Stat()
 	if err != nil {
 		return nil, fmt.Errorf("failed to stat file %s: %w", name, err)
 	}
 
-	// Skip directories
-	if fi.IsDir() {
-		return nil, nil
-	}
-
-	// Skip symbolic links
-	if fi.Mode()&fs.ModeSymlink != 0 {
-		return nil, nil
-	}
-
-	// Check if file should be ignored
-	if ignoreMatcher.Match(fsgitignore.Split(name), fi.IsDir()) {
-		return nil, nil
-	}
-
-	// Read up to maxLength+1 to detect truncation
+	// Read up to maxLength+1 to detect truncation.
 	buf := make([]byte, maxLength+1)
 	n, err := f.Read(buf)
 	if err != nil && err != io.EOF {
