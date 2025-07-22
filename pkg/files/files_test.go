@@ -448,6 +448,119 @@ func TestReadMultiple(t *testing.T) {
 			want:      []files.FileData{},
 			wantErr:   false,
 		},
+
+		// Test cases for skipping symbolic links, directories, and binary files
+		{
+			name: "skip symbolic links",
+			fsys: fstest.MapFS{
+				"regular.txt": &fstest.MapFile{
+					Data: []byte("regular file content"),
+					Mode: 0644,
+				},
+				"symlink.txt": &fstest.MapFile{
+					Data: []byte("this should be skipped"),
+					Mode: fs.ModeSymlink | 0644, // This is a symbolic link
+				},
+				"another.txt": &fstest.MapFile{
+					Data: []byte("another regular file"),
+					Mode: 0644,
+				},
+			},
+			maxLength: 100,
+			filenames: []string{"*.txt"},
+			want: []files.FileData{
+				{
+					Name:      "another.txt",
+					Content:   "another regular file",
+					Size:      20,
+					Truncated: false,
+					Cleaned:   false,
+				},
+				{
+					Name:      "regular.txt",
+					Content:   "regular file content",
+					Size:      20,
+					Truncated: false,
+					Cleaned:   false,
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "skip directories",
+			fsys: fstest.MapFS{
+				"regular.txt": &fstest.MapFile{
+					Data: []byte("regular file content"),
+					Mode: 0644,
+				},
+				"subdir": &fstest.MapFile{
+					Mode: fs.ModeDir | 0755,
+				},
+				"another.txt": &fstest.MapFile{
+					Data: []byte("another regular file"),
+					Mode: 0644,
+				},
+			},
+			maxLength: 100,
+			filenames: []string{"*"},
+			want: []files.FileData{
+				{
+					Name:      "another.txt",
+					Content:   "another regular file",
+					Size:      20,
+					Truncated: false,
+					Cleaned:   false,
+				},
+				{
+					Name:      "regular.txt",
+					Content:   "regular file content",
+					Size:      20,
+					Truncated: false,
+					Cleaned:   false,
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "skip binary files",
+			fsys: fstest.MapFS{
+				"text.txt": &fstest.MapFile{
+					Data: []byte("This is plain text content"),
+					Mode: 0644,
+				},
+				"binary.dat": &fstest.MapFile{
+					Data: []byte{0x00, 0x01, 0x02, 0xFF, 0xFE, 0xFD}, // Binary data with null bytes
+					Mode: 0644,
+				},
+				"invalid_utf8.txt": &fstest.MapFile{
+					Data: []byte{0xFF, 0xFE, 0x48, 0x65, 0x6C, 0x6C, 0x6F}, // Invalid UTF-8 sequence
+					Mode: 0644,
+				},
+				"empty.txt": &fstest.MapFile{
+					Data: []byte(""), // Empty files are considered text
+					Mode: 0644,
+				},
+			},
+			maxLength: 100,
+			filenames: []string{"*"},
+			want: []files.FileData{
+				{
+					Name:      "empty.txt",
+					Content:   "",
+					Size:      0,
+					Truncated: false,
+					Cleaned:   false,
+				},
+				{
+					Name:      "text.txt",
+					Content:   "This is plain text content",
+					Size:      26,
+					Truncated: false,
+					Cleaned:   false,
+				},
+			},
+			wantErr: false,
+		},
 	}
 
 	for _, tt := range tests {

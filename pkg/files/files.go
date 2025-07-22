@@ -9,6 +9,7 @@ import (
 	"slices"
 	"strings"
 	"syscall"
+	"unicode/utf8"
 
 	"github.com/go-git/go-git/v5/plumbing/format/gitignore"
 
@@ -27,10 +28,11 @@ type FileData struct {
 // Clean removes comments and redacts secrets in a list of files.
 func Clean(files []FileData) []FileData {
 	for i := range files {
+		orig := files[i].Content
 		files[i].Content = RemoveComments(files[i].Name, files[i].Content)
 		files[i].Content = ReplaceSecrets(files[i].Content, "[REDACTED]")
 		files[i].Content = ReplaceEmails(files[i].Content, "redacted@example.org")
-		files[i].Cleaned = true
+		files[i].Cleaned = orig != files[i].Content
 	}
 	return files
 }
@@ -57,39 +59,13 @@ func ReadMultiple(fsys fs.FS, maxLength int, patterns ...string) ([]FileData, er
 
 	var contents = make([]FileData, 0, len(globMatches))
 	for name := range globMatches {
-		f, err := fsys.Open(name)
+		fileData, err := readSingleFile(fsys, name, maxLength, ignoreMatcher)
 		if err != nil {
-			if errors.Is(err, fs.ErrNotExist) || errors.Is(err, fs.ErrPermission) {
-				continue
-			}
-			return nil, fmt.Errorf("failed opening file %s: %w", name, err)
+			return nil, err
 		}
-		fi, err := f.Stat()
-		if err != nil {
-			_ = f.Close()
-			return nil, fmt.Errorf("failed to stat file %s: %w", name, err)
+		if fileData != nil {
+			contents = append(contents, *fileData)
 		}
-		if ignoreMatcher.Match(fsgitignore.Split(name), fi.IsDir()) {
-			continue
-		}
-		// Read up to maxLength+1 to detect truncation
-		buf := make([]byte, maxLength+1)
-		n, err := f.Read(buf)
-		if err != nil && err != io.EOF {
-			_ = f.Close()
-			return nil, fmt.Errorf("failed reading file %s: %w", name, err)
-		}
-		_ = f.Close()
-		truncated := n > maxLength
-		if truncated {
-			n = maxLength
-		}
-		contents = append(contents, FileData{
-			Name:      name,
-			Content:   string(buf[:n]),
-			Size:      fi.Size(),
-			Truncated: truncated,
-		})
 	}
 
 	slices.SortFunc(contents, func(a, b FileData) int {
@@ -97,6 +73,81 @@ func ReadMultiple(fsys fs.FS, maxLength int, patterns ...string) ([]FileData, er
 	})
 
 	return contents, nil
+}
+
+// readSingleFile reads a single file, returning nil if the file should be skipped.
+func readSingleFile(fsys fs.FS, name string, maxLength int, ignoreMatcher gitignore.Matcher) (*FileData, error) {
+	f, err := fsys.Open(name)
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) || errors.Is(err, fs.ErrPermission) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("failed opening file %s: %w", name, err)
+	}
+	defer f.Close()
+
+	fi, err := f.Stat()
+	if err != nil {
+		return nil, fmt.Errorf("failed to stat file %s: %w", name, err)
+	}
+
+	// Skip directories
+	if fi.IsDir() {
+		return nil, nil
+	}
+
+	// Skip symbolic links
+	if fi.Mode()&fs.ModeSymlink != 0 {
+		return nil, nil
+	}
+
+	// Check if file should be ignored
+	if ignoreMatcher.Match(fsgitignore.Split(name), fi.IsDir()) {
+		return nil, nil
+	}
+
+	// Read up to maxLength+1 to detect truncation
+	buf := make([]byte, maxLength+1)
+	n, err := f.Read(buf)
+	if err != nil && err != io.EOF {
+		return nil, fmt.Errorf("failed reading file %s: %w", name, err)
+	}
+
+	// Skip binary files
+	if !isTextContent(buf[:n]) {
+		return nil, nil
+	}
+
+	truncated := n > maxLength
+	if truncated {
+		n = maxLength
+	}
+
+	return &FileData{
+		Name:      name,
+		Content:   string(buf[:n]),
+		Size:      fi.Size(),
+		Truncated: truncated,
+	}, nil
+}
+
+// isTextContent checks if the given byte slice contains text data.
+// It returns false if the content appears to be binary.
+func isTextContent(data []byte) bool {
+	// Empty files are considered text
+	if len(data) == 0 {
+		return true
+	}
+
+	// Check for null bytes, which are common in binary files
+	for _, b := range data {
+		if b == 0 {
+			return false
+		}
+	}
+
+	// Check if the content is valid UTF-8
+	return utf8.Valid(data)
 }
 
 func parseAIIgnoreFiles(fsys fs.FS) (gitignore.Matcher, error) {
