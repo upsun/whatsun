@@ -29,6 +29,7 @@ func Clean(files []FileData) []FileData {
 	for i := range files {
 		files[i].Content = RemoveComments(files[i].Name, files[i].Content)
 		files[i].Content = ReplaceSecrets(files[i].Content, "[REDACTED]")
+		files[i].Content = ReplaceEmails(files[i].Content, "redacted@example.org")
 		files[i].Cleaned = true
 	}
 	return files
