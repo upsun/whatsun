@@ -35,7 +35,7 @@ endif
 .PHONY: lint-golangci
 lint-golangci:
 	command -v golangci-lint >/dev/null || go install github.com/golangci/golangci-lint/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
-	golangci-lint run
+	golangci-lint run --timeout=2m
 
 .PHONY: test
 test: ## Run unit tests.
