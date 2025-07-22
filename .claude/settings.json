@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(make build)",
+      "Bash(make test)",
+      "Bash(make lint)",
+      "Bash(make govulncheck)",
+      "Bash(make gen_docs)",
+      "Bash(make warm_cache)",
+      "Bash(make bench)",
+      "Bash(make bench-light)",
+      "Bash(make test-coverage)",
+      "Bash(make profile)",
+      "Bash(make clean)",
+      "Bash(make help)",
+      "Bash(make lint-gomod)",
+      "Bash(make lint-golangci)",
+      "Bash(go:*)",
+      "Bash(golangci-lint run)",
+      "Bash(./whatsun:*)",
+      "Bash(whatsun:*)"
+    ]
+  },
+  "env": {
+    "CLAUDE_CODE_ENABLE_TELEMETRY": "0"
+  }
+}
