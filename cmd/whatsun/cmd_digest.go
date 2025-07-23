@@ -41,7 +41,7 @@ func runDigest(ctx context.Context, path string, ignore []string, stdout, stderr
 		return err
 	}
 
-	rulesets, _, err := loadRulesetsAndCache()
+	rulesets, cache, err := loadRulesetsAndCache()
 	if err != nil {
 		return err
 	}
@@ -54,6 +54,7 @@ func runDigest(ctx context.Context, path string, ignore []string, stdout, stderr
 	if err != nil {
 		return err
 	}
+	digestCnf.ExprCache = cache
 	digestCnf.DisableGitIgnore = disableGitIgnore
 	digestCnf.IgnoreFiles = ignore
 	digestCnf.Rulesets = rulesets

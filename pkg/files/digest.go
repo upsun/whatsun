@@ -7,14 +7,17 @@ import (
 	"strings"
 
 	"github.com/upsun/whatsun"
+	"github.com/upsun/whatsun/pkg/eval"
 	"github.com/upsun/whatsun/pkg/rules"
 )
 
 type DigestConfig struct {
-	DisableGitIgnore bool                // Disable parsing .gitignore files.
-	IgnoreFiles      []string            // Other "gitignore" file patterns to ignore.
-	Rulesets         []rules.RulesetSpec // Rules to run in each directory.
-	ReadFiles        []string            // Files to read in the project.
+	DisableGitIgnore bool     // Disable parsing .gitignore files.
+	IgnoreFiles      []string // Other "gitignore" file patterns to ignore.
+	ReadFiles        []string // Files to read in the project.
+
+	Rulesets  []rules.RulesetSpec // Rules to run in each directory.
+	ExprCache eval.Cache          // The expression cache.
 }
 
 func DefaultDigestConfig() (*DigestConfig, error) {
@@ -22,7 +25,15 @@ func DefaultDigestConfig() (*DigestConfig, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &DigestConfig{Rulesets: rulesets, ReadFiles: defaultReadFiles}, nil
+	exprCache, err := whatsun.LoadExpressionCache()
+	if err != nil {
+		return nil, err
+	}
+	return &DigestConfig{
+		ReadFiles: defaultReadFiles,
+		Rulesets:  rulesets,
+		ExprCache: exprCache,
+	}, nil
 }
 
 type Digester struct {
@@ -33,8 +44,9 @@ type Digester struct {
 
 func NewDigester(fsys fs.FS, cnf *DigestConfig) (*Digester, error) {
 	analyzer, err := rules.NewAnalyzer(cnf.Rulesets, &rules.AnalyzerConfig{
-		IgnoreDirs:       cnf.IgnoreFiles,
-		DisableGitIgnore: cnf.DisableGitIgnore,
+		CELExpressionCache: cnf.ExprCache,
+		DisableGitIgnore:   cnf.DisableGitIgnore,
+		IgnoreDirs:         cnf.IgnoreFiles,
 	})
 	if err != nil {
 		return nil, err
