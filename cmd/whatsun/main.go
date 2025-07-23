@@ -7,28 +7,31 @@ import (
 	"io"
 	"io/fs"
 	"os"
-	"path/filepath"
 	"reflect"
 	"sort"
 	"strings"
 	"time"
 
-	"github.com/IGLOU-EU/go-wildcard/v2"
 	"github.com/fatih/color"
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/spf13/cobra"
 
 	"github.com/upsun/whatsun"
-	"github.com/upsun/whatsun/pkg/eval"
 	"github.com/upsun/whatsun/pkg/files"
 	"github.com/upsun/whatsun/pkg/rules"
 )
 
 func main() {
-	var cnf = &config{}
-	var cmd = &cobra.Command{
-		Use:   "whatsun [path]",
+	var rootCmd = &cobra.Command{
+		Use:   "whatsun",
 		Short: "Analyze a code repository",
+	}
+
+	// Main analyze command (default behavior)
+	var analyzeCnf = &config{}
+	var analyzeCmd = &cobra.Command{
+		Use:   "analyze [path]",
+		Short: "Analyze a code repository and show results",
 		Args:  cobra.RangeArgs(0, 1),
 		ValidArgsFunction: func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 			return nil, cobra.ShellCompDirectiveFilterDirs
@@ -36,37 +39,86 @@ func main() {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cnf.path = "."
+			analyzeCnf.path = "."
 			if len(args) > 0 {
-				cnf.path = args[0]
+				analyzeCnf.path = args[0]
 			}
-
 			return run(
 				cmd.Context(),
-				cnf,
+				analyzeCnf,
 				cmd.OutOrStdout(),
 				cmd.ErrOrStderr(),
 			)
 		},
 	}
-
-	// Add flags to the command
-	cmd.Flags().BoolVar(&cnf.digest, "digest", false,
-		"Output a digest of the repository including the file tree, reports, and the contents of selected files.")
-	cmd.Flags().StringSliceVar(&cnf.ignore, "ignore", []string{},
+	analyzeCmd.Flags().StringSliceVar(&analyzeCnf.ignore, "ignore", []string{},
 		"Paths (or patterns) to ignore, adding to defaults.")
-	cmd.Flags().BoolVar(&cnf.asJSON, "json", false,
-		"Print output in JSON format. Ignored if --digest is set.")
-	cmd.Flags().BoolVar(&cnf.noMetadata, "no-meta", false,
-		"Skip calculating and returning metadata.")
-	cmd.Flags().StringVar(&cnf.customRulesets, "rulesets", "",
-		"Path to a custom ruleset directory (replacing the default embedded rulesets).")
-	cmd.Flags().StringSliceVar(&cnf.filter, "filter", []string{},
-		"Filter the rulesets to ones matching the wildcard pattern(s).")
-	cmd.Flags().BoolVar(&cnf.tree, "tree", false,
-		"Only output a file tree.")
 
-	if err := cmd.Execute(); err != nil {
+	// Digest command
+	var digestCnf = &config{digest: true}
+	var digestCmd = &cobra.Command{
+		Use:   "digest [path]",
+		Short: "Output a digest of the repository including the file tree, reports, and the contents of selected files",
+		Args:  cobra.RangeArgs(0, 1),
+		ValidArgsFunction: func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
+			return nil, cobra.ShellCompDirectiveFilterDirs
+		},
+		SilenceErrors: true,
+		SilenceUsage:  true,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			digestCnf.path = "."
+			if len(args) > 0 {
+				digestCnf.path = args[0]
+			}
+			return run(
+				cmd.Context(),
+				digestCnf,
+				cmd.OutOrStdout(),
+				cmd.ErrOrStderr(),
+			)
+		},
+	}
+	digestCmd.Flags().StringSliceVar(&digestCnf.ignore, "ignore", []string{},
+		"Paths (or patterns) to ignore, adding to defaults.")
+
+	// Tree command
+	var treeCnf = &config{tree: true}
+	var treeCmd = &cobra.Command{
+		Use:   "tree [path]",
+		Short: "Only output a file tree",
+		Args:  cobra.RangeArgs(0, 1),
+		ValidArgsFunction: func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
+			return nil, cobra.ShellCompDirectiveFilterDirs
+		},
+		SilenceErrors: true,
+		SilenceUsage:  true,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			treeCnf.path = "."
+			if len(args) > 0 {
+				treeCnf.path = args[0]
+			}
+			return run(
+				cmd.Context(),
+				treeCnf,
+				cmd.OutOrStdout(),
+				cmd.ErrOrStderr(),
+			)
+		},
+	}
+	treeCmd.Flags().StringSliceVar(&treeCnf.ignore, "ignore", []string{},
+		"Paths (or patterns) to ignore, adding to defaults.")
+
+	// Add subcommands
+	rootCmd.AddCommand(analyzeCmd, digestCmd, treeCmd)
+
+	// Set analyze as the default command when no subcommand is provided
+	rootCmd.RunE = analyzeCmd.RunE
+	rootCmd.Args = analyzeCmd.Args
+	rootCmd.ValidArgsFunction = analyzeCmd.ValidArgsFunction
+	rootCmd.Flags().StringSliceVar(&analyzeCnf.ignore, "ignore", []string{},
+		"Paths (or patterns) to ignore, adding to defaults.")
+
+	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(color.RedString(err.Error()))
 		os.Exit(1)
 	}
@@ -81,14 +133,10 @@ func isEmpty(v any) bool {
 }
 
 type config struct {
-	path           string
-	ignore         []string
-	customRulesets string
-	filter         []string
-	asJSON         bool
-	noMetadata     bool
-	digest         bool
-	tree           bool
+	path   string
+	ignore []string
+	digest bool
+	tree   bool
 }
 
 func run(ctx context.Context, cnf *config, stdout, stderr io.Writer) error {
@@ -129,62 +177,17 @@ func run(ctx context.Context, cnf *config, stdout, stderr io.Writer) error {
 
 	var analyzerConfig = &rules.AnalyzerConfig{
 		IgnoreDirs:       cnf.ignore,
-		DisableMetadata:  cnf.noMetadata,
 		DisableGitIgnore: disableGitIgnore,
 	}
-	var rulesets []rules.RulesetSpec
-	if cnf.customRulesets != "" {
-		var err error
-		dirName, fileName := filepath.Split(cnf.customRulesets)
-		if dirName == "" {
-			dirName = "."
-		}
-		rulesets, err = rules.LoadFromYAMLDir(os.DirFS(dirName), fileName)
-		if err != nil {
-			return fmt.Errorf("failed to load custom rulesets: %v", err)
-		}
-		if len(rulesets) == 0 {
-			return fmt.Errorf("no rulesets found in directory: %s", cnf.customRulesets)
-		}
-		userCacheDir, err := os.UserCacheDir()
-		if err != nil {
-			return fmt.Errorf("failed to get user cache dir: %v", err)
-		}
-		cacheDir := filepath.Join(userCacheDir, "whatsun")
-		if err := os.MkdirAll(cacheDir, 0700); err != nil {
-			return fmt.Errorf("failed to create cache dir: %v", err)
-		}
-		cache, err := eval.NewFileCache(filepath.Join(cacheDir, "expr.cache"))
-		if err != nil {
-			return fmt.Errorf("failed to create file cache: %v", err)
-		}
-		defer cache.Save() //nolint:errcheck
-		analyzerConfig.CELExpressionCache = cache
-	} else {
-		var err error
-		rulesets, err = whatsun.LoadRulesets()
-		if err != nil {
-			return err
-		}
-		exprCache, err := whatsun.LoadExpressionCache()
-		if err != nil {
-			return err
-		}
-		analyzerConfig.CELExpressionCache = exprCache
+	rulesets, err := whatsun.LoadRulesets()
+	if err != nil {
+		return err
 	}
-
-	if len(cnf.filter) > 0 {
-		var filtered = make([]rules.RulesetSpec, 0, len(rulesets))
-		for _, rs := range rulesets {
-			for _, p := range cnf.filter {
-				if wildcard.Match(strings.TrimSpace(p), rs.GetName()) {
-					filtered = append(filtered, rs)
-					break
-				}
-			}
-		}
-		rulesets = filtered
+	exprCache, err := whatsun.LoadExpressionCache()
+	if err != nil {
+		return err
 	}
+	analyzerConfig.CELExpressionCache = exprCache
 
 	if len(rulesets) == 0 {
 		return fmt.Errorf("no rulesets found")
@@ -222,21 +225,10 @@ func run(ctx context.Context, cnf *config, stdout, stderr io.Writer) error {
 	}
 
 	if len(reports) == 0 {
-		if cnf.asJSON {
-			fmt.Fprintln(stdout, "[]")
-			return nil
-		}
 		return fmt.Errorf("no results found")
 	}
 
 	calcTime := time.Since(start)
-
-	if cnf.asJSON {
-		if err := json.NewEncoder(stdout).Encode(reports); err != nil {
-			return err
-		}
-		return nil
-	}
 
 	fmt.Fprintf(stderr, "Received result in %s:\n", calcTime)
 
@@ -255,11 +247,7 @@ func run(ctx context.Context, cnf *config, stdout, stderr io.Writer) error {
 		fmt.Fprintln(stdout, "\nRuleset:", name)
 		tbl := table.NewWriter()
 		tbl.SetOutputMirror(stdout)
-		if cnf.noMetadata {
-			tbl.AppendHeader(table.Row{"Path", "Result", "Groups"})
-		} else {
-			tbl.AppendHeader(table.Row{"Path", "Result", "Groups", "With"})
-		}
+		tbl.AppendHeader(table.Row{"Path", "Result", "Groups", "With"})
 
 		for _, report := range byRuleset[name] {
 			if report.Maybe {
@@ -274,11 +262,7 @@ func run(ctx context.Context, cnf *config, stdout, stderr io.Writer) error {
 				}
 				with = strings.TrimSpace(with)
 			}
-			if cnf.noMetadata {
-				tbl.AppendRow(table.Row{report.Path, report.Result, strings.Join(report.Groups, ", ")})
-			} else {
-				tbl.AppendRow(table.Row{report.Path, report.Result, strings.Join(report.Groups, ", "), with})
-			}
+			tbl.AppendRow(table.Row{report.Path, report.Result, strings.Join(report.Groups, ", "), with})
 		}
 		tbl.Render()
 	}
