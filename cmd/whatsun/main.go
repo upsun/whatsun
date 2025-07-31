@@ -35,30 +35,25 @@ func noter(stderr io.Writer) func(format string, args ...any) {
 	}
 }
 
-func setupFileSystem(ctx context.Context, path string, stderr io.Writer) (fs.FS, bool, error) {
+func setupFileSystem(ctx context.Context, path string, stderr io.Writer) (fsys fs.FS, fromClone bool, err error) {
 	note := noter(stderr)
-	var (
-		fsys             fs.FS
-		err              error
-		disableGitIgnore bool
-	)
 
 	if files.IsLocal(path) {
 		note("Processing local path: %s", path)
 		fsys, err = files.LocalFS(path)
 		if err != nil {
-			return nil, false, err
+			return
 		}
 	} else {
 		preClone := time.Now()
 		note("Cloning remote repository (into memory): %s", path)
 		fsys, err = files.Clone(ctx, path, "")
 		if err != nil {
-			return nil, false, err
+			return
 		}
 		note("Cloned repository in %v", time.Since(preClone).Truncate(time.Millisecond))
-		disableGitIgnore = true
+		fromClone = true
 	}
 
-	return fsys, disableGitIgnore, nil
+	return
 }

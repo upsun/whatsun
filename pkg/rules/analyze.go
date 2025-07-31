@@ -115,10 +115,10 @@ func (a *Analyzer) Analyze(ctx context.Context, fsys fs.FS, root string) ([]Repo
 	}
 
 	slices.SortStableFunc(reports, func(a, b Report) int {
-		if a.Ruleset == b.Ruleset {
-			return strings.Compare(a.Path, b.Path)
+		if a.Path == b.Path {
+			return strings.Compare(a.Ruleset, b.Ruleset)
 		}
-		return strings.Compare(a.Ruleset, b.Ruleset)
+		return strings.Compare(a.Path, b.Path)
 	})
 
 	return reports, nil

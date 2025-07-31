@@ -5,9 +5,7 @@ import (
 	"fmt"
 	"io"
 	"reflect"
-	"sort"
 	"strings"
-	"time"
 
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/spf13/cobra"
@@ -63,8 +61,6 @@ func runAnalyze(ctx context.Context, path string, ignore []string, stdout, stder
 		CELExpressionCache: exprCache,
 	}
 
-	start := time.Now()
-
 	analyzer, err := rules.NewAnalyzer(rulesets, analyzerConfig)
 	if err != nil {
 		return err
@@ -75,52 +71,31 @@ func runAnalyze(ctx context.Context, path string, ignore []string, stdout, stder
 		return fmt.Errorf("analysis failed: %v", err)
 	}
 
-	calcTime := time.Since(start)
-	return printAnalysisResults(reports, calcTime, stdout, stderr)
-}
-
-func printAnalysisResults(reports []rules.Report, calcTime time.Duration, stdout, stderr io.Writer) error {
 	if len(reports) == 0 {
-		return fmt.Errorf("no results found")
+		fmt.Fprintln(stderr, "No results found.")
+		return nil
 	}
 
-	note := noter(stderr)
-	note("Received result in %s:", calcTime)
+	tbl := table.NewWriter()
+	tbl.AppendHeader(table.Row{"Path", "Ruleset", "Result", "Groups", "With"})
 
-	var byRuleset = make(map[string][]rules.Report)
 	for _, report := range reports {
-		byRuleset[report.Ruleset] = append(byRuleset[report.Ruleset], report)
-	}
-
-	names := make([]string, 0, len(byRuleset))
-	for name := range byRuleset {
-		names = append(names, name)
-	}
-	sort.Strings(names)
-
-	for _, name := range names {
-		fmt.Fprintln(stdout, "\nRuleset:", name)
-		tbl := table.NewWriter()
-		tbl.SetOutputMirror(stdout)
-		tbl.AppendHeader(table.Row{"Path", "Result", "Groups", "With"})
-
-		for _, report := range byRuleset[name] {
-			if report.Maybe {
-				continue
-			}
-			var with string
-			if len(report.With) > 0 {
-				for k, v := range report.With {
-					if v.Error == "" && !isEmpty(v.Value) {
-						with += fmt.Sprintf("%s: %s\n", k, v.Value)
-					}
-				}
-				with = strings.TrimSpace(with)
-			}
-			tbl.AppendRow(table.Row{report.Path, report.Result, strings.Join(report.Groups, ", "), with})
+		if report.Maybe {
+			continue
 		}
-		tbl.Render()
+		var with string
+		if len(report.With) > 0 {
+			for k, v := range report.With {
+				if v.Error == "" && !isEmpty(v.Value) {
+					with += fmt.Sprintf("%s: %s\n", k, v.Value)
+				}
+			}
+			with = strings.TrimSpace(with)
+		}
+		tbl.AppendRow(table.Row{report.Path, report.Ruleset, report.Result, strings.Join(report.Groups, ", "), with})
 	}
+
+	fmt.Fprintln(stdout, tbl.Render())
 
 	return nil
 }

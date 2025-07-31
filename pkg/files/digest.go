@@ -118,7 +118,7 @@ type Report struct {
 }
 
 func formatReports(reports []rules.Report) map[string][]Report {
-	pathReports := make(map[string][]Report, len(reports))
+	var pathReports = make(map[string][]Report)
 	for _, report := range reports {
 		if report.Maybe {
 			continue

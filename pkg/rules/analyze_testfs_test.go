@@ -3,6 +3,8 @@ package rules_test
 import (
 	_ "embed"
 	"io/fs"
+	"slices"
+	"strings"
 	"testing"
 	"testing/fstest"
 
@@ -110,6 +112,10 @@ func TestAnalyze_TestFS_ActualRules(t *testing.T) {
 
 	reports, err := analyzer.Analyze(t.Context(), testFs, ".")
 	require.NoError(t, err)
+
+	slices.SortStableFunc(reports, func(a, b rules.Report) int {
+		return strings.Compare(a.Ruleset, b.Ruleset)
+	})
 
 	assert.EqualValues(t, []rules.Report{
 		// Build tool results.
