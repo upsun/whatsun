@@ -43,11 +43,11 @@ test: ## Run unit tests.
 
 .PHONY: bench
 bench: ## Run benchmarks.
-	go test -run=Analyze -bench=Analyze -cpu 1,2,4,8 ./...
+	go test -run=Digest -bench=Digest -cpu 1,2,4,8 ./...
 
 .PHONY: bench-light
 bench-light: ## Run a single benchmark on the test filesystem.
-	go test -run=Analyze -bench=Analyze_TestFS ./...
+	go test -run=Digest -bench=Digest ./...
 
 .PHONY: test-coverage
 test-coverage: ## Run unit tests and generate a code coverage report.
@@ -56,12 +56,9 @@ test-coverage: ## Run unit tests and generate a code coverage report.
 
 .PHONY: profile
 profile: ## Collect profiles saved as *.pprof.
-	go test -cpuprofile rules.cpu.pprof -bench=Analyze_TestFS ./pkg/rules
-	go test -memprofile rules.mem.pprof -bench=Analyze_TestFS ./pkg/rules
-	go test -mutexprofile rules.mutex.pprof -bench=Analyze_TestFS ./pkg/rules
-	go test -cpuprofile files.cpu.pprof -bench=Digest ./pkg/files
-	go test -memprofile files.mem.pprof -bench=Digest ./pkg/files
-	go test -mutexprofile files.mutex.pprof -bench=Digest ./pkg/files
+	go test -cpuprofile cpu.pprof -bench=Digest ./pkg/files
+	go test -memprofile mem.pprof -bench=Digest ./pkg/files
+	go test -mutexprofile mutex.pprof -bench=Digest ./pkg/files
 
 .PHONY: clean
 clean: ## Delete files generated from builds and tests.
