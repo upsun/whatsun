@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 
 	"github.com/spf13/cobra"
@@ -41,23 +40,12 @@ func runDigest(ctx context.Context, path string, ignore []string, stdout, stderr
 		return err
 	}
 
-	rulesets, cache, err := loadRulesetsAndCache()
-	if err != nil {
-		return err
-	}
-
-	if len(rulesets) == 0 {
-		return fmt.Errorf("no rulesets found")
-	}
-
 	digestCnf, err := files.DefaultDigestConfig()
 	if err != nil {
 		return err
 	}
-	digestCnf.ExprCache = cache
 	digestCnf.DisableGitIgnore = disableGitIgnore
 	digestCnf.IgnoreFiles = ignore
-	digestCnf.Rulesets = rulesets
 	digester, err := files.NewDigester(fsys, digestCnf)
 	if err != nil {
 		return err

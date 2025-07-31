@@ -12,10 +12,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 
-	"github.com/upsun/whatsun"
-	"github.com/upsun/whatsun/pkg/eval"
 	"github.com/upsun/whatsun/pkg/files"
-	"github.com/upsun/whatsun/pkg/rules"
 )
 
 func main() {
@@ -64,16 +61,4 @@ func setupFileSystem(ctx context.Context, path string, stderr io.Writer) (fs.FS,
 	}
 
 	return fsys, disableGitIgnore, nil
-}
-
-func loadRulesetsAndCache() ([]rules.RulesetSpec, eval.Cache, error) {
-	rulesets, err := whatsun.LoadRulesets()
-	if err != nil {
-		return nil, nil, err
-	}
-	exprCache, err := whatsun.LoadExpressionCache()
-	if err != nil {
-		return nil, nil, err
-	}
-	return rulesets, exprCache, nil
 }

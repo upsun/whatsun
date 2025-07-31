@@ -12,6 +12,7 @@ import (
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/spf13/cobra"
 
+	"github.com/upsun/whatsun"
 	"github.com/upsun/whatsun/pkg/rules"
 )
 
@@ -46,13 +47,14 @@ func runAnalyze(ctx context.Context, path string, ignore []string, stdout, stder
 		return err
 	}
 
-	rulesets, exprCache, err := loadRulesetsAndCache()
+	rulesets, err := whatsun.LoadRulesets()
 	if err != nil {
 		return err
 	}
 
-	if len(rulesets) == 0 {
-		return fmt.Errorf("no rulesets found")
+	exprCache, err := whatsun.LoadExpressionCache()
+	if err != nil {
+		return err
 	}
 
 	analyzerConfig := &rules.AnalyzerConfig{
