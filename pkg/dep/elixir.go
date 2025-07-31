@@ -69,6 +69,8 @@ func (m *elixirManager) Get(name string) (Dependency, bool) {
 		Name:       name,
 		Constraint: req,
 		Version:    m.resolved[name],
+		IsDirect:   true, // Dependencies from mix.exs are direct
+		ToolName:   "mix",
 	}, true
 }
 
@@ -80,6 +82,8 @@ func (m *elixirManager) Find(pattern string) []Dependency {
 				Name:       name,
 				Constraint: constraint,
 				Version:    m.resolved[name],
+				IsDirect:   true, // Dependencies from mix.exs are direct
+				ToolName:   "mix",
 			})
 		}
 	}

@@ -42,6 +42,8 @@ func TestPHP(t *testing.T) {
 			Name:       "symfony/framework-bundle",
 			Constraint: "^7.2",
 			Version:    "v7.2.3",
+			IsDirect:   true,
+			ToolName:   "composer",
 		}}},
 	}
 	for _, c := range toFind {
@@ -60,10 +62,14 @@ func TestPHP(t *testing.T) {
 			Name:       "symfony/framework-bundle",
 			Constraint: "^7.2",
 			Version:    "v7.2.3",
+			IsDirect:   true,
+			ToolName:   "composer",
 		}, found: true},
 		{name: "php", dependency: dep.Dependency{
 			Name:       "php",
 			Constraint: ">=8.2",
+			IsDirect:   true,
+			ToolName:   "composer",
 		}, found: true},
 	}
 	for _, c := range toGet {

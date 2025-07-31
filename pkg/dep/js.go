@@ -18,6 +18,7 @@ type jsManager struct {
 
 	initOnce sync.Once
 	deps     map[string]Dependency
+	toolName string
 }
 
 func newJSManager(fsys fs.FS, path string) Manager {
@@ -73,51 +74,65 @@ func (m *jsManager) parse() error {
 
 	// Handle Meteor dependencies.
 	if _, ok := files[".meteor"]; ok {
+		m.toolName = "meteor"
 		meteorDeps, err := parseMeteorDeps(m.fsys, m.path)
 		if err != nil {
 			return err
 		}
 		for name, dep := range meteorDeps {
+			dep.ToolName = m.toolName
 			m.deps[name] = dep
 		}
 	}
 
 	// Handle Deno dependencies.
 	if _, ok := files["deno.json"]; ok {
+		m.toolName = "deno"
 		denoDeps, err := parseDenoDeps(m.fsys, m.path)
 		if err != nil {
 			return err
 		}
 		for name, dep := range denoDeps {
+			dep.ToolName = m.toolName
 			m.deps[name] = dep
 		}
 	}
 
 	// For npm, pnpm, bun, and yarn, always parse package.json first for constraints.
 	if _, ok := files["package.json"]; ok {
+		// Detect tool based on lock files
+		if _, ok := files["pnpm-lock.yaml"]; ok {
+			m.toolName = "pnpm"
+		} else if _, ok := files["bun.lock"]; ok {
+			m.toolName = "bun"
+		} else {
+			m.toolName = "npm" // default for package.json
+		}
+
 		pkgJsonDeps, err := parsePackageDotJsonDeps(m.fsys, m.path, m.vendorName)
 		if err != nil {
 			return err
 		}
 		for name, dep := range pkgJsonDeps {
+			dep.ToolName = m.toolName
 			m.deps[name] = dep
 		}
-	}
 
-	// Then update Version fields from lock files if present.
-	if _, ok := files["package-lock.json"]; ok {
-		if err := parseNpmLockDeps(m.fsys, m.path, m.deps, m.vendorName); err != nil {
-			return err
+		// Then update Version fields from lock files if present.
+		if _, ok := files["package-lock.json"]; ok {
+			if err := parseNpmLockDeps(m.fsys, m.path, m.deps, m.vendorName, m.toolName); err != nil {
+				return err
+			}
 		}
-	}
-	if _, ok := files["pnpm-lock.yaml"]; ok {
-		if err := parsePnpmLockDeps(m.fsys, m.path, m.deps, m.vendorName); err != nil {
-			return err
+		if _, ok := files["pnpm-lock.yaml"]; ok {
+			if err := parsePnpmLockDeps(m.fsys, m.path, m.deps, m.vendorName, m.toolName); err != nil {
+				return err
+			}
 		}
-	}
-	if _, ok := files["bun.lock"]; ok {
-		if err := parseBunLockDeps(m.fsys, m.path, m.deps, m.vendorName); err != nil {
-			return err
+		if _, ok := files["bun.lock"]; ok {
+			if err := parseBunLockDeps(m.fsys, m.path, m.deps, m.vendorName, m.toolName); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -137,8 +152,24 @@ func parsePackageDotJsonDeps(fsys fs.FS, path string, vendorName func(string) st
 		return nil, err
 	}
 	deps := map[string]Dependency{}
+	// Add regular dependencies as direct, non-dev
 	for name, constraint := range npmManifest.Dependencies {
-		deps[name] = Dependency{Constraint: constraint, Name: name, Vendor: vendorName(name)}
+		deps[name] = Dependency{
+			Constraint: constraint,
+			Name:       name,
+			Vendor:     vendorName(name),
+			IsDirect:   true,
+		}
+	}
+	// Add dev dependencies as direct, dev-only
+	for name, constraint := range npmManifest.DevDependencies {
+		deps[name] = Dependency{
+			Constraint: constraint,
+			Name:       name,
+			Vendor:     vendorName(name),
+			IsDirect:   true,
+			IsDevOnly:  true,
+		}
 	}
 	return deps, nil
 }
@@ -152,7 +183,7 @@ func parseDenoDeps(fsys fs.FS, path string) (map[string]Dependency, error) {
 	deps := map[string]Dependency{}
 	for _, constraint := range denoManifest.Imports {
 		if strings.HasPrefix(constraint, "jsr:") || strings.HasPrefix(constraint, "npm:") {
-			addDepVersion(deps, constraint, func(string) string { return "" })
+			addDepVersion(deps, constraint, func(string) string { return "" }, true, "deno")
 			continue
 		}
 		if matches := denoPackageURL.FindStringSubmatch(constraint); len(matches) == 3 {
@@ -161,7 +192,12 @@ func parseDenoDeps(fsys fs.FS, path string) (map[string]Dependency, error) {
 				d.Version = version
 				deps[name] = d
 			} else {
-				deps[name] = Dependency{Name: name, Version: version}
+				deps[name] = Dependency{
+					Name:     name,
+					Version:  version,
+					IsDirect: true,
+					ToolName: "deno",
+				}
 			}
 		}
 	}
@@ -170,54 +206,79 @@ func parseDenoDeps(fsys fs.FS, path string) (map[string]Dependency, error) {
 		return nil, err
 	}
 	for nameVersion := range denoLocked.JSR {
-		addDepVersion(deps, nameVersion, func(string) string { return "" })
+		addDepVersion(deps, nameVersion, func(string) string { return "" }, false, "deno")
 	}
 	for nameVersion := range denoLocked.NPM {
-		addDepVersion(deps, nameVersion, func(string) string { return "" })
+		addDepVersion(deps, nameVersion, func(string) string { return "" }, false, "deno")
 	}
 	return deps, nil
 }
 
 // parseNpmLockDeps updates deps with versions from package-lock.json
-func parseNpmLockDeps(fsys fs.FS, path string, deps map[string]Dependency, vendorName func(string) string) error {
+func parseNpmLockDeps(
+	fsys fs.FS, path string, deps map[string]Dependency,
+	vendorName func(string) string, toolName string,
+) error {
 	var locked packageLockJSON
 	if err := parseJSON(fsys, path, "package-lock.json", &locked); err != nil {
 		return err
 	}
 	for name, pkg := range locked.Dependencies {
 		if d, ok := deps[name]; ok {
+			// Update existing dependency (preserve IsDirect status)
 			d.Version = pkg.Version
 			deps[name] = d
 		} else {
-			deps[name] = Dependency{Name: name, Version: pkg.Version, Vendor: vendorName(name)}
+			// New dependency only found in lock file (indirect)
+			deps[name] = Dependency{
+				Name:     name,
+				Version:  pkg.Version,
+				Vendor:   vendorName(name),
+				IsDirect: false,
+				ToolName: toolName,
+			}
 		}
 	}
 	for name, pkg := range locked.Packages {
 		name = strings.TrimPrefix(name, "node_modules/")
 		if d, ok := deps[name]; ok {
+			// Update existing dependency (preserve IsDirect status)
 			d.Version = pkg.Version
 			deps[name] = d
 		} else {
-			deps[name] = Dependency{Name: name, Version: pkg.Version, Vendor: vendorName(name)}
+			// New dependency only found in lock file (indirect)
+			deps[name] = Dependency{
+				Name:     name,
+				Version:  pkg.Version,
+				Vendor:   vendorName(name),
+				IsDirect: false,
+				ToolName: toolName,
+			}
 		}
 	}
 	return nil
 }
 
 // parsePnpmLockDeps updates deps with versions from pnpm-lock.yaml
-func parsePnpmLockDeps(fsys fs.FS, path string, deps map[string]Dependency, vendorName func(string) string) error {
+func parsePnpmLockDeps(
+	fsys fs.FS, path string, deps map[string]Dependency,
+	vendorName func(string) string, toolName string,
+) error {
 	var pnpmLocked pnpmLockYAML
 	if err := parseYAML(fsys, path, "pnpm-lock.yaml", &pnpmLocked); err != nil {
 		return err
 	}
 	for nameVersion := range pnpmLocked.Packages {
-		addDepVersion(deps, nameVersion, vendorName)
+		addDepVersion(deps, nameVersion, vendorName, false, toolName)
 	}
 	return nil
 }
 
 // parseBunLockDeps updates deps with versions from bun.lock
-func parseBunLockDeps(fsys fs.FS, path string, deps map[string]Dependency, vendorName func(string) string) error {
+func parseBunLockDeps(
+	fsys fs.FS, path string, deps map[string]Dependency,
+	vendorName func(string) string, toolName string,
+) error {
 	var bunLocked bunLock
 	if err := parseJSONC(fsys, path, "bun.lock", &bunLocked); err != nil {
 		return err
@@ -230,23 +291,34 @@ func parseBunLockDeps(fsys fs.FS, path string, deps map[string]Dependency, vendo
 		if !ok {
 			continue
 		}
-		addDepVersion(deps, first, vendorName)
+		addDepVersion(deps, first, vendorName, false, toolName)
 	}
 	return nil
 }
 
 // addDepVersion updates the deps map with a dependency parsed from nameVersion (e.g. "foo@1.2.3").
-func addDepVersion(deps map[string]Dependency, nameVersion string, vendorName func(string) string) {
+func addDepVersion(
+	deps map[string]Dependency, nameVersion string,
+	vendorName func(string) string, isDirect bool, toolName string,
+) {
 	matches := npmNameVersion.FindStringSubmatch(nameVersion)
 	if len(matches) != 3 {
 		return
 	}
 	name, version := matches[1], matches[2]
 	if d, ok := deps[name]; ok {
+		// Update existing dependency (preserve IsDirect status from manifest files)
 		d.Version = version
 		deps[name] = d
 	} else {
-		deps[name] = Dependency{Name: name, Version: version, Vendor: vendorName(name)}
+		// New dependency (lock file dependencies are not dev-only)
+		deps[name] = Dependency{
+			Name:     name,
+			Version:  version,
+			Vendor:   vendorName(name),
+			IsDirect: isDirect,
+			ToolName: toolName,
+		}
 	}
 }
 
@@ -275,8 +347,11 @@ func parseMeteorDeps(fsys fs.FS, path string) (map[string]Dependency, error) {
 			if line == "" || strings.HasPrefix(line, "#") {
 				continue
 			}
-			// Only the package name, no version
-			meteorDeps[line] = Dependency{Name: line}
+			// Dependencies from .meteor/packages are direct
+			meteorDeps[line] = Dependency{
+				Name:     line,
+				IsDirect: true,
+			}
 		}
 	}
 	if meteorVersionsExists {
@@ -291,10 +366,16 @@ func parseMeteorDeps(fsys fs.FS, path string) (map[string]Dependency, error) {
 			if len(parts) == 2 {
 				name, version := parts[0], parts[1]
 				if dep, ok := meteorDeps[name]; ok {
+					// Update existing dependency (preserve IsDirect status)
 					dep.Version = version
 					meteorDeps[name] = dep
 				} else {
-					meteorDeps[name] = Dependency{Name: name, Version: version}
+					// New dependency only in versions file (indirect)
+					meteorDeps[name] = Dependency{
+						Name:     name,
+						Version:  version,
+						IsDirect: false,
+					}
 				}
 			}
 		}
@@ -303,7 +384,8 @@ func parseMeteorDeps(fsys fs.FS, path string) (map[string]Dependency, error) {
 }
 
 type packageJSON struct {
-	Dependencies map[string]string `json:"dependencies"`
+	Dependencies    map[string]string `json:"dependencies"`
+	DevDependencies map[string]string `json:"devDependencies"`
 }
 
 type denoJSON struct {

@@ -20,7 +20,8 @@ type phpManager struct {
 }
 
 type composerJSON struct {
-	Require map[string]string `json:"require"`
+	Require    map[string]string `json:"require"`
+	RequireDev map[string]string `json:"require-dev"`
 }
 
 type composerLock struct {
@@ -60,6 +61,7 @@ func (m *phpManager) Init() error {
 
 func (m *phpManager) Find(pattern string) []Dependency {
 	var deps []Dependency
+	// Add regular dependencies (non-dev)
 	for name, constraint := range m.composerJSON.Require {
 		if wildcard.Match(pattern, name) {
 			parts := strings.SplitN(name, "/", 2)
@@ -72,6 +74,27 @@ func (m *phpManager) Find(pattern string) []Dependency {
 				Name:       name,
 				Constraint: constraint,
 				Version:    m.getLockedVersion(name),
+				IsDirect:   true, // Dependencies from composer.json are direct
+				ToolName:   "composer",
+			})
+		}
+	}
+	// Add dev dependencies
+	for name, constraint := range m.composerJSON.RequireDev {
+		if wildcard.Match(pattern, name) {
+			parts := strings.SplitN(name, "/", 2)
+			var vendor string
+			if len(parts) == 2 {
+				vendor = parts[0]
+			}
+			deps = append(deps, Dependency{
+				Vendor:     vendor,
+				Name:       name,
+				Constraint: constraint,
+				Version:    m.getLockedVersion(name),
+				IsDirect:   true, // Dependencies from composer.json are direct
+				IsDevOnly:  true,
+				ToolName:   "composer",
 			})
 		}
 	}
@@ -89,19 +112,32 @@ func (m *phpManager) getLockedVersion(packageName string) string {
 
 func (m *phpManager) Get(name string) (Dependency, bool) {
 	packageName := name
-	constraint, ok := m.composerJSON.Require[name]
-	if !ok && m.getLockedVersion(packageName) == "" {
+	constraint, inRequire := m.composerJSON.Require[name]
+	constraintDev, inRequireDev := m.composerJSON.RequireDev[name]
+
+	// Use dev constraint if not in regular require
+	if !inRequire && inRequireDev {
+		constraint = constraintDev
+	}
+
+	// Must be in either require, require-dev, or lock file
+	if !inRequire && !inRequireDev && m.getLockedVersion(packageName) == "" {
 		return Dependency{}, false
 	}
+
 	var vendor string
 	if strings.Contains(name, "/") {
 		parts := strings.SplitN(name, "/", 2)
 		vendor = parts[0]
 	}
+
 	return Dependency{
 		Vendor:     vendor,
 		Name:       name,
 		Constraint: constraint,
 		Version:    m.getLockedVersion(packageName),
+		IsDirect:   inRequire || inRequireDev,  // Direct if found in composer.json
+		IsDevOnly:  inRequireDev && !inRequire, // Dev-only if only in require-dev
+		ToolName:   "composer",
 	}, true
 }

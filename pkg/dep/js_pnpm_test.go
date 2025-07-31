@@ -39,6 +39,8 @@ func TestPNPM(t *testing.T) {
 			Name:       "@strapi/strapi",
 			Constraint: "^5.10.2",
 			Version:    "5.10.2",
+			IsDirect:   true,
+			ToolName:   "pnpm",
 		}}},
 	}
 	for _, c := range cases {

@@ -20,8 +20,7 @@ type pythonManager struct {
 	path string
 
 	initOnce     sync.Once
-	requirements map[string]string // constraints from pyproject.toml, requirements.txt, etc.
-	resolved     map[string]string // resolved versions from uv.lock
+	dependencies []Dependency
 }
 
 func newPythonManager(fsys fs.FS, path string) Manager {
@@ -39,10 +38,15 @@ func (m *pythonManager) Init() error {
 	return err
 }
 
+func (m *pythonManager) hasFile(filename string) bool {
+	_, err := m.fsys.Open(filepath.Join(m.path, filename))
+	return err == nil
+}
+
 func (m *pythonManager) parseFile(
 	filename string,
-	parseFunc func(io.Reader) (map[string]string, error),
-	targetMap *map[string]string,
+	parseFunc func(io.Reader, string) ([]Dependency, error),
+	toolName string,
 ) error {
 	f, err := m.fsys.Open(filepath.Join(m.path, filename))
 	if err != nil {
@@ -52,83 +56,154 @@ func (m *pythonManager) parseFile(
 		return err
 	}
 	defer f.Close()
-	reqs, err := parseFunc(f)
+	deps, err := parseFunc(f, toolName)
 	if err != nil {
 		return err
 	}
-	if *targetMap == nil {
-		*targetMap = make(map[string]string)
-	}
-	for k, v := range reqs {
-		(*targetMap)[k] = v
-	}
+	m.dependencies = append(m.dependencies, deps...)
 	return nil
 }
 
+func (m *pythonManager) mergeResolvedVersions() {
+	var merged = make(map[string]Dependency)
+	for _, dep := range m.dependencies {
+		if existing, found := merged[dep.Name]; found {
+			// Merge: prefer constraint info from manifest files, version from lock files
+			if dep.Constraint != "" {
+				existing.Constraint = dep.Constraint
+				existing.IsDirect = dep.IsDirect
+				existing.IsDevOnly = dep.IsDevOnly
+			}
+			if dep.Version != "" {
+				existing.Version = dep.Version
+			}
+			merged[dep.Name] = existing
+		} else {
+			merged[dep.Name] = dep
+		}
+	}
+
+	// Convert back to slice
+	var i int
+	m.dependencies = make([]Dependency, len(merged))
+	for _, dep := range merged {
+		m.dependencies[i] = dep
+		i++
+	}
+}
+
+func (m *pythonManager) determineTool() string {
+	switch {
+	case m.hasFile("uv.lock"):
+		return "uv"
+	case m.hasFile("poetry.lock"):
+		return "poetry"
+	case m.hasFile("pyproject.toml"):
+		// Check if pyproject.toml has specific tool configuration
+		if tool := m.detectPyprojectTool(); tool != "" {
+			return tool
+		}
+		return "python" // generic when tool can't be determined
+	case m.hasFile("requirements.txt"):
+		return "pip"
+	case m.hasFile("Pipfile"):
+		return "pipenv"
+	default:
+		return ""
+	}
+}
+
+func (m *pythonManager) detectPyprojectTool() string {
+	f, err := m.fsys.Open(filepath.Join(m.path, "pyproject.toml"))
+	if err != nil {
+		return ""
+	}
+	defer f.Close()
+
+	type PyProjectToolDetect struct {
+		Tool map[string]toml.Primitive `toml:"tool"`
+	}
+
+	var pyProject PyProjectToolDetect
+	_, err = toml.NewDecoder(f).Decode(&pyProject)
+	if err != nil {
+		return ""
+	}
+
+	// Check for specific tool sections
+	if _, exists := pyProject.Tool["poetry"]; exists {
+		return "poetry"
+	}
+	if _, exists := pyProject.Tool["uv"]; exists {
+		return "uv"
+	}
+
+	return ""
+}
+
 func (m *pythonManager) parse() error {
-	// Always try to parse both pyproject.toml and uv.lock if present
-	if err := m.parseFile("pyproject.toml", parsePyprojectTOML, &m.requirements); err != nil {
-		return err
-	}
-	if err := m.parseFile("uv.lock", parseUvLock, &m.resolved); err != nil {
-		return err
-	}
-	// Fallbacks for constraints if pyproject.toml is missing
-	if len(m.requirements) == 0 {
-		if err := m.parseFile("requirements.txt", parseRequirementsTXT, &m.requirements); err != nil {
+	switch tool := m.determineTool(); tool {
+	case "uv":
+		if err := m.parseFile("pyproject.toml", parsePyprojectTOML, tool); err != nil {
 			return err
 		}
-		if err := m.parseFile("Pipfile", parsePipfile, &m.requirements); err != nil {
+		if err := m.parseFile("uv.lock", parseUvLock, tool); err != nil {
+			return err
+		}
+		m.mergeResolvedVersions()
+
+	case "poetry":
+		if err := m.parseFile("pyproject.toml", parsePyprojectTOML, tool); err != nil {
+			return err
+		}
+		if err := m.parseFile("poetry.lock", parsePoetryLock, tool); err != nil {
+			return err
+		}
+		m.mergeResolvedVersions()
+
+	case "python":
+		if err := m.parseFile("pyproject.toml", parsePyprojectTOML, tool); err != nil {
+			return err
+		}
+
+	case "pip":
+		if err := m.parseFile("requirements.txt", parseRequirementsTXT, tool); err != nil {
+			return err
+		}
+
+	case "pipenv":
+		if err := m.parseFile("Pipfile", parsePipfile, tool); err != nil {
 			return err
 		}
 	}
+
 	return nil
 }
 
 func (m *pythonManager) Find(pattern string) []Dependency {
-	seen := make(map[string]struct{})
 	var deps []Dependency
-	// First, add all with constraints
-	for name, constraint := range m.requirements {
-		if wildcard.Match(pattern, name) {
-			deps = append(deps, Dependency{
-				Name:       name,
-				Constraint: constraint,
-				Version:    m.resolved[name],
-			})
-			seen[name] = struct{}{}
-		}
-	}
-	// Then, add any resolved-only deps not already included
-	for name, version := range m.resolved {
-		if _, already := seen[name]; !already && wildcard.Match(pattern, name) {
-			deps = append(deps, Dependency{
-				Name:    name,
-				Version: version,
-			})
+	for _, dep := range m.dependencies {
+		if wildcard.Match(pattern, dep.Name) {
+			deps = append(deps, dep)
 		}
 	}
 	return deps
 }
 
 func (m *pythonManager) Get(name string) (Dependency, bool) {
-	constraint, hasConstraint := m.requirements[name]
-	version, hasVersion := m.resolved[name]
-	if !hasConstraint && !hasVersion {
-		return Dependency{}, false
+	for _, dep := range m.dependencies {
+		if dep.Name == name {
+			return dep, true
+		}
 	}
-	return Dependency{
-		Name:       name,
-		Constraint: constraint,
-		Version:    version,
-	}, true
+	return Dependency{}, false
 }
 
 var pipPattern = regexp.MustCompile(`^([\w\-\.]+(?:\[[^\]]+\])?)(.*)$`)
 
 // parseRequirementsTXT parses a requirements.txt file
-func parseRequirementsTXT(r io.Reader) (map[string]string, error) {
-	dependencies := make(map[string]string)
+func parseRequirementsTXT(r io.Reader, toolName string) ([]Dependency, error) {
+	var dependencies []Dependency
 	scanner := bufio.NewScanner(r)
 
 	for scanner.Scan() {
@@ -144,7 +219,12 @@ func parseRequirementsTXT(r io.Reader) (map[string]string, error) {
 			if len(matches) > 2 {
 				versionConstraint = matches[2]
 			}
-			dependencies[packageName] = versionConstraint
+			dependencies = append(dependencies, Dependency{
+				Name:       packageName,
+				Constraint: versionConstraint,
+				IsDirect:   true,
+				ToolName:   toolName,
+			})
 		}
 	}
 
@@ -157,15 +237,20 @@ func parseRequirementsTXT(r io.Reader) (map[string]string, error) {
 var pipEnvPattern = regexp.MustCompile(`^\s*"?([\w-]+)"?\s*=\s*"([^"]+)"`)
 
 // parsePipfile extracts dependencies from a Pipfile
-func parsePipfile(r io.Reader) (map[string]string, error) {
-	dependencies := make(map[string]string)
+func parsePipfile(r io.Reader, toolName string) ([]Dependency, error) {
+	var dependencies []Dependency
 
 	scanner := bufio.NewScanner(r)
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
 		matches := pipEnvPattern.FindStringSubmatch(line)
 		if len(matches) == 3 {
-			dependencies[matches[1]] = matches[2]
+			dependencies = append(dependencies, Dependency{
+				Name:       matches[1],
+				Constraint: matches[2],
+				IsDirect:   true,
+				ToolName:   toolName,
+			})
 		}
 	}
 
@@ -176,14 +261,18 @@ func parsePipfile(r io.Reader) (map[string]string, error) {
 }
 
 // parsePyprojectTOML parses pyproject.toml dependencies (Poetry and PEP 621)
-func parsePyprojectTOML(r io.Reader) (map[string]string, error) {
+func parsePyprojectTOML(r io.Reader, toolName string) ([]Dependency, error) {
 	type PyProject struct {
 		Project struct {
-			Dependencies []string `toml:"dependencies"`
+			Dependencies []string            `toml:"dependencies"`
+			Optional     map[string][]string `toml:"optional-dependencies"`
 		} `toml:"project"`
-		Tool struct {
+		DependencyGroups map[string][]string `toml:"dependency-groups"` // PEP 735
+		Tool             struct {
 			Poetry struct {
-				Dependencies map[string]any `toml:"dependencies"`
+				Dependencies    map[string]any                       `toml:"dependencies"`
+				DevDependencies map[string]any                       `toml:"dev-dependencies"` // Legacy Poetry
+				Group           map[string]map[string]map[string]any `toml:"group"`            // Modern Poetry groups
 			} `toml:"poetry"`
 		} `toml:"tool"`
 	}
@@ -194,16 +283,26 @@ func parsePyprojectTOML(r io.Reader) (map[string]string, error) {
 		return nil, err
 	}
 
-	dependencies := make(map[string]string)
+	var dependencies []Dependency
 
 	// Handle Poetry dependencies
 	for pkg, version := range pyProject.Tool.Poetry.Dependencies {
 		switch v := version.(type) {
 		case string:
-			dependencies[pkg] = v
+			dependencies = append(dependencies, Dependency{
+				Name:       pkg,
+				Constraint: v,
+				IsDirect:   true,
+				ToolName:   toolName,
+			})
 		case map[string]any:
 			if str, ok := v["version"].(string); ok {
-				dependencies[pkg] = str
+				dependencies = append(dependencies, Dependency{
+					Name:       pkg,
+					Constraint: str,
+					IsDirect:   true,
+					ToolName:   toolName,
+				})
 			}
 		default:
 			return nil, fmt.Errorf("unrecognized poetry version type %T: %v", version, version)
@@ -223,8 +322,117 @@ func parsePyprojectTOML(r io.Reader) (map[string]string, error) {
 			if len(matches) > 2 {
 				versionConstraint = matches[2]
 			}
-			if packageName != "" {
-				dependencies[packageName] = versionConstraint
+			dependencies = append(dependencies, Dependency{
+				Name:       packageName,
+				Constraint: versionConstraint,
+				IsDirect:   true,
+				ToolName:   toolName,
+			})
+		}
+	}
+
+	// Handle PEP 735 dependency groups (uv standard)
+	if devGroup, ok := pyProject.DependencyGroups["dev"]; ok {
+		for _, dep := range devGroup {
+			dep = strings.TrimSpace(dep)
+			if dep == "" {
+				continue
+			}
+			matches := pipPattern.FindStringSubmatch(dep)
+			if len(matches) > 1 {
+				packageName := matches[1]
+				versionConstraint := ""
+				if len(matches) > 2 {
+					versionConstraint = matches[2]
+				}
+				dependencies = append(dependencies, Dependency{
+					Name:       packageName,
+					Constraint: versionConstraint,
+					IsDirect:   true,
+					IsDevOnly:  true,
+					ToolName:   toolName,
+				})
+			}
+		}
+	}
+
+	// Handle Poetry legacy dev dependencies
+	for pkg, version := range pyProject.Tool.Poetry.DevDependencies {
+		switch v := version.(type) {
+		case string:
+			dependencies = append(dependencies, Dependency{
+				Name:       pkg,
+				Constraint: v,
+				IsDirect:   true,
+				IsDevOnly:  true,
+				ToolName:   toolName,
+			})
+		case map[string]any:
+			if str, ok := v["version"].(string); ok {
+				dependencies = append(dependencies, Dependency{
+					Name:       pkg,
+					Constraint: str,
+					IsDirect:   true,
+					IsDevOnly:  true,
+					ToolName:   toolName,
+				})
+			}
+		default:
+			return nil, fmt.Errorf("unrecognized poetry dev version type %T: %v", version, version)
+		}
+	}
+
+	// Handle Poetry groups (modern Poetry)
+	if devGroup, ok := pyProject.Tool.Poetry.Group["dev"]; ok {
+		if deps, ok := devGroup["dependencies"]; ok {
+			for pkg, version := range deps {
+				switch v := version.(type) {
+				case string:
+					dependencies = append(dependencies, Dependency{
+						Name:       pkg,
+						Constraint: v,
+						IsDirect:   true,
+						IsDevOnly:  true,
+						ToolName:   toolName,
+					})
+				case map[string]any:
+					if str, ok := v["version"].(string); ok {
+						dependencies = append(dependencies, Dependency{
+							Name:       pkg,
+							Constraint: str,
+							IsDirect:   true,
+							IsDevOnly:  true,
+							ToolName:   toolName,
+						})
+					}
+				default:
+					return nil, fmt.Errorf("unrecognized poetry group dev version type %T: %v", version, version)
+				}
+			}
+		}
+	}
+
+	// Handle PEP 621 optional dependencies (treat "dev" group as dev dependencies)
+	if devGroup, ok := pyProject.Project.Optional["dev"]; ok {
+		for _, dep := range devGroup {
+			dep = strings.TrimSpace(dep)
+			if dep == "" {
+				continue
+			}
+			matches := pipPattern.FindStringSubmatch(dep)
+			if len(matches) > 1 {
+				packageName := matches[1]
+				versionConstraint := ""
+				if len(matches) > 2 {
+					versionConstraint = matches[2]
+				}
+				dependencies = append(dependencies, Dependency{
+					Name:       packageName,
+					Constraint: versionConstraint,
+					IsDirect:   true,
+					IsDevOnly:  true,
+					ToolName:   toolName,
+				})
 			}
 		}
 	}
@@ -233,7 +441,7 @@ func parsePyprojectTOML(r io.Reader) (map[string]string, error) {
 }
 
 // parseUvLock parses a uv.lock TOML file and extracts dependencies
-func parseUvLock(r io.Reader) (map[string]string, error) {
+func parseUvLock(r io.Reader, toolName string) ([]Dependency, error) {
 	type UvPackage struct {
 		Name    string `toml:"name"`
 		Version string `toml:"version"`
@@ -247,9 +455,41 @@ func parseUvLock(r io.Reader) (map[string]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	dependencies := make(map[string]string)
+	var dependencies []Dependency
 	for _, pkg := range lock.Packages {
-		dependencies[pkg.Name] = pkg.Version
+		dependencies = append(dependencies, Dependency{
+			Name:     pkg.Name,
+			Version:  pkg.Version,
+			IsDirect: false, // Lock files contain both direct and indirect deps
+			ToolName: toolName,
+		})
+	}
+	return dependencies, nil
+}
+
+// parsePoetryLock parses a poetry.lock TOML file and extracts dependencies
+func parsePoetryLock(r io.Reader, toolName string) ([]Dependency, error) {
+	type PoetryPackage struct {
+		Name    string `toml:"name"`
+		Version string `toml:"version"`
+	}
+	type PoetryLock struct {
+		Packages []PoetryPackage `toml:"package"`
+	}
+
+	var lock PoetryLock
+	_, err := toml.NewDecoder(r).Decode(&lock)
+	if err != nil {
+		return nil, err
+	}
+	var dependencies []Dependency
+	for _, pkg := range lock.Packages {
+		dependencies = append(dependencies, Dependency{
+			Name:     pkg.Name,
+			Version:  pkg.Version,
+			IsDirect: false, // Lock files contain both direct and indirect deps
+			ToolName: toolName,
+		})
 	}
 	return dependencies, nil
 }

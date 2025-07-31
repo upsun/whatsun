@@ -28,9 +28,9 @@ pandas!=1.3.0`)},
 		pattern      string
 		dependencies []dep.Dependency
 	}{
-		{"requests", []dep.Dependency{{Name: "requests", Constraint: ">=2.25.1"}}},
-		{"numpy", []dep.Dependency{{Name: "numpy", Constraint: "==1.21.0"}}},
-		{"p*ndas", []dep.Dependency{{Name: "pandas", Constraint: "!=1.3.0"}}},
+		{"requests", []dep.Dependency{{Name: "requests", Constraint: ">=2.25.1", IsDirect: true, ToolName: "pip"}}},
+		{"numpy", []dep.Dependency{{Name: "numpy", Constraint: "==1.21.0", IsDirect: true, ToolName: "pip"}}},
+		{"p*ndas", []dep.Dependency{{Name: "pandas", Constraint: "!=1.3.0", IsDirect: true, ToolName: "pip"}}},
 		{"flask", nil},
 	}
 	for _, c := range toFind {
@@ -42,8 +42,8 @@ pandas!=1.3.0`)},
 		dependency dep.Dependency
 		found      bool
 	}{
-		{"requests", dep.Dependency{Name: "requests", Constraint: ">=2.25.1"}, true},
-		{"numpy", dep.Dependency{Name: "numpy", Constraint: "==1.21.0"}, true},
+		{"requests", dep.Dependency{Name: "requests", Constraint: ">=2.25.1", IsDirect: true, ToolName: "pip"}, true},
+		{"numpy", dep.Dependency{Name: "numpy", Constraint: "==1.21.0", IsDirect: true, ToolName: "pip"}, true},
 		{"flask", dep.Dependency{}, false},
 	}
 	for _, c := range toGet {

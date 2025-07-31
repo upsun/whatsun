@@ -50,8 +50,10 @@ func (m *goManager) Get(name string) (Dependency, bool) {
 	for _, v := range m.file.Require {
 		if v.Mod.Path == name && !v.Indirect {
 			return Dependency{
-				Name:    v.Mod.Path,
-				Version: v.Mod.Version,
+				Name:     v.Mod.Path,
+				Version:  v.Mod.Version,
+				IsDirect: !v.Indirect,
+				ToolName: "go",
 			}, true
 		}
 	}
@@ -61,10 +63,12 @@ func (m *goManager) Get(name string) (Dependency, bool) {
 func (m *goManager) Find(pattern string) []Dependency {
 	var deps []Dependency
 	for _, v := range m.file.Require {
-		if !v.Indirect && wildcard.Match(pattern, v.Mod.Path) {
+		if wildcard.Match(pattern, v.Mod.Path) {
 			deps = append(deps, Dependency{
-				Name:    v.Mod.Path,
-				Version: v.Mod.Version,
+				Name:     v.Mod.Path,
+				Version:  v.Mod.Version,
+				IsDirect: !v.Indirect,
+				ToolName: "go",
 			})
 		}
 	}

@@ -32,14 +32,20 @@ func TestParsePythonUv(t *testing.T) {
 		pattern      string
 		dependencies []dep.Dependency
 	}{
-		{"pandas", []dep.Dependency{{Name: "pandas", Constraint: ">=2.2.0", Version: "2.3.0"}}},
-		{"numpy", []dep.Dependency{{Name: "numpy", Constraint: "==1.26.0", Version: "1.26.0"}}},
+		{"pandas", []dep.Dependency{{
+			Name: "pandas", Constraint: ">=2.2.0", Version: "2.3.0", IsDirect: true, ToolName: "uv",
+		}}},
+		{"numpy", []dep.Dependency{{
+			Name: "numpy", Constraint: "==1.26.0", Version: "1.26.0", IsDirect: true, ToolName: "uv",
+		}}},
 		{"python-dateutil", []dep.Dependency{{
 			Name:       "python-dateutil",
 			Constraint: ">=2.8.0,<3.0.0",
 			Version:    "2.9.0.post0",
+			IsDirect:   true,
+			ToolName:   "uv",
 		}}},
-		{"six", []dep.Dependency{{Name: "six", Constraint: ">=1.15.0", Version: "1.17.0"}}},
+		{"six", []dep.Dependency{{Name: "six", Constraint: ">=1.15.0", Version: "1.17.0", IsDirect: true, ToolName: "uv"}}},
 	}
 	for _, c := range cases {
 		assert.Equal(t, c.dependencies, mgr.Find(c.pattern), c.pattern)
@@ -50,14 +56,20 @@ func TestParsePythonUv(t *testing.T) {
 		dependency dep.Dependency
 		found      bool
 	}{
-		{"pandas", dep.Dependency{Name: "pandas", Constraint: ">=2.2.0", Version: "2.3.0"}, true},
-		{"numpy", dep.Dependency{Name: "numpy", Constraint: "==1.26.0", Version: "1.26.0"}, true},
+		{"pandas", dep.Dependency{
+			Name: "pandas", Constraint: ">=2.2.0", Version: "2.3.0", IsDirect: true, ToolName: "uv",
+		}, true},
+		{"numpy", dep.Dependency{
+			Name: "numpy", Constraint: "==1.26.0", Version: "1.26.0", IsDirect: true, ToolName: "uv",
+		}, true},
 		{"python-dateutil", dep.Dependency{
 			Name:       "python-dateutil",
 			Constraint: ">=2.8.0,<3.0.0",
 			Version:    "2.9.0.post0",
+			IsDirect:   true,
+			ToolName:   "uv",
 		}, true},
-		{"six", dep.Dependency{Name: "six", Constraint: ">=1.15.0", Version: "1.17.0"}, true},
+		{"six", dep.Dependency{Name: "six", Constraint: ">=1.15.0", Version: "1.17.0", IsDirect: true, ToolName: "uv"}, true},
 		{"notfound", dep.Dependency{}, false},
 	}
 	for _, c := range toGet {

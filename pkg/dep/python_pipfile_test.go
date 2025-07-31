@@ -26,8 +26,8 @@ numpy = "==1.21.0"`)},
 		pattern      string
 		dependencies []dep.Dependency
 	}{
-		{"requests", []dep.Dependency{{Name: "requests", Constraint: ">=2.25.1"}}},
-		{"numpy", []dep.Dependency{{Name: "numpy", Constraint: "==1.21.0"}}},
+		{"requests", []dep.Dependency{{Name: "requests", Constraint: ">=2.25.1", IsDirect: true, ToolName: "pipenv"}}},
+		{"numpy", []dep.Dependency{{Name: "numpy", Constraint: "==1.21.0", IsDirect: true, ToolName: "pipenv"}}},
 	}
 	for _, c := range cases {
 		assert.Equal(t, c.dependencies, m.Find(c.pattern))

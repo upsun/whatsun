@@ -75,6 +75,8 @@ end
 			Name:       "phoenix",
 			Version:    "1.6.5",
 			Constraint: "~> 1.6.5",
+			IsDirect:   true,
+			ToolName:   "mix",
 		}}},
 	}
 	for _, c := range toFind {
@@ -91,6 +93,8 @@ end
 			Name:       "phoenix",
 			Version:    "1.6.5",
 			Constraint: "~> 1.6.5",
+			IsDirect:   true,
+			ToolName:   "mix",
 		}, found: true},
 	}
 	for _, c := range toGet {

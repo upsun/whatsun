@@ -38,6 +38,8 @@ gem 'nokogiri', '>= 1.10', '< 2.0'`),
 			Name:       "rails",
 			Version:    "6.1.4.1",
 			Constraint: "~> 6.1",
+			IsDirect:   true,
+			ToolName:   "bundler",
 		}}},
 	}
 	for _, c := range toFind {
@@ -55,6 +57,8 @@ gem 'nokogiri', '>= 1.10', '< 2.0'`),
 			Name:       "rails",
 			Version:    "6.1.4.1",
 			Constraint: "~> 6.1",
+			IsDirect:   true,
+			ToolName:   "bundler",
 		}, found: true},
 	}
 	for _, c := range toGet {

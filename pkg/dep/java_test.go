@@ -33,9 +33,11 @@ implementation 'com.fasterxml.jackson.core:jackson-databind:2.12.5'
 		dependencies []dep.Dependency
 	}{
 		{"org.apache.commons:*", []dep.Dependency{{
-			Vendor:  "org.apache.commons",
-			Name:    "org.apache.commons:commons-lang3",
-			Version: "3.12.0",
+			Vendor:   "org.apache.commons",
+			Name:     "org.apache.commons:commons-lang3",
+			Version:  "3.12.0",
+			IsDirect: true,
+			ToolName: "gradle",
 		}}},
 	}
 	for _, c := range toFind {
@@ -48,9 +50,11 @@ implementation 'com.fasterxml.jackson.core:jackson-databind:2.12.5'
 		found      bool
 	}{
 		{"org.apache.commons:commons-lang3", dep.Dependency{
-			Vendor:  "org.apache.commons",
-			Name:    "org.apache.commons:commons-lang3",
-			Version: "3.12.0",
+			Vendor:   "org.apache.commons",
+			Name:     "org.apache.commons:commons-lang3",
+			Version:  "3.12.0",
+			IsDirect: true,
+			ToolName: "gradle",
 		}, true},
 		{"org.springframework.boot:spring-boot-maven-plugin", dep.Dependency{}, false},
 	}
@@ -81,19 +85,25 @@ func TestGradleKTS(t *testing.T) {
 	}{
 		{"org.codehaus.groovy:*", []dep.Dependency{
 			{
-				Vendor:  "org.codehaus.groovy",
-				Name:    "org.codehaus.groovy:groovy",
-				Version: "3.0.5",
+				Vendor:   "org.codehaus.groovy",
+				Name:     "org.codehaus.groovy:groovy",
+				Version:  "3.0.5",
+				IsDirect: true,
+				ToolName: "gradle",
 			},
 			{
-				Vendor:  "org.codehaus.groovy",
-				Name:    "org.codehaus.groovy:groovy-json",
-				Version: "3.0.5",
+				Vendor:   "org.codehaus.groovy",
+				Name:     "org.codehaus.groovy:groovy-json",
+				Version:  "3.0.5",
+				IsDirect: true,
+				ToolName: "gradle",
 			},
 			{
-				Vendor:  "org.codehaus.groovy",
-				Name:    "org.codehaus.groovy:groovy-nio",
-				Version: "3.0.5",
+				Vendor:   "org.codehaus.groovy",
+				Name:     "org.codehaus.groovy:groovy-nio",
+				Version:  "3.0.5",
+				IsDirect: true,
+				ToolName: "gradle",
 			},
 		}},
 	}
@@ -112,9 +122,11 @@ func TestGradleKTS(t *testing.T) {
 	}{
 		{name: "org.apache.commons:commons-lang3"},
 		{"org.codehaus.groovy:groovy-nio", dep.Dependency{
-			Vendor:  "org.codehaus.groovy",
-			Name:    "org.codehaus.groovy:groovy-nio",
-			Version: "3.0.5",
+			Vendor:   "org.codehaus.groovy",
+			Name:     "org.codehaus.groovy:groovy-nio",
+			Version:  "3.0.5",
+			IsDirect: true,
+			ToolName: "gradle",
 		}, true},
 	}
 	for _, c := range toGet {
@@ -197,21 +209,29 @@ func TestMaven(t *testing.T) {
 	}{
 		{"org.springframework.boot*", []dep.Dependency{
 			{
-				Vendor: "org.springframework.boot",
-				Name:   "org.springframework.boot:spring-boot-starter-data-jpa",
+				Vendor:   "org.springframework.boot",
+				Name:     "org.springframework.boot:spring-boot-starter-data-jpa",
+				IsDirect: true,
+				ToolName: "maven",
 			},
 			{
-				Vendor:  "org.springframework.boot",
-				Name:    "org.springframework.boot:spring-boot-starter-parent",
-				Version: "2.4.1",
+				Vendor:   "org.springframework.boot",
+				Name:     "org.springframework.boot:spring-boot-starter-parent",
+				Version:  "2.4.1",
+				IsDirect: true,
+				ToolName: "maven",
 			},
 			{
-				Vendor: "org.springframework.boot",
-				Name:   "org.springframework.boot:spring-boot-starter-test",
+				Vendor:   "org.springframework.boot",
+				Name:     "org.springframework.boot:spring-boot-starter-test",
+				IsDirect: true,
+				ToolName: "maven",
 			},
 			{
-				Vendor: "org.springframework.boot",
-				Name:   "org.springframework.boot:spring-boot-starter-web",
+				Vendor:   "org.springframework.boot",
+				Name:     "org.springframework.boot:spring-boot-starter-web",
+				IsDirect: true,
+				ToolName: "maven",
 			},
 		}},
 	}
@@ -253,31 +273,41 @@ func TestSBT(t *testing.T) {
 	}{
 		{"com.typesafe.play*", []dep.Dependency{
 			{
-				Vendor:  "com.typesafe.play",
-				Name:    "com.typesafe.play:play-akka-http-server",
-				Version: "2.8.20",
+				Vendor:   "com.typesafe.play",
+				Name:     "com.typesafe.play:play-akka-http-server",
+				Version:  "2.8.20",
+				IsDirect: true,
+				ToolName: "sbt",
 			},
 			{
-				Vendor:  "com.typesafe.play",
-				Name:    "com.typesafe.play:play-json",
-				Version: "2.9.4",
+				Vendor:   "com.typesafe.play",
+				Name:     "com.typesafe.play:play-json",
+				Version:  "2.9.4",
+				IsDirect: true,
+				ToolName: "sbt",
 			},
 			{
-				Vendor:  "com.typesafe.play",
-				Name:    "com.typesafe.play:play-slick",
-				Version: "5.1.0",
+				Vendor:   "com.typesafe.play",
+				Name:     "com.typesafe.play:play-slick",
+				Version:  "5.1.0",
+				IsDirect: true,
+				ToolName: "sbt",
 			},
 			{
-				Vendor:  "com.typesafe.play",
-				Name:    "com.typesafe.play:play-slick-evolutions",
-				Version: "5.1.0",
+				Vendor:   "com.typesafe.play",
+				Name:     "com.typesafe.play:play-slick-evolutions",
+				Version:  "5.1.0",
+				IsDirect: true,
+				ToolName: "sbt",
 			},
 		}},
 		{"org.postgresql*", []dep.Dependency{
 			{
-				Vendor:  "org.postgresql",
-				Name:    "org.postgresql:postgresql",
-				Version: "42.6.0",
+				Vendor:   "org.postgresql",
+				Name:     "org.postgresql:postgresql",
+				Version:  "42.6.0",
+				IsDirect: true,
+				ToolName: "sbt",
 			},
 		}},
 	}
@@ -295,14 +325,18 @@ func TestSBT(t *testing.T) {
 		found      bool
 	}{
 		{"com.typesafe.play:play-json", dep.Dependency{
-			Vendor:  "com.typesafe.play",
-			Name:    "com.typesafe.play:play-json",
-			Version: "2.9.4",
+			Vendor:   "com.typesafe.play",
+			Name:     "com.typesafe.play:play-json",
+			Version:  "2.9.4",
+			IsDirect: true,
+			ToolName: "sbt",
 		}, true},
 		{"org.postgresql:postgresql", dep.Dependency{
-			Vendor:  "org.postgresql",
-			Name:    "org.postgresql:postgresql",
-			Version: "42.6.0",
+			Vendor:   "org.postgresql",
+			Name:     "org.postgresql:postgresql",
+			Version:  "42.6.0",
+			IsDirect: true,
+			ToolName: "sbt",
 		}, true},
 		{"org.apache.commons:commons-lang3", dep.Dependency{}, false},
 	}

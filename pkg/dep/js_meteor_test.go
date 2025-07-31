@@ -33,9 +33,9 @@ func TestMeteor(t *testing.T) {
 		pattern      string
 		dependencies []dep.Dependency
 	}{
-		{"meteor-base", []dep.Dependency{{Name: "meteor-base", Version: "1.5.1"}}},
-		{"ecmascript", []dep.Dependency{{Name: "ecmascript", Version: "0.16.7"}}},
-		{"random", []dep.Dependency{{Name: "random", Version: "1.3.2"}}},
+		{"meteor-base", []dep.Dependency{{Name: "meteor-base", Version: "1.5.1", IsDirect: true, ToolName: "meteor"}}},
+		{"ecmascript", []dep.Dependency{{Name: "ecmascript", Version: "0.16.7", IsDirect: true, ToolName: "meteor"}}},
+		{"random", []dep.Dependency{{Name: "random", Version: "1.3.2", IsDirect: true, ToolName: "meteor"}}},
 	}
 	for _, c := range cases {
 		deps := m.Find(c.pattern)

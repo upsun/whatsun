@@ -38,6 +38,8 @@ func TestNPM(t *testing.T) {
 			Name:       "gatsby",
 			Constraint: "^5.14.1",
 			Version:    "5.14.1",
+			IsDirect:   true,
+			ToolName:   "npm",
 		}}},
 	}
 	for _, c := range cases {

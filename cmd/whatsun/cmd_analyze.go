@@ -16,6 +16,7 @@ import (
 
 func analyzeCmd() *cobra.Command {
 	var ignore []string
+	var plain bool
 	cmd := &cobra.Command{
 		Use:   "analyze [path]",
 		Short: "Analyze a code repository and show results",
@@ -30,16 +31,18 @@ func analyzeCmd() *cobra.Command {
 			if len(args) > 0 {
 				path = args[0]
 			}
-			return runAnalyze(cmd.Context(), path, ignore, cmd.OutOrStdout(), cmd.ErrOrStderr())
+			return runAnalyze(cmd.Context(), path, ignore, plain, cmd.OutOrStdout(), cmd.ErrOrStderr())
 		},
 	}
 	cmd.Flags().StringSliceVar(&ignore, "ignore", []string{},
 		"Paths (or patterns) to ignore, adding to defaults.")
+	cmd.Flags().BoolVar(&plain, "plain", false,
+		"Output plain tab-separated values with header row.")
 
 	return cmd
 }
 
-func runAnalyze(ctx context.Context, path string, ignore []string, stdout, stderr io.Writer) error {
+func runAnalyze(ctx context.Context, path string, ignore []string, plain bool, stdout, stderr io.Writer) error {
 	fsys, disableGitIgnore, err := setupFileSystem(ctx, path, stderr)
 	if err != nil {
 		return err
@@ -76,26 +79,30 @@ func runAnalyze(ctx context.Context, path string, ignore []string, stdout, stder
 		return nil
 	}
 
-	tbl := table.NewWriter()
-	tbl.AppendHeader(table.Row{"Path", "Ruleset", "Result", "Groups", "With"})
+	if plain {
+		outputAnalyzePlain(reports, stdout)
+	} else {
+		tbl := table.NewWriter()
+		tbl.AppendHeader(table.Row{"Path", "Ruleset", "Result", "Groups", "With"})
 
-	for _, report := range reports {
-		if report.Maybe {
-			continue
-		}
-		var with string
-		if len(report.With) > 0 {
-			for k, v := range report.With {
-				if v.Error == "" && !isEmpty(v.Value) {
-					with += fmt.Sprintf("%s: %s\n", k, v.Value)
-				}
+		for _, report := range reports {
+			if report.Maybe {
+				continue
 			}
-			with = strings.TrimSpace(with)
+			var with string
+			if len(report.With) > 0 {
+				for k, v := range report.With {
+					if v.Error == "" && !isEmpty(v.Value) {
+						with += fmt.Sprintf("%s: %s\n", k, v.Value)
+					}
+				}
+				with = strings.TrimSpace(with)
+			}
+			tbl.AppendRow(table.Row{report.Path, report.Ruleset, report.Result, strings.Join(report.Groups, ", "), with})
 		}
-		tbl.AppendRow(table.Row{report.Path, report.Ruleset, report.Result, strings.Join(report.Groups, ", "), with})
-	}
 
-	fmt.Fprintln(stdout, tbl.Render())
+		fmt.Fprintln(stdout, tbl.Render())
+	}
 
 	return nil
 }

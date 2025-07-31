@@ -43,14 +43,30 @@ func (m *rustManager) parse() error {
 		}
 	}
 	defer manifestFile.Close()
-	constraints, err := parseCargoTOML(manifestFile)
+	regularDeps, devDeps, err := parseCargoTOML(manifestFile)
 	if err != nil {
 		return err
 	}
 
 	m.deps = make(map[string]Dependency)
-	for name, constraint := range constraints {
-		m.deps[name] = Dependency{Name: name, Constraint: constraint}
+	// Direct regular dependencies from Cargo.toml
+	for name, constraint := range regularDeps {
+		m.deps[name] = Dependency{
+			Name:       name,
+			Constraint: constraint,
+			IsDirect:   true,
+			ToolName:   "cargo",
+		}
+	}
+	// Direct dev dependencies from Cargo.toml
+	for name, constraint := range devDeps {
+		m.deps[name] = Dependency{
+			Name:       name,
+			Constraint: constraint,
+			IsDirect:   true,
+			IsDevOnly:  true,
+			ToolName:   "cargo",
+		}
 	}
 
 	lockFile, err := m.fsys.Open(filepath.Join(m.path, "Cargo.lock"))
@@ -67,10 +83,17 @@ func (m *rustManager) parse() error {
 	}
 	for name, version := range versions {
 		if d, ok := m.deps[name]; ok {
+			// Update existing dependency (preserve IsDirect status)
 			d.Version = version
 			m.deps[name] = d
 		} else {
-			m.deps[name] = Dependency{Name: name, Version: version}
+			// New dependency only in lock file (indirect)
+			m.deps[name] = Dependency{
+				Name:     name,
+				Version:  version,
+				IsDirect: false,
+				ToolName: "cargo",
+			}
 		}
 	}
 
@@ -93,7 +116,8 @@ func (m *rustManager) Get(name string) (Dependency, bool) {
 }
 
 type cargoTOML struct {
-	Dependencies map[string]toml.Primitive `toml:"dependencies"`
+	Dependencies    map[string]toml.Primitive `toml:"dependencies"`
+	DevDependencies map[string]toml.Primitive `toml:"dev-dependencies"`
 }
 
 type cargoLock struct {
@@ -104,28 +128,45 @@ type cargoLock struct {
 }
 
 // parseCargoTOML parses the Cargo.toml manifest (dependency names with version constraints).
-func parseCargoTOML(r io.Reader) (map[string]string, error) {
+func parseCargoTOML(r io.Reader) (regular map[string]string, dev map[string]string, err error) {
 	var ct cargoTOML
 	md, err := toml.NewDecoder(r).Decode(&ct)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	dependencies := make(map[string]string)
+	regular = make(map[string]string)
+	dev = make(map[string]string)
+
+	// Parse regular dependencies
 	for name, spec := range ct.Dependencies {
 		var asStr string
 		if err := md.PrimitiveDecode(spec, &asStr); err == nil {
-			dependencies[name] = asStr
+			regular[name] = asStr
 			continue
 		}
 		var asMap map[string]string
 		if err := md.PrimitiveDecode(spec, &asMap); err == nil {
 			b, _ := json.Marshal(asMap)
-			dependencies[name] = string(b)
+			regular[name] = string(b)
 		}
 	}
 
-	return dependencies, nil
+	// Parse dev dependencies
+	for name, spec := range ct.DevDependencies {
+		var asStr string
+		if err := md.PrimitiveDecode(spec, &asStr); err == nil {
+			dev[name] = asStr
+			continue
+		}
+		var asMap map[string]string
+		if err := md.PrimitiveDecode(spec, &asMap); err == nil {
+			b, _ := json.Marshal(asMap)
+			dev[name] = string(b)
+		}
+	}
+
+	return regular, dev, nil
 }
 
 // parseCargoLock parses the Cargo.lock file (dependency names with resolved versions).

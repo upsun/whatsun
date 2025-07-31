@@ -115,22 +115,26 @@ func parsePomXML(fsys fs.FS, path string) ([]Dependency, error) {
 	var deps = make([]Dependency, 0, len(project.Dependencies.Dependency)+1)
 	if project.Parent.GroupID != "" {
 		deps = append(deps, Dependency{
-			Vendor:  project.Parent.GroupID,
-			Name:    project.Parent.GroupID + ":" + project.Parent.ArtifactID,
-			Version: project.Parent.Version,
+			Vendor:   project.Parent.GroupID,
+			Name:     project.Parent.GroupID + ":" + project.Parent.ArtifactID,
+			Version:  project.Parent.Version,
+			IsDirect: true, // Parent dependencies from pom.xml are direct
+			ToolName: "maven",
 		})
 	}
 	for _, dep := range project.Dependencies.Dependency {
 		deps = append(deps, Dependency{
-			Vendor:  dep.GroupID,
-			Name:    dep.GroupID + ":" + dep.ArtifactID,
-			Version: dep.Version,
+			Vendor:   dep.GroupID,
+			Name:     dep.GroupID + ":" + dep.ArtifactID,
+			Version:  dep.Version,
+			IsDirect: true, // Dependencies from pom.xml are direct
+			ToolName: "maven",
 		})
 	}
 	return deps, nil
 }
 
-func parseBuildGradle(fsys fs.FS, path, filename string, patt *regexp.Regexp) ([]Dependency, error) {
+func parseBuildGradle(fsys fs.FS, path, filename string, patt *regexp.Regexp, toolName string) ([]Dependency, error) {
 	f, err := fsys.Open(filepath.Join(path, filename))
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
@@ -144,7 +148,13 @@ func parseBuildGradle(fsys fs.FS, path, filename string, patt *regexp.Regexp) ([
 	for scanner.Scan() {
 		matches := patt.FindStringSubmatch(strings.TrimSpace(scanner.Text()))
 		if len(matches) > 3 {
-			deps = append(deps, Dependency{Vendor: matches[1], Name: matches[1] + ":" + matches[2], Version: matches[3]})
+			deps = append(deps, Dependency{
+				Vendor:   matches[1],
+				Name:     matches[1] + ":" + matches[2],
+				Version:  matches[3],
+				IsDirect: true, // Dependencies from build.gradle files are direct
+				ToolName: toolName,
+			})
 		}
 	}
 	if err := scanner.Err(); err != nil {
@@ -154,11 +164,11 @@ func parseBuildGradle(fsys fs.FS, path, filename string, patt *regexp.Regexp) ([
 }
 
 func parseBuildGradleGroovy(fsys fs.FS, path string) ([]Dependency, error) {
-	return parseBuildGradle(fsys, path, "build.gradle", gradleGroovyPatt)
+	return parseBuildGradle(fsys, path, "build.gradle", gradleGroovyPatt, "gradle")
 }
 
 func parseBuildGradleKotlin(fsys fs.FS, path string) ([]Dependency, error) {
-	return parseBuildGradle(fsys, path, "build.gradle.kts", gradleKotlinPatt)
+	return parseBuildGradle(fsys, path, "build.gradle.kts", gradleKotlinPatt, "gradle")
 }
 
 func parseBuildSBT(fsys fs.FS, path string) ([]Dependency, error) {
@@ -220,9 +230,11 @@ func parseSBTDependencies(line string) []Dependency {
 	for _, match := range sbtMatches {
 		if len(match) == 4 {
 			deps = append(deps, Dependency{
-				Vendor:  match[1],
-				Name:    match[1] + ":" + match[2],
-				Version: match[3],
+				Vendor:   match[1],
+				Name:     match[1] + ":" + match[2],
+				Version:  match[3],
+				IsDirect: true, // Dependencies from build.sbt are direct
+				ToolName: "sbt",
 			})
 		}
 	}

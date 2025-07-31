@@ -21,7 +21,7 @@ func main() {
 		Short: "Analyze a code repository",
 	}
 
-	rootCmd.AddCommand(analyzeCmd(), digestCmd(), treeCmd())
+	rootCmd.AddCommand(analyzeCmd(), digestCmd(), treeCmd(), depsCmd())
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(color.RedString(err.Error()))

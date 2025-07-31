@@ -43,6 +43,9 @@ type Dependency struct {
 	Name       string // The standard package name, which may include the vendor name.
 	Constraint string // The version constraint.
 	Version    string // The resolved version (e.g. from a lock file).
+	IsDirect   bool   // True if explicitly specified in manifest, false if transitive/from lock file only.
+	IsDevOnly  bool   // True if this is a development-only dependency.
+	ToolName   string // The external name of the tool that manages this dependency (e.g. "uv", "poetry", "composer").
 }
 
 type Manager interface {

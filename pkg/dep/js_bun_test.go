@@ -38,6 +38,8 @@ func TestBun(t *testing.T) {
 			Name:       "vue",
 			Constraint: "^3.5.13",
 			Version:    "3.5.13",
+			IsDirect:   true,
+			ToolName:   "bun",
 		}}},
 	}
 	for _, c := range cases {

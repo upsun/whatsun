@@ -61,25 +61,44 @@ func (m *rubyManager) parse() error {
 }
 
 func (m *rubyManager) Get(name string) (Dependency, bool) {
-	req, ok := m.required[name]
-	if !ok {
+	constraint, hasConstraint := m.required[name]
+	version, hasVersion := m.resolved[name]
+	if !hasConstraint && !hasVersion {
 		return Dependency{}, false
 	}
 	return Dependency{
 		Name:       name,
-		Constraint: req,
-		Version:    m.resolved[name],
+		Constraint: constraint,
+		Version:    version,
+		IsDirect:   hasConstraint, // Direct if it has a constraint from Gemfile
+		ToolName:   "bundler",
 	}, true
 }
 
 func (m *rubyManager) Find(pattern string) []Dependency {
+	seen := make(map[string]struct{})
 	var deps []Dependency
+	// First, add all with constraints (direct dependencies)
 	for name, constraint := range m.required {
 		if wildcard.Match(pattern, name) {
 			deps = append(deps, Dependency{
 				Name:       name,
 				Constraint: constraint,
 				Version:    m.resolved[name],
+				IsDirect:   true,
+				ToolName:   "bundler",
+			})
+			seen[name] = struct{}{}
+		}
+	}
+	// Then, add any resolved-only deps not already included (indirect dependencies)
+	for name, version := range m.resolved {
+		if _, already := seen[name]; !already && wildcard.Match(pattern, name) {
+			deps = append(deps, Dependency{
+				Name:     name,
+				Version:  version,
+				IsDirect: false,
+				ToolName: "bundler",
 			})
 		}
 	}

@@ -38,15 +38,19 @@ func TestParseCargoTOMLAndLock(t *testing.T) {
 			Name:       "rocket",
 			Constraint: "0.5.1",
 			Version:    "0.5.1",
+			IsDirect:   true,
+			ToolName:   "cargo",
 		}}},
 		{"serde", []dep.Dependency{{
-			Name:    "serde",
-			Version: "1.0.217",
+			Name:     "serde",
+			Version:  "1.0.217",
+			IsDirect: false,
+			ToolName: "cargo",
 		}}},
 		{"rand*", []dep.Dependency{
-			{Name: "rand", Version: "0.9.0", Constraint: "0.9.0"},
-			{Name: "rand_chacha", Version: "0.9.0"},
-			{Name: "rand_core", Version: "0.9.0"},
+			{Name: "rand", Version: "0.9.0", Constraint: "0.9.0", IsDirect: true, ToolName: "cargo"},
+			{Name: "rand_chacha", Version: "0.9.0", IsDirect: false, ToolName: "cargo"},
+			{Name: "rand_core", Version: "0.9.0", IsDirect: false, ToolName: "cargo"},
 		}},
 	}
 	for _, c := range cases {

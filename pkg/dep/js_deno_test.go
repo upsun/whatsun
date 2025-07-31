@@ -31,12 +31,16 @@ func TestDeno(t *testing.T) {
 		dependencies []dep.Dependency
 	}{
 		{"https://deno.land/x/fresh", []dep.Dependency{{
-			Name:    "https://deno.land/x/fresh",
-			Version: "1.7.3",
+			Name:     "https://deno.land/x/fresh",
+			Version:  "1.7.3",
+			IsDirect: true,
+			ToolName: "deno",
 		}}},
 		{"*preact", []dep.Dependency{{
-			Name:    "https://esm.sh/preact",
-			Version: "10.22.0",
+			Name:     "https://esm.sh/preact",
+			Version:  "10.22.0",
+			IsDirect: true,
+			ToolName: "deno",
 		}}},
 	}
 	for _, c := range cases {

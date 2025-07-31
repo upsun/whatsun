@@ -99,6 +99,7 @@ func (m *dotnetManager) parseCSProj(filename string, dest *csprojFile) error {
 }
 
 func (m *dotnetManager) Get(name string) (Dependency, bool) {
+	// First check direct dependencies from .csproj files
 	for _, csproj := range m.csprojFiles {
 		for _, itemGroup := range csproj.ItemGroups {
 			for _, pkgRef := range itemGroup.PackageReferences {
@@ -113,11 +114,31 @@ func (m *dotnetManager) Get(name string) (Dependency, bool) {
 						Name:       pkgRef.Include,
 						Constraint: pkgRef.Version,
 						Version:    version,
+						IsDirect:   true,
+						ToolName:   "dotnet",
 					}, true
 				}
 			}
 		}
 	}
+
+	// Then check indirect dependencies from lock file
+	for _, target := range m.lockFile.Targets {
+		for key := range target {
+			if strings.Contains(key, "/") {
+				parts := strings.SplitN(key, "/", 2)
+				if len(parts) == 2 && parts[0] == name {
+					return Dependency{
+						Name:     name,
+						Version:  parts[1],
+						IsDirect: false,
+						ToolName: "dotnet",
+					}, true
+				}
+			}
+		}
+	}
+
 	return Dependency{}, false
 }
 
@@ -139,6 +160,7 @@ func (m *dotnetManager) Find(pattern string) []Dependency {
 	var deps []Dependency
 	seen := make(map[string]bool)
 
+	// First, add direct dependencies from .csproj files
 	for _, csproj := range m.csprojFiles {
 		for _, itemGroup := range csproj.ItemGroups {
 			for _, pkgRef := range itemGroup.PackageReferences {
@@ -148,11 +170,36 @@ func (m *dotnetManager) Find(pattern string) []Dependency {
 						Name:       pkgRef.Include,
 						Constraint: pkgRef.Version,
 						Version:    m.getLockedVersion(pkgRef.Include),
+						IsDirect:   true,
+						ToolName:   "dotnet",
 					})
 				}
 			}
 		}
 	}
+
+	// Then, add indirect dependencies from lock file
+	for _, target := range m.lockFile.Targets {
+		for key := range target {
+			if strings.Contains(key, "/") {
+				parts := strings.SplitN(key, "/", 2)
+				if len(parts) == 2 {
+					packageName := parts[0]
+					version := parts[1]
+					if wildcard.Match(pattern, packageName) && !seen[packageName] {
+						seen[packageName] = true
+						deps = append(deps, Dependency{
+							Name:     packageName,
+							Version:  version,
+							IsDirect: false,
+							ToolName: "dotnet",
+						})
+					}
+				}
+			}
+		}
+	}
+
 	return deps
 }
 

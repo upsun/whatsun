@@ -32,8 +32,10 @@ func TestGoModules(t *testing.T) {
 		dependencies []dep.Dependency
 	}{
 		{"github.com/gofiber/fiber*", []dep.Dependency{{
-			Name:    "github.com/gofiber/fiber/v2",
-			Version: "v2.52.6",
+			Name:     "github.com/gofiber/fiber/v2",
+			Version:  "v2.52.6",
+			IsDirect: true,
+			ToolName: "go",
 		}}},
 	}
 	for _, c := range toFind {
@@ -46,8 +48,10 @@ func TestGoModules(t *testing.T) {
 		found      bool
 	}{
 		{"github.com/gofiber/fiber/v2", dep.Dependency{
-			Name:    "github.com/gofiber/fiber/v2",
-			Version: "v2.52.6",
+			Name:     "github.com/gofiber/fiber/v2",
+			Version:  "v2.52.6",
+			IsDirect: true,
+			ToolName: "go",
 		}, true},
 	}
 	for _, c := range toGet {
