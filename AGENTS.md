@@ -6,7 +6,7 @@ This document provides guidelines for AI coding agents working on the Whatsun pr
 
 Whatsun is a tool and library for code analysis that detects project structure, frameworks, build tools, and package managers.
 
-It can produce an efficient "digest" of a repository (`whatsun --digest`), which can be used to give context to an LLM.
+It can produce an efficient "digest" of a repository (`whatsun digest`), which can be used to give context to an LLM.
 
 Whatsun is configured via rules defined in YAML in the `config/` directory, which use CEL expressions for pattern matching.
 
@@ -159,4 +159,4 @@ When working on this codebase:
 
 6. **Update tests** - add or modify tests for any functionality changes
 
-7. **Validate CLI** - test changes using `./whatsun [path]` (after building), on real projects
+7. **Validate CLI** - test changes using `./whatsun analyze [path]` (after building), on real projects
