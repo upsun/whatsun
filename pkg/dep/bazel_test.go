@@ -384,6 +384,64 @@ require (
 	assert.True(t, hasBazel, "Should have Bazel dependency from BUILD file")
 }
 
+func TestBazelWorkspaceParsingSimple(t *testing.T) {
+	fsys := fstest.MapFS{
+		"WORKSPACE": {Data: []byte(`
+http_archive(
+    name = "rules_go",
+    sha256 = "abc123",
+    urls = ["https://github.com/bazelbuild/rules_go/releases/download/v0.39.1/rules_go-v0.39.1.zip"],
+    strip_prefix = "rules_go-0.39.1",
+)
+
+git_repository(
+    name = "com_google_protobuf",
+    remote = "https://github.com/protocolbuffers/protobuf",
+    tag = "v3.21.12",
+)
+
+maven_install(
+    name = "maven",
+    artifacts = [
+        "com.google.guava:guava:31.1-jre",
+        "junit:junit:4.13.2",
+    ],
+    repositories = [
+        "https://repo1.maven.org/maven2",
+    ],
+)
+		`)},
+	}
+
+	parser, err := dep.ParseBazelDependencies(fsys, ".")
+	require.NoError(t, err)
+
+	workspaceDeps := parser.GetWorkspaceDeps()
+
+	expectedDeps := []dep.Dependency{
+		{Name: "rules_go"},
+		{Name: "com_google_protobuf", Version: "v3.21.12", Constraint: "v3.21.12"},
+		{Name: "maven_install_maven"},
+	}
+
+	assert.Len(t, workspaceDeps, len(expectedDeps))
+
+	// Check that all expected dependencies are found
+	for _, expected := range expectedDeps {
+		found := false
+		for _, actual := range workspaceDeps {
+			if actual.Name == expected.Name {
+				if expected.Version != "" {
+					assert.Equal(t, expected.Version, actual.Version, "Version mismatch for %s", expected.Name)
+				}
+				found = true
+				break
+			}
+		}
+		assert.True(t, found, "Expected dependency %s not found", expected.Name)
+	}
+}
+
 func TestBazelFindPattern(t *testing.T) {
 	fsys := fstest.MapFS{
 		"BUILD": {Data: []byte(`

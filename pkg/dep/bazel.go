@@ -76,6 +76,11 @@ func (b *bazelParser) GetGoDeps() []Dependency {
 	return b.deps["go"]
 }
 
+// GetWorkspaceDeps returns WORKSPACE dependencies found in Bazel files
+func (b *bazelParser) GetWorkspaceDeps() []Dependency {
+	return b.deps["workspace"]
+}
+
 // GetAllDeps returns all dependencies regardless of language
 func (b *bazelParser) GetAllDeps() []Dependency {
 	var allDeps []Dependency
@@ -144,6 +149,17 @@ var (
 
 	// Match bazel_dep declarations in MODULE.bazel
 	bazelDepPattern = regexp.MustCompile(`bazel_dep\s*\(\s*name\s*=\s*"([^"]+)"\s*,\s*version\s*=\s*"([^"]+)"`)
+
+	// Match WORKSPACE dependency declarations
+	mavenInstallPattern  = regexp.MustCompile(`maven_install\s*\(`)
+	httpArchivePattern   = regexp.MustCompile(`http_archive\s*\(`)
+	gitRepositoryPattern = regexp.MustCompile(`git_repository\s*\(`)
+
+	// Match name and version in WORKSPACE declarations
+	namePattern    = regexp.MustCompile(`name\s*=\s*"([^"]+)"`)
+	versionPattern = regexp.MustCompile(`version\s*=\s*"([^"]+)"`)
+	tagPattern     = regexp.MustCompile(`tag\s*=\s*"([^"]+)"`)
+	commitPattern  = regexp.MustCompile(`commit\s*=\s*"([^"]+)"`)
 )
 
 // parseBuildFiles parses BUILD and BUILD.bazel files for dependencies
@@ -396,36 +412,106 @@ func (b *bazelParser) parseWorkspace() error {
 	workspaceFiles := []string{"WORKSPACE", "WORKSPACE.bazel"}
 
 	for _, filename := range workspaceFiles {
-		f, err := b.fsys.Open(filepath.Join(b.path, filename))
-		if err != nil {
+		if err := b.parseWorkspaceFile(filename); err != nil {
 			if errors.Is(err, fs.ErrNotExist) {
 				continue
 			}
 			return err
 		}
-		defer f.Close()
-
-		// For now, just scan for basic patterns
-		// A full WORKSPACE parser would be more complex
-		scanner := bufio.NewScanner(f)
-		for scanner.Scan() {
-			line := strings.TrimSpace(scanner.Text())
-
-			// Skip comments and empty lines
-			if strings.HasPrefix(line, "#") || line == "" {
-				continue
-			}
-
-			// Look for maven_install or other dependency declarations
-			// This is a simplified parser - real implementation would need more sophistication
-			// Future enhancement: parse maven_install and pip_install declarations
-			_ = strings.Contains(line, "maven_install") || strings.Contains(line, "pip_install")
-		}
-
-		if err := scanner.Err(); err != nil {
-			return err
-		}
 	}
 
 	return nil
+}
+
+// parseWorkspaceFile parses a single WORKSPACE file
+func (b *bazelParser) parseWorkspaceFile(filename string) error {
+	f, err := b.fsys.Open(filepath.Join(b.path, filename))
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	scanner := bufio.NewScanner(f)
+	var currentDeclaration string
+	var inDeclaration bool
+	var declarationContent strings.Builder
+
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+
+		// Skip comments and empty lines
+		if strings.HasPrefix(line, "#") || line == "" {
+			continue
+		}
+
+		// Check for start of dependency declarations
+		switch {
+		case mavenInstallPattern.MatchString(line):
+			currentDeclaration = "maven_install"
+			inDeclaration = true
+			declarationContent.Reset()
+		case httpArchivePattern.MatchString(line):
+			currentDeclaration = "http_archive"
+			inDeclaration = true
+			declarationContent.Reset()
+		case gitRepositoryPattern.MatchString(line):
+			currentDeclaration = "git_repository"
+			inDeclaration = true
+			declarationContent.Reset()
+		}
+
+		if inDeclaration {
+			declarationContent.WriteString(line + " ")
+
+			// Check for end of declaration (closing parenthesis)
+			if strings.Contains(line, ")") {
+				dep := b.parseWorkspaceDeclaration(declarationContent.String(), currentDeclaration)
+				if dep.Name != "" {
+					// Add to workspace category
+					b.deps["workspace"] = append(b.deps["workspace"], dep)
+				}
+				inDeclaration = false
+			}
+		}
+	}
+
+	return scanner.Err()
+}
+
+// parseWorkspaceDeclaration parses a WORKSPACE dependency declaration
+func (b *bazelParser) parseWorkspaceDeclaration(content, declarationType string) Dependency {
+	var dep Dependency
+
+	// Extract name
+	if nameMatches := namePattern.FindStringSubmatch(content); len(nameMatches) > 1 {
+		dep.Name = nameMatches[1]
+	}
+
+	// Extract version information based on declaration type
+	switch declarationType {
+	case "maven_install":
+		// For maven_install, we don't get individual dependency info easily
+		// This would need more sophisticated parsing of the artifacts list
+		dep.Name = "maven_install_" + dep.Name
+	case "http_archive":
+		// Look for version, tag, or other version indicators
+		if versionMatches := versionPattern.FindStringSubmatch(content); len(versionMatches) > 1 {
+			dep.Version = versionMatches[1]
+			dep.Constraint = versionMatches[1]
+		} else if tagMatches := tagPattern.FindStringSubmatch(content); len(tagMatches) > 1 {
+			dep.Version = tagMatches[1]
+			dep.Constraint = tagMatches[1]
+		}
+	case "git_repository":
+		// Look for tag or commit
+		if tagMatches := tagPattern.FindStringSubmatch(content); len(tagMatches) > 1 {
+			dep.Version = tagMatches[1]
+			dep.Constraint = tagMatches[1]
+		} else if commitMatches := commitPattern.FindStringSubmatch(content); len(commitMatches) > 1 {
+			dep.Version = commitMatches[1][:8] // Short commit hash
+			dep.Constraint = commitMatches[1][:8]
+		}
+	}
+
+	return dep
 }
