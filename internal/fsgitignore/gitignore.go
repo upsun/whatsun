@@ -9,6 +9,7 @@ import (
 	"io"
 	"io/fs"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -87,6 +88,62 @@ func handleIfExists(fsys fs.FS, path, filename string, handler func(r io.Reader)
 
 	handler(f)
 	return nil
+}
+
+// getGlobalGitignorePath returns the path to the global gitignore file.
+// It first checks for ~/.gitignore, then falls back to git config core.excludesFile.
+func getGlobalGitignorePath() (string, error) {
+	// Get home directory first
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+
+	// Check for default ~/.gitignore first
+	defaultPath := filepath.Join(home, ".gitignore")
+	if _, err := os.Stat(defaultPath); err == nil {
+		return defaultPath, nil
+	}
+
+	// Fall back to checking git config
+	cmd := exec.Command("git", "config", "--global", "--get", "core.excludesFile")
+	output, err := cmd.Output()
+	if err == nil {
+		path := strings.TrimSpace(string(output))
+		if path != "" {
+			// Expand ~ to home directory if needed
+			if strings.HasPrefix(path, "~/") {
+				path = filepath.Join(home, path[2:])
+			}
+			return path, nil
+		}
+	}
+
+	// No global gitignore file found
+	return "", nil
+}
+
+// GetGlobalIgnorePatterns parses and returns global gitignore patterns from the user's global gitignore file.
+func GetGlobalIgnorePatterns() ([]gitignore.Pattern, error) {
+	globalPath, err := getGlobalGitignorePath()
+	if err != nil {
+		return nil, err
+	}
+
+	if globalPath == "" {
+		return nil, nil // No global gitignore file found
+	}
+
+	file, err := os.Open(globalPath)
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return nil, nil // No global gitignore file is fine
+		}
+		return nil, err
+	}
+	defer file.Close()
+
+	return ParseIgnoreFile(file, nil), nil
 }
 
 //go:embed gitignore-defaults

@@ -173,6 +173,13 @@ func parseAIIgnoreFiles(fsys fs.FS) (gitignore.Matcher, error) {
 		ps = append(ps, patterns...)
 	}
 
+	// Add global gitignore patterns
+	globalPatterns, err := fsgitignore.GetGlobalIgnorePatterns()
+	if err == nil && globalPatterns != nil {
+		ps = append(ps, globalPatterns...)
+	}
+	// Note: we silently ignore errors reading global gitignore to avoid breaking file operations
+
 	return gitignore.NewMatcher(ps), nil
 }
 

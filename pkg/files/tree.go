@@ -62,6 +62,15 @@ func GetTree(fsys fs.FS, cfg TreeConfig) ([]string, error) {
 		ignorePatterns = append(ignorePatterns, fsgitignore.ParsePatterns(cfg.IgnoreDirs, []string{})...)
 	}
 
+	// Add global gitignore patterns
+	if !cfg.DisableGitIgnore {
+		globalPatterns, err := fsgitignore.GetGlobalIgnorePatterns()
+		if err == nil && globalPatterns != nil {
+			ignorePatterns = append(ignorePatterns, globalPatterns...)
+		}
+		// Note: we silently ignore errors reading global gitignore to avoid breaking the tree operation
+	}
+
 	var walk func(currentPath, prefix string, depth int, maxEntries float64) error
 	walk = func(currentPath, prefix string, depth int, maxEntries float64) error {
 		if cfg.MaxDepth > 0 && depth > cfg.MaxDepth {
