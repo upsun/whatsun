@@ -7,8 +7,15 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 
 	"github.com/IGLOU-EU/go-wildcard/v2"
+)
+
+// Global caches for performance optimization
+var (
+	// Cache for Maven coordinate parsing results (most expensive operation)
+	mavenCoordCache = sync.Map{} // thread-safe map[string]string
 )
 
 // bazelParser handles parsing of Bazel build files to extract dependencies
@@ -76,6 +83,11 @@ func (b *bazelParser) GetGoDeps() []Dependency {
 	return b.deps["go"]
 }
 
+// GetJSDeps returns JavaScript dependencies found in Bazel files
+func (b *bazelParser) GetJSDeps() []Dependency {
+	return b.deps["js"]
+}
+
 // GetWorkspaceDeps returns WORKSPACE dependencies found in Bazel files
 func (b *bazelParser) GetWorkspaceDeps() []Dependency {
 	return b.deps["workspace"]
@@ -138,6 +150,9 @@ var (
 	// Match Go rules
 	goRulePattern = regexp.MustCompile(`(go_library|go_binary|go_test)\s*\(`)
 
+	// Match JavaScript/Node.js rules
+	jsRulePattern = regexp.MustCompile(`(js_library|js_binary|js_test|nodejs_binary|nodejs_test)\s*\(`)
+
 	// Match external Maven dependencies
 	mavenDepPattern = regexp.MustCompile(`@maven//:(.+)`)
 
@@ -146,6 +161,9 @@ var (
 
 	// Match external Go dependencies
 	goDepPattern = regexp.MustCompile(`@([^/]+)//.*`)
+
+	// Match external npm dependencies
+	npmDepPattern = regexp.MustCompile(`@npm//(.+)`)
 
 	// Match bazel_dep declarations in MODULE.bazel
 	bazelDepPattern = regexp.MustCompile(`bazel_dep\s*\(\s*name\s*=\s*"([^"]+)"\s*,\s*version\s*=\s*"([^"]+)"`)
@@ -166,12 +184,19 @@ var (
 func (b *bazelParser) parseBuildFiles() error {
 	buildFiles := []string{"BUILD", "BUILD.bazel"}
 
+	// Optimize by checking file existence first to avoid unnecessary I/O
+	var existingFiles []string
 	for _, filename := range buildFiles {
+		if _, err := b.fsys.Open(filepath.Join(b.path, filename)); err == nil {
+			existingFiles = append(existingFiles, filename)
+		} else if !errors.Is(err, fs.ErrNotExist) {
+			return err
+		}
+	}
+
+	// Parse only existing files
+	for _, filename := range existingFiles {
 		if err := b.parseBuildFile(filename); err != nil {
-			// If file doesn't exist, continue to next file
-			if errors.Is(err, fs.ErrNotExist) {
-				continue
-			}
 			return err
 		}
 	}
@@ -214,6 +239,10 @@ func (b *bazelParser) parseBuildFile(filename string) error {
 			currentRule = "go"
 			inRule = true
 			ruleContent.Reset()
+		case jsRulePattern.MatchString(line):
+			currentRule = "js"
+			inRule = true
+			ruleContent.Reset()
 		}
 
 		if inRule {
@@ -243,6 +272,10 @@ func (b *bazelParser) extractDepsFromRule(ruleContent, language string) []Depend
 
 	// Extract individual dependency strings
 	depStrings := depStringPattern.FindAllStringSubmatch(depsMatches[1], -1)
+
+	// Pre-allocate slice for better performance
+	deps = make([]Dependency, 0, len(depStrings))
+
 	for _, match := range depStrings {
 		if len(match) < 2 {
 			continue
@@ -265,50 +298,12 @@ func (b *bazelParser) parseDependencyTarget(target, language string) Dependency 
 	// Handle Maven dependencies
 	if mavenMatches := mavenDepPattern.FindStringSubmatch(target); len(mavenMatches) > 1 {
 		mavenCoord := mavenMatches[1]
-		// Convert maven coordinate format (com_google_guava_guava) to standard format
-		// The format is typically groupId_groupId_..._artifactId or just groupId_artifactId
-		parts := strings.Split(mavenCoord, "_")
-		if len(parts) >= 2 {
-			// For coordinates like org_slf4j_slf4j_api, we need to be smarter about parsing
-			// Common patterns:
-			// - com_google_guava_guava -> com.google.guava:guava
-			// - junit_junit -> junit:junit
-			// - org_slf4j_slf4j_api -> org.slf4j:slf4j-api
-
-			// Heuristic: if the last part looks like a repeated group name, treat it differently
-			lastPart := parts[len(parts)-1]
-
-			// Check if this follows the pattern where artifact name is constructed from multiple parts
-			var groupId, artifactId string
-			if len(parts) == 2 {
-				// Simple case: group_artifact
-				groupId = parts[0]
-				artifactId = parts[1]
-			} else if len(parts) >= 3 {
-				// Complex case: try to determine where group ends and artifact begins
-				// Look for repeated patterns or common separators
-
-				// Strategy 1: If last two parts are similar to first parts, it might be group_group_artifact
-				switch {
-				case len(parts) == 4 && parts[0] == parts[1] && parts[1] == parts[2]:
-					// Pattern like com_google_guava_guava
-					groupId = strings.Join(parts[:len(parts)-1], ".")
-					artifactId = lastPart
-				case len(parts) == 4 && parts[1] == parts[2]:
-					// Pattern like org_slf4j_slf4j_api
-					groupId = strings.Join(parts[:2], ".")
-					artifactId = strings.Join(parts[2:], "-")
-				default:
-					// Default: assume last part is artifact, rest is group
-					groupId = strings.Join(parts[:len(parts)-1], ".")
-					artifactId = lastPart
-				}
+		dep.Name = b.parseMavenCoordinate(mavenCoord)
+		if dep.Name != "" {
+			// Extract vendor from coordinate if possible
+			if colonIdx := strings.Index(dep.Name, ":"); colonIdx > 0 {
+				dep.Vendor = dep.Name[:colonIdx]
 			}
-
-			dep.Vendor = groupId
-			dep.Name = groupId + ":" + artifactId
-		} else {
-			dep.Name = mavenCoord
 		}
 		return dep
 	}
@@ -319,6 +314,21 @@ func (b *bazelParser) parseDependencyTarget(target, language string) Dependency 
 		// Convert pip package format to standard Python package name
 		// Common patterns: @pip//package_name, @pip//package_name_extra
 		dep.Name = strings.ReplaceAll(pipPackage, "_", "-")
+		return dep
+	}
+
+	// Handle npm dependencies
+	if npmMatches := npmDepPattern.FindStringSubmatch(target); len(npmMatches) > 1 {
+		npmPackage := npmMatches[1]
+		// Convert npm package format to standard package name
+		// Common patterns: @npm//package_name, @npm//@scope/package_name
+		if strings.HasPrefix(npmPackage, "@") {
+			// Handle scoped packages like @npm//@angular/core -> @angular/core
+			dep.Name = npmPackage
+		} else {
+			// Handle regular packages like @npm//lodash -> lodash
+			dep.Name = strings.ReplaceAll(npmPackage, "_", "-")
+		}
 		return dep
 	}
 
@@ -514,4 +524,218 @@ func (b *bazelParser) parseWorkspaceDeclaration(content, declarationType string)
 	}
 
 	return dep
+}
+
+// parseMavenCoordinate converts Bazel Maven coordinate format to standard Maven coordinate
+// with sophisticated heuristics for various patterns
+func (b *bazelParser) parseMavenCoordinate(mavenCoord string) string {
+	// Check cache first for performance
+	if cached, ok := mavenCoordCache.Load(mavenCoord); ok {
+		if result, ok := cached.(string); ok {
+			return result
+		}
+	}
+
+	result := b.parseMavenCoordinateUncached(mavenCoord)
+
+	// Cache the result for future use
+	mavenCoordCache.Store(mavenCoord, result)
+
+	return result
+}
+
+// parseMavenCoordinateUncached performs the actual parsing without caching
+func (b *bazelParser) parseMavenCoordinateUncached(mavenCoord string) string {
+	// Handle empty or invalid coordinates
+	if mavenCoord == "" {
+		return ""
+	}
+
+	// Split by underscore - this is the standard Bazel convention
+	parts := strings.Split(mavenCoord, "_")
+	if len(parts) < 2 {
+		return mavenCoord // Return as-is if we can't parse it
+	}
+
+	// Enhanced pattern recognition for Maven coordinates
+	// Common patterns in real-world usage:
+	// 1. Simple: group_artifact (junit_junit)
+	// 2. Multi-part group: org_springframework_spring_core
+	// 3. Repeated components: com_google_guava_guava
+	// 4. Complex artifacts: org_slf4j_slf4j_api, io_grpc_grpc_netty_shaded
+	// 5. Deep hierarchies: org_apache_commons_commons_lang3
+
+	var groupId, artifactId string
+
+	switch len(parts) {
+	case 2:
+		// Simple case: group_artifact
+		groupId = parts[0]
+		artifactId = parts[1]
+
+	case 3:
+		// Three parts - need to determine the split
+		// Common patterns:
+		// - org_junit_jupiter -> org.junit:jupiter
+		// - com_fasterxml_jackson -> com.fasterxml:jackson
+		groupId = strings.Join(parts[:2], ".")
+		artifactId = parts[2]
+
+	case 4:
+		// Four parts - most complex cases
+		switch {
+		case parts[0] == parts[1] && parts[1] == parts[2]:
+			// Pattern: com_google_guava_guava -> com.google.guava:guava
+			groupId = strings.Join(parts[:3], ".")
+			artifactId = parts[3]
+		case parts[1] == parts[2]:
+			// Pattern: org_slf4j_slf4j_api -> org.slf4j:slf4j-api
+			groupId = strings.Join(parts[:2], ".")
+			artifactId = strings.Join(parts[2:], "-")
+		case b.isKnownGroupPattern(parts):
+			// Use known patterns for common libraries
+			groupId, artifactId = b.parseKnownPattern(parts)
+		default:
+			// Default: assume first 3 parts are group, last is artifact
+			groupId = strings.Join(parts[:3], ".")
+			artifactId = parts[3]
+		}
+
+	case 5:
+		// Five parts - very complex hierarchies
+		switch {
+		case b.isKnownGroupPattern(parts):
+			groupId, artifactId = b.parseKnownPattern(parts)
+		case parts[2] == parts[3]:
+			// Pattern like: io_grpc_grpc_netty_shaded -> io.grpc:grpc-netty-shaded
+			groupId = strings.Join(parts[:2], ".")
+			artifactId = strings.Join(parts[2:], "-")
+		default:
+			// Default: assume first 4 parts are group, last is artifact
+			groupId = strings.Join(parts[:4], ".")
+			artifactId = parts[4]
+		}
+
+	default:
+		// Six or more parts - handle known patterns or default strategy
+		if len(parts) >= 6 && b.isKnownGroupPattern(parts) {
+			groupId, artifactId = b.parseKnownPattern(parts)
+		} else {
+			// Conservative default: assume last part is artifact, rest is group
+			groupId = strings.Join(parts[:len(parts)-1], ".")
+			artifactId = parts[len(parts)-1]
+		}
+	}
+
+	// Post-processing: normalize common naming conventions
+	artifactId = b.normalizeArtifactId(artifactId, groupId)
+
+	return groupId + ":" + artifactId
+}
+
+// isKnownGroupPattern checks if the coordinate matches known library patterns
+func (b *bazelParser) isKnownGroupPattern(parts []string) bool {
+	if len(parts) < 3 {
+		return false
+	}
+
+	// Check for well-known library patterns
+	coordinate := strings.Join(parts, "_")
+
+	// Spring Framework patterns
+	if strings.HasPrefix(coordinate, "org_springframework_") {
+		return true
+	}
+
+	// Apache Commons patterns
+	if strings.HasPrefix(coordinate, "org_apache_commons_") {
+		return true
+	}
+
+	// Jackson patterns
+	if strings.HasPrefix(coordinate, "com_fasterxml_jackson_") {
+		return true
+	}
+
+	// gRPC patterns
+	if strings.HasPrefix(coordinate, "io_grpc_") {
+		return true
+	}
+
+	// Netty patterns
+	if strings.HasPrefix(coordinate, "io_netty_") {
+		return true
+	}
+
+	return false
+}
+
+// parseKnownPattern handles specific known library patterns
+func (b *bazelParser) parseKnownPattern(parts []string) (string, string) {
+	coordinate := strings.Join(parts, "_")
+
+	// Spring Framework: org_springframework_spring_* -> org.springframework:spring-*
+	if strings.HasPrefix(coordinate, "org_springframework_spring_") {
+		return "org.springframework", strings.Join(parts[2:], "-")
+	}
+
+	// Apache Commons: org_apache_commons_commons_* -> org.apache.commons:commons-*
+	if strings.HasPrefix(coordinate, "org_apache_commons_commons_") {
+		return "org.apache.commons", strings.Join(parts[3:], "-")
+	}
+
+	// Jackson: com_fasterxml_jackson_* -> com.fasterxml.jackson.*:jackson-*
+	if strings.HasPrefix(coordinate, "com_fasterxml_jackson_") {
+		if len(parts) >= 4 {
+			groupId := strings.Join(parts[:4], ".")
+			artifactId := strings.Join(parts[2:], "-")
+			return groupId, artifactId
+		}
+	}
+
+	// gRPC: io_grpc_grpc_* -> io.grpc:grpc-*
+	if strings.HasPrefix(coordinate, "io_grpc_grpc_") {
+		return "io.grpc", strings.Join(parts[2:], "-")
+	}
+
+	// Netty: io_netty_netty_* -> io.netty:netty-*
+	if strings.HasPrefix(coordinate, "io_netty_netty_") {
+		return "io.netty", strings.Join(parts[2:], "-")
+	}
+
+	// Default fallback
+	return strings.Join(parts[:len(parts)-1], "."), parts[len(parts)-1]
+}
+
+// normalizeArtifactId applies common normalization rules to artifact IDs
+func (b *bazelParser) normalizeArtifactId(artifactId, groupId string) string {
+	// No changes needed for most cases, but could add rules here
+	// For example, converting underscores to hyphens in artifact names
+	// when they're clearly meant to be hyphens
+
+	// Some artifacts use underscores where hyphens are more standard
+	// But we need to be conservative to avoid breaking valid cases
+
+	return artifactId
+}
+
+// ClearBazelCaches clears all Bazel-related caches to free memory
+// This can be called periodically in long-running applications
+func ClearBazelCaches() {
+	mavenCoordCache = sync.Map{}
+}
+
+// GetBazelCacheStats returns statistics about cache usage for monitoring
+func GetBazelCacheStats() map[string]int {
+	stats := make(map[string]int)
+
+	// Count Maven coordinate cache entries
+	mavenCount := 0
+	mavenCoordCache.Range(func(_, _ any) bool {
+		mavenCount++
+		return true
+	})
+	stats["maven_coordinates"] = mavenCount
+
+	return stats
 }

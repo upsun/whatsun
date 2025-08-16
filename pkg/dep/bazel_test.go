@@ -442,6 +442,102 @@ maven_install(
 	}
 }
 
+func TestBazelJavaScriptParsingSimple(t *testing.T) {
+	fsys := fstest.MapFS{
+		"BUILD": {Data: []byte(`
+js_library(
+    name = "mylib",
+    deps = [
+        "//internal:utils",
+        "@npm//lodash",
+        "@npm//@angular/core",
+        "@npm//react",
+    ],
+)
+
+nodejs_binary(
+    name = "server",
+    deps = [
+        ":mylib",
+        "@npm//express",
+    ],
+)
+		`)},
+	}
+
+	parser, err := dep.ParseBazelDependencies(fsys, ".")
+	require.NoError(t, err)
+
+	jsDeps := parser.GetJSDeps()
+
+	expectedDeps := []dep.Dependency{
+		{Name: "//internal:utils"},
+		{Name: "lodash"},
+		{Name: "@angular/core"},
+		{Name: "react"},
+		{Name: ":mylib"},
+		{Name: "express"},
+	}
+
+	assert.Len(t, jsDeps, len(expectedDeps))
+
+	// Check that all expected dependencies are found
+	for _, expected := range expectedDeps {
+		found := false
+		for _, actual := range jsDeps {
+			if actual.Name == expected.Name {
+				found = true
+				break
+			}
+		}
+		assert.True(t, found, "Expected dependency %s not found", expected.Name)
+	}
+}
+
+func TestBazelJavaScriptIntegration(t *testing.T) {
+	// Test that JavaScript manager properly integrates Bazel dependencies
+	fsys := fstest.MapFS{
+		"BUILD.bazel": {Data: []byte(`
+js_library(
+    name = "lib",
+    deps = [
+        "@npm//lodash",
+        "@npm//@types/node",
+    ],
+)
+		`)},
+		"package.json": {Data: []byte(`{
+			"dependencies": {
+				"react": "^18.0.0",
+				"express": "^4.18.0"
+			}
+		}`)},
+	}
+
+	m, err := dep.GetManager(dep.ManagerTypeJavaScript, fsys, ".")
+	require.NoError(t, err)
+	require.NoError(t, m.Init())
+
+	// Should have dependencies from both package.json and Bazel (BUILD)
+	allDeps := m.Find("*")
+
+	// Check that we have dependencies from both sources
+	hasPackageJson := false
+	hasBazel := false
+
+	for _, dep := range allDeps {
+		if dep.Name == "react" {
+			hasPackageJson = true
+		}
+		if dep.Name == "lodash" {
+			hasBazel = true
+		}
+	}
+
+	assert.True(t, hasPackageJson, "Should have dependency from package.json")
+	assert.True(t, hasBazel, "Should have Bazel dependency from BUILD file")
+}
+
 func TestBazelFindPattern(t *testing.T) {
 	fsys := fstest.MapFS{
 		"BUILD": {Data: []byte(`
