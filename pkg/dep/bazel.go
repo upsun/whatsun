@@ -71,6 +71,11 @@ func (b *bazelParser) GetPythonDeps() []Dependency {
 	return b.deps["python"]
 }
 
+// GetGoDeps returns Go dependencies found in Bazel files
+func (b *bazelParser) GetGoDeps() []Dependency {
+	return b.deps["go"]
+}
+
 // GetAllDeps returns all dependencies regardless of language
 func (b *bazelParser) GetAllDeps() []Dependency {
 	var allDeps []Dependency
@@ -125,8 +130,17 @@ var (
 	// Match Python rules
 	pythonRulePattern = regexp.MustCompile(`(py_library|py_binary|py_test)\s*\(`)
 
+	// Match Go rules
+	goRulePattern = regexp.MustCompile(`(go_library|go_binary|go_test)\s*\(`)
+
 	// Match external Maven dependencies
 	mavenDepPattern = regexp.MustCompile(`@maven//:(.+)`)
+
+	// Match external pip dependencies
+	pipDepPattern = regexp.MustCompile(`@pip//(.+)`)
+
+	// Match external Go dependencies
+	goDepPattern = regexp.MustCompile(`@([^/]+)//.*`)
 
 	// Match bazel_dep declarations in MODULE.bazel
 	bazelDepPattern = regexp.MustCompile(`bazel_dep\s*\(\s*name\s*=\s*"([^"]+)"\s*,\s*version\s*=\s*"([^"]+)"`)
@@ -170,13 +184,18 @@ func (b *bazelParser) parseBuildFile(filename string) error {
 			continue
 		}
 
-		// Check for start of Java or Python rules
-		if javaRulePattern.MatchString(line) {
+		// Check for start of language-specific rules
+		switch {
+		case javaRulePattern.MatchString(line):
 			currentRule = "java"
 			inRule = true
 			ruleContent.Reset()
-		} else if pythonRulePattern.MatchString(line) {
+		case pythonRulePattern.MatchString(line):
 			currentRule = "python"
+			inRule = true
+			ruleContent.Reset()
+		case goRulePattern.MatchString(line):
+			currentRule = "go"
 			inRule = true
 			ruleContent.Reset()
 		}
@@ -276,6 +295,47 @@ func (b *bazelParser) parseDependencyTarget(target, language string) Dependency 
 			dep.Name = mavenCoord
 		}
 		return dep
+	}
+
+	// Handle pip dependencies
+	if pipMatches := pipDepPattern.FindStringSubmatch(target); len(pipMatches) > 1 {
+		pipPackage := pipMatches[1]
+		// Convert pip package format to standard Python package name
+		// Common patterns: @pip//package_name, @pip//package_name_extra
+		dep.Name = strings.ReplaceAll(pipPackage, "_", "-")
+		return dep
+	}
+
+	// Handle Go dependencies
+	if language == "go" {
+		if goMatches := goDepPattern.FindStringSubmatch(target); len(goMatches) > 1 {
+			// For Go, external dependencies are typically like @com_github_gorilla_mux//
+			// Convert to Go module format: github.com/gorilla/mux
+			repoName := goMatches[1]
+			// Convert underscores to slashes and dots appropriately
+			switch {
+			case strings.HasPrefix(repoName, "com_github_"):
+				// Handle github.com repositories
+				parts := strings.Split(repoName, "_")
+				if len(parts) >= 3 {
+					dep.Name = "github.com/" + strings.Join(parts[2:], "/")
+				} else {
+					dep.Name = repoName
+				}
+			case strings.HasPrefix(repoName, "org_golang_x_"):
+				// Handle golang.org/x repositories
+				parts := strings.Split(repoName, "_")
+				if len(parts) >= 4 {
+					dep.Name = "golang.org/x/" + strings.Join(parts[3:], "/")
+				} else {
+					dep.Name = repoName
+				}
+			default:
+				// Generic conversion: replace underscores with dots/slashes
+				dep.Name = strings.ReplaceAll(repoName, "_", ".")
+			}
+			return dep
+		}
 	}
 
 	// Handle internal dependencies (//path:target)

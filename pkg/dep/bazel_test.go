@@ -197,6 +197,193 @@ java_library(
 	assert.True(t, hasBazel, "Should have Bazel dependency from BUILD file")
 }
 
+func TestBazelPythonParsingSimple(t *testing.T) {
+	fsys := fstest.MapFS{
+		"BUILD": {Data: []byte(`
+py_library(
+    name = "mylib",
+    deps = [
+        "//internal:utils",
+        "@pip//requests",
+        "@pip//flask_cors",
+    ],
+)
+
+py_binary(
+    name = "main",
+    deps = [
+        ":mylib",
+        "@pip//click",
+    ],
+)
+		`)},
+	}
+
+	parser, err := dep.ParseBazelDependencies(fsys, ".")
+	require.NoError(t, err)
+
+	pythonDeps := parser.GetPythonDeps()
+
+	expectedDeps := []dep.Dependency{
+		{Name: "//internal:utils"},
+		{Name: "requests"},
+		{Name: "flask-cors"},
+		{Name: ":mylib"},
+		{Name: "click"},
+	}
+
+	assert.Len(t, pythonDeps, len(expectedDeps))
+
+	// Check that all expected dependencies are found
+	for _, expected := range expectedDeps {
+		found := false
+		for _, actual := range pythonDeps {
+			if actual.Name == expected.Name {
+				found = true
+				break
+			}
+		}
+		assert.True(t, found, "Expected dependency %s not found", expected.Name)
+	}
+}
+
+func TestBazelPythonIntegration(t *testing.T) {
+	// Test that Python manager properly integrates Bazel dependencies
+	fsys := fstest.MapFS{
+		"BUILD": {Data: []byte(`
+py_library(
+    name = "lib",
+    deps = [
+        "@pip//requests",
+    ],
+)
+		`)},
+		"requirements.txt": {Data: []byte(`
+flask==2.0.1
+pytest>=6.0
+		`)},
+	}
+
+	m, err := dep.GetManager(dep.ManagerTypePython, fsys, ".")
+	require.NoError(t, err)
+	require.NoError(t, m.Init())
+
+	// Should have dependencies from both requirements.txt and Bazel (BUILD)
+	allDeps := m.Find("*")
+
+	// Check that we have dependencies from both sources
+	hasRequirements := false
+	hasBazel := false
+
+	for _, dep := range allDeps {
+		if dep.Name == "flask" {
+			hasRequirements = true
+		}
+		if dep.Name == "requests" {
+			hasBazel = true
+		}
+	}
+
+	assert.True(t, hasRequirements, "Should have dependency from requirements.txt")
+	assert.True(t, hasBazel, "Should have Bazel dependency from BUILD file")
+}
+
+func TestBazelGoParsingSimple(t *testing.T) {
+	fsys := fstest.MapFS{
+		"BUILD": {Data: []byte(`
+go_library(
+    name = "mylib",
+    deps = [
+        "//internal:utils",
+        "@com_github_gorilla_mux//:mux",
+        "@org_golang_x_time//rate",
+    ],
+)
+
+go_binary(
+    name = "main",
+    deps = [
+        ":mylib",
+        "@com_github_sirupsen_logrus//:logrus",
+    ],
+)
+		`)},
+	}
+
+	parser, err := dep.ParseBazelDependencies(fsys, ".")
+	require.NoError(t, err)
+
+	goDeps := parser.GetGoDeps()
+
+	expectedDeps := []dep.Dependency{
+		{Name: "//internal:utils"},
+		{Name: "github.com/gorilla/mux"},
+		{Name: "golang.org/x/time"},
+		{Name: ":mylib"},
+		{Name: "github.com/sirupsen/logrus"},
+	}
+
+	assert.Len(t, goDeps, len(expectedDeps))
+
+	// Check that all expected dependencies are found
+	for _, expected := range expectedDeps {
+		found := false
+		for _, actual := range goDeps {
+			if actual.Name == expected.Name {
+				found = true
+				break
+			}
+		}
+		assert.True(t, found, "Expected dependency %s not found", expected.Name)
+	}
+}
+
+func TestBazelGoIntegration(t *testing.T) {
+	// Test that Go manager properly integrates Bazel dependencies
+	fsys := fstest.MapFS{
+		"BUILD": {Data: []byte(`
+go_library(
+    name = "lib",
+    deps = [
+        "@com_github_gorilla_mux//:mux",
+    ],
+)
+		`)},
+		"go.mod": {Data: []byte(`
+module example.com/myproject
+
+go 1.21
+
+require (
+    github.com/gin-gonic/gin v1.9.1
+)
+		`)},
+	}
+
+	m, err := dep.GetManager(dep.ManagerTypeGo, fsys, ".")
+	require.NoError(t, err)
+	require.NoError(t, m.Init())
+
+	// Should have dependencies from both go.mod and Bazel (BUILD)
+	allDeps := m.Find("*")
+
+	// Check that we have dependencies from both sources
+	hasGoMod := false
+	hasBazel := false
+
+	for _, dep := range allDeps {
+		if dep.Name == "github.com/gin-gonic/gin" {
+			hasGoMod = true
+		}
+		if dep.Name == "github.com/gorilla/mux" {
+			hasBazel = true
+		}
+	}
+
+	assert.True(t, hasGoMod, "Should have dependency from go.mod")
+	assert.True(t, hasBazel, "Should have Bazel dependency from BUILD file")
+}
+
 func TestBazelFindPattern(t *testing.T) {
 	fsys := fstest.MapFS{
 		"BUILD": {Data: []byte(`
