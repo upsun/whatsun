@@ -87,6 +87,30 @@ var testFs = fstest.MapFS{
 	"blazor-app/BlazorApp.csproj":   &fstest.MapFile{Data: blazorCsproj},
 	"blazor-app/packages.lock.json": &fstest.MapFile{Data: blazorLock},
 
+	// Spring Boot with Bazel.
+	"spring-bazel/BUILD.bazel": &fstest.MapFile{Data: []byte(`
+java_library(
+    name = "spring-app",
+    deps = [
+        "@maven//:org_springframework_boot_spring_boot_starter_web",
+        "@maven//:org_springframework_boot_spring_boot_starter_data_jpa",
+    ],
+)`)},
+	"spring-bazel/pom.xml": &fstest.MapFile{Data: []byte(`<?xml version="1.0" encoding="UTF-8"?>
+<project>
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.2.1</version>
+    </parent>
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+    </dependencies>
+</project>`)},
+
 	// Additional directories to increase time taken.
 	"deep/1/2/3/4/5/composer.json":     &fstest.MapFile{Data: []byte("{}")},
 	"deep/a/b/c/d/e/package.json":      &fstest.MapFile{Data: []byte("{}")},
@@ -123,6 +147,7 @@ func TestAnalyze_TestFS_ActualRules(t *testing.T) {
 		{Ruleset: "build_tools", Path: "configured-app", Result: "platformsh-app", Rules: []string{"platformsh-app"},
 			With: map[string]rules.ReportValue{"name": {Value: "app"}}, Groups: []string{"cloud"}},
 		{Ruleset: "build_tools", Path: "rake", Result: "rake", Rules: []string{"rake"}, Groups: []string{"ruby"}},
+		{Ruleset: "build_tools", Path: "spring-bazel", Result: "bazel", Rules: []string{"bazel"}},
 
 		// Framework results.
 		{Ruleset: "frameworks", Path: ".", Result: "symfony", Rules: []string{"symfony-framework"},
@@ -138,6 +163,8 @@ func TestAnalyze_TestFS_ActualRules(t *testing.T) {
 			With: map[string]rules.ReportValue{"version": {Value: "1.5.1"}}, Groups: []string{"js"}},
 		{Ruleset: "frameworks", Path: "python", Result: "django", Rules: []string{"django"},
 			With: map[string]rules.ReportValue{"version": {Value: "5.2.3"}}, Groups: []string{"django", "python"}},
+		{Ruleset: "frameworks", Path: "spring-bazel", Result: "spring-boot", Rules: []string{"spring-boot"},
+			With: map[string]rules.ReportValue{"version": {Value: "3.2.1"}}, Groups: []string{"java"}},
 
 		// Package manager results.
 		{Ruleset: "package_managers", Path: ".", Result: "composer", Rules: []string{"composer"}, Groups: []string{"php"},
@@ -174,6 +201,8 @@ func TestAnalyze_TestFS_ActualRules(t *testing.T) {
 			Rules:     []string{"npm-lockfile"}, Groups: []string{"js"}},
 		{Ruleset: "package_managers", Path: "python", Result: "uv",
 			Rules: []string{"uv"}, Groups: []string{"python"}},
+		{Ruleset: "package_managers", Path: "spring-bazel", Result: "maven",
+			Rules: []string{"maven"}, Groups: []string{"java"}},
 	}, reports)
 }
 
