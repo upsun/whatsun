@@ -83,7 +83,11 @@ func runAnalyze(ctx context.Context, path string, ignore []string, plain bool, s
 		outputAnalyzePlain(reports, stdout)
 	} else {
 		tbl := table.NewWriter()
+		tbl.SetOutputMirror(stdout)
 		tbl.AppendHeader(table.Row{"Path", "Ruleset", "Result", "Groups", "With"})
+
+		// Set table width to terminal width with fallback to 80
+		tbl.SetAllowedRowLength(getTerminalWidth())
 
 		for _, report := range reports {
 			if report.Maybe {
@@ -101,7 +105,7 @@ func runAnalyze(ctx context.Context, path string, ignore []string, plain bool, s
 			tbl.AppendRow(table.Row{report.Path, report.Ruleset, report.Result, strings.Join(report.Groups, ", "), with})
 		}
 
-		fmt.Fprintln(stdout, tbl.Render())
+		tbl.Render()
 	}
 
 	return nil

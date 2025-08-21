@@ -16,6 +16,7 @@ require (
 	github.com/zricethezav/gitleaks/v8 v8.27.2
 	golang.org/x/mod v0.23.0
 	golang.org/x/sync v0.11.0
+	golang.org/x/term v0.29.0
 	google.golang.org/genproto/googleapis/api v0.0.0-20241209162323-e6fa225c2576
 	google.golang.org/protobuf v1.36.1
 )

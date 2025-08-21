@@ -96,7 +96,11 @@ func runDeps(
 		outputDepsPlain(filteredDeps, stdout)
 	} else {
 		tbl := table.NewWriter()
+		tbl.SetOutputMirror(stdout)
 		tbl.AppendHeader(table.Row{"Path", "Tool", "Name", "Constraint", "Version"})
+
+		// Set table width to terminal width with fallback to 80
+		tbl.SetAllowedRowLength(getTerminalWidth())
 
 		for _, depInfo := range filteredDeps {
 			tbl.AppendRow(table.Row{
@@ -108,7 +112,7 @@ func runDeps(
 			})
 		}
 
-		fmt.Fprintln(stdout, tbl.Render())
+		tbl.Render()
 	}
 	return nil
 }
