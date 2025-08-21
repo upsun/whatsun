@@ -129,6 +129,11 @@ func (a *Analyzer) collectDirectories(ctx context.Context, fsys fs.FS, root stri
 	if len(a.cnf.IgnoreDirs) > 0 {
 		ignorePatterns = append(ignorePatterns, fsgitignore.ParsePatterns(a.cnf.IgnoreDirs, fsgitignore.Split(root))...)
 	}
+	// Add global gitignore patterns
+	globalPatterns, err := fsgitignore.GetGlobalIgnorePatterns()
+	if err == nil && globalPatterns != nil {
+		ignorePatterns = append(ignorePatterns, globalPatterns...)
+	}
 	return fs.WalkDir(fsys, root, func(path string, d fs.DirEntry, err error) error {
 		select {
 		case <-ctx.Done():

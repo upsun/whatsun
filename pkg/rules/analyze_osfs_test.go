@@ -3,6 +3,7 @@ package rules_test
 import (
 	"embed"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -41,6 +42,48 @@ func TestAnalyze_OSFS_MockRules(t *testing.T) {
 		{Path: "drupal", Result: "composer", Ruleset: rs, Rules: []string{"composer"}, Groups: []string{"php"}},
 		{Path: "symfony", Result: "composer", Ruleset: rs, Rules: []string{"composer"}, Groups: []string{"php"}},
 	}, result)
+}
+
+// Test global gitignore support with real filesystem
+func TestAnalyze_OSFS_GlobalGitignore(t *testing.T) {
+	// Create temporary directory for mock home
+	tmpDir := t.TempDir()
+	homeDir := filepath.Join(tmpDir, "home")
+	projectDir := filepath.Join(tmpDir, "project")
+
+	require.NoError(t, os.MkdirAll(homeDir, 0755))
+	require.NoError(t, os.MkdirAll(projectDir, 0755))
+	require.NoError(t, os.MkdirAll(filepath.Join(projectDir, "global-ignored"), 0755))
+
+	// Create global gitignore file
+	globalGitignore := filepath.Join(homeDir, ".gitignore")
+	require.NoError(t, os.WriteFile(globalGitignore, []byte("global-ignored/\n"), 0600))
+
+	// Create a project file that would be detected if not ignored
+	composerJSON := filepath.Join(projectDir, "global-ignored", "composer.json")
+	require.NoError(t, os.WriteFile(composerJSON, []byte(`{"require": {"php": "^8.0"}}`), 0600))
+
+	// Set HOME to our temporary directory
+	t.Setenv("HOME", homeDir)
+
+	// Set up analyzer
+	rulesets, err := rules.LoadFromYAMLDir(testRulesetsDir, "testdata/rulesets")
+	require.NoError(t, err)
+	cache, err := eval.NewFileCache("testdata/expr.cache")
+	require.NoError(t, err)
+	defer cache.Save() //nolint:errcheck
+
+	analyzer, err := rules.NewAnalyzer(rulesets, &rules.AnalyzerConfig{
+		CELExpressionCache: cache,
+	})
+	require.NoError(t, err)
+
+	// Analyze the project
+	reports, err := analyzer.Analyze(t.Context(), os.DirFS(projectDir), ".")
+	require.NoError(t, err)
+
+	// Should be empty because global-ignored/ should be ignored
+	assert.Empty(t, reports)
 }
 
 // Benchmark analysis on a real filesystem, but with mocked files and rulesets.

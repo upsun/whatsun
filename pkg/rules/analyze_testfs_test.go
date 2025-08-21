@@ -108,6 +108,7 @@ func setupAnalyzerWithEmbeddedConfig(t require.TestingT, ignore []string) *rules
 
 // Test analysis on the test filesystem, but with real rulesets.
 func TestAnalyze_TestFS_ActualRules(t *testing.T) {
+
 	analyzer := setupAnalyzerWithEmbeddedConfig(t, []string{"arg-ignore"})
 
 	reports, err := analyzer.Analyze(t.Context(), testFs, ".")
