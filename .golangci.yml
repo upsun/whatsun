@@ -1,30 +1,47 @@
+version: "2"
 linters:
-  disable-all: true
+  default: none
   enable:
-    # Defaults:
     - errcheck
-    - gosimple
+    - gocritic
+    - gosec
     - govet
     - ineffassign
-    - staticcheck
-    - unused
-
-    # Additional:
-    - gocritic
-    - gofmt
-    - goimports
-    - gosec
     - lll
     - misspell
     - nolintlint
-
-linters-settings:
-  errcheck:
-    check-type-assertions: true
-  goimports:
-    local-prefixes: github.com/upsun/whatsun
-  nolintlint:
-    allow-unused: false
-    require-specific: true
-  prealloc:
-    for-loops: true
+    - staticcheck
+    - unused
+  settings:
+    errcheck:
+      check-type-assertions: true
+    nolintlint:
+      require-specific: true
+      allow-unused: false
+    prealloc:
+      for-loops: true
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/upsun/whatsun
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

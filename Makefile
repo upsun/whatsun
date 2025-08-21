@@ -1,4 +1,4 @@
-GOLANGCI_LINT_VERSION := v1.64
+GOLANGCI_LINT_VERSION := v2.4.0
 BUILD_FLAGS := -trimpath -ldflags='-s'
 
 .PHONY: help
@@ -34,12 +34,12 @@ endif
 
 .PHONY: lint-golangci
 lint-golangci:
-	command -v golangci-lint >/dev/null || go install github.com/golangci/golangci-lint/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
 	golangci-lint run --timeout=2m
 
 .PHONY: test
+# The release notes at https://tip.golang.org/doc/go1.25 state: "We encourage users of encoding/json to test their programs with GOEXPERIMENT=jsonv2 enabled".
 test: ## Run unit tests.
-	go test -race -count=1 ./...
+	GOEXPERIMENT=jsonv2 go test -race -count=1 ./...
 
 .PHONY: bench
 bench: ## Run benchmarks.

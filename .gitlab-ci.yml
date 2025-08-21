@@ -5,5 +5,5 @@ test:
   coverage: '/total:\s+\(statements\)\s+\d+.\d+%/'
 
 golangci-lint:
-  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/golangci/golangci-lint:v1.64
+  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/golangci/golangci-lint:v2.4.0
   script: golangci-lint run
