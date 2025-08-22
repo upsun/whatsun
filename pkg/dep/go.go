@@ -58,8 +58,8 @@ func (m *goManager) init() error {
 }
 
 func (m *goManager) Get(name string) (Dependency, bool) {
-	// Check go.mod dependencies first
 	if m.file != nil {
+		// Check go.mod dependencies first
 		for _, v := range m.file.Require {
 			if v.Mod.Path == name && !v.Indirect {
 				return Dependency{

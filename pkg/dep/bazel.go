@@ -159,7 +159,7 @@ var (
 	// Match external pip dependencies
 	pipDepPattern = regexp.MustCompile(`@pip//(.+)`)
 
-	// Match external Go dependencies
+	// Match external dependencies with @repo// format
 	goDepPattern = regexp.MustCompile(`@([^/]+)//.*`)
 
 	// Match external npm dependencies
@@ -185,7 +185,7 @@ func (b *bazelParser) parseBuildFiles() error {
 	buildFiles := []string{"BUILD", "BUILD.bazel"}
 
 	// Optimize by checking file existence first to avoid unnecessary I/O
-	var existingFiles []string
+	existingFiles := make([]string, 0, len(buildFiles))
 	for _, filename := range buildFiles {
 		if _, err := b.fsys.Open(filepath.Join(b.path, filename)); err == nil {
 			existingFiles = append(existingFiles, filename)
@@ -271,7 +271,7 @@ func (b *bazelParser) extractDepsFromRule(ruleContent, language string) []Depend
 	}
 
 	// Extract individual dependency strings
-	depStrings := depStringPattern.FindAllStringSubmatch(depsMatches[1], -1)
+	depStrings := depStringPattern.FindAllStringSubmatch(depsMatches[1], 1000)
 
 	// Pre-allocate slice for better performance
 	deps = make([]Dependency, 0, len(depStrings))
@@ -357,7 +357,7 @@ func (b *bazelParser) parseDependencyTarget(target, language string) Dependency 
 					dep.Name = repoName
 				}
 			default:
-				// Generic conversion: replace underscores with dots/slashes
+				// Generic conversion: replace underscores with dots
 				dep.Name = strings.ReplaceAll(repoName, "_", ".")
 			}
 			return dep
@@ -709,14 +709,9 @@ func (b *bazelParser) parseKnownPattern(parts []string) (string, string) {
 
 // normalizeArtifactId applies common normalization rules to artifact IDs
 func (b *bazelParser) normalizeArtifactId(artifactId, groupId string) string {
-	// No changes needed for most cases, but could add rules here
-	// For example, converting underscores to hyphens in artifact names
-	// when they're clearly meant to be hyphens
-
-	// Some artifacts use underscores where hyphens are more standard
-	// But we need to be conservative to avoid breaking valid cases
-
-	return artifactId
+	// Replace underscores with hyphens, as hyphens are more standard in artifact names
+	// This is a conservative normalization step commonly used in Maven coordinates
+	return strings.ReplaceAll(artifactId, "_", "-")
 }
 
 // ClearBazelCaches clears all Bazel-related caches to free memory
