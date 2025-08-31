@@ -1,0 +1,108 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Whatsun Rules Configuration",
+  "description": "JSON schema for whatsun YAML configuration files",
+  "type": "object",
+  "additionalProperties": {
+    "type": "object",
+    "description": "A ruleset containing rules and configuration",
+    "properties": {
+      "rules": {
+        "type": "object",
+        "description": "Rules within the ruleset",
+        "additionalProperties": {
+          "type": "object",
+          "description": "A single rule definition",
+          "properties": {
+            "when": {
+              "type": "string",
+              "description": "CEL expression defining when this rule matches",
+              "minLength": 1
+            },
+            "then": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              ],
+              "description": "Known result(s) when the rule matches"
+            },
+            "maybe": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              ],
+              "description": "Possible results when the rule matches"
+            },
+            "with": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              },
+              "description": "Extra data to include in the report (CEL expressions)"
+            },
+            "group": {
+              "type": "string",
+              "description": "A group in which 'then' results will exclude other 'maybe' ones"
+            },
+            "groups": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Multiple groups"
+            },
+            "ignore": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              ],
+              "description": "Directory path(s) to ignore for this rule (in Git's format)"
+            },
+            "read_files": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Files to read when this rule matches"
+            }
+          },
+          "required": ["when"],
+          "anyOf": [
+            {
+              "required": ["then"]
+            },
+            {
+              "required": ["maybe"]
+            }
+          ],
+          "additionalProperties": false
+        },
+        "minProperties": 1
+      }
+    },
+    "required": ["rules"],
+    "additionalProperties": false
+  },
+  "minProperties": 1
+}

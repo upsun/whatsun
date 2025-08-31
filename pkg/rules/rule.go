@@ -32,7 +32,8 @@ type Rule struct {
 
 	With map[string]string `yaml:"with"`
 
-	GroupList YAMLListOrString `yaml:"group"`
+	Group     string           `yaml:"group"`
+	GroupList YAMLListOrString `yaml:"groups"`
 
 	Ignore YAMLListOrString `yaml:"ignore"`
 
@@ -60,6 +61,9 @@ func (r *Rule) GetMaybeResults() []string {
 }
 
 func (r *Rule) GetGroups() []string {
+	if r.Group != "" {
+		return []string{r.Group}
+	}
 	return r.GroupList
 }
 

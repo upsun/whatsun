@@ -13,6 +13,7 @@ require (
 	github.com/jedib0t/go-pretty/v6 v6.6.6
 	github.com/spf13/cobra v1.9.1
 	github.com/tidwall/jsonc v0.3.2
+	github.com/xeipuuv/gojsonschema v1.2.0
 	github.com/zricethezav/gitleaks/v8 v8.27.2
 	golang.org/x/mod v0.27.0
 	golang.org/x/sync v0.16.0
@@ -98,6 +99,8 @@ require (
 	github.com/wasilibs/go-re2 v1.9.0 // indirect
 	github.com/wasilibs/wazero-helpers v0.0.0-20240620070341-3dff1577cd52 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
+	github.com/xeipuuv/gojsonpointer v0.0.0-20180127040702-4e3ac2762d5f // indirect
+	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go4.org v0.0.0-20230225012048-214862532bf5 // indirect
 	golang.org/x/crypto v0.41.0 // indirect

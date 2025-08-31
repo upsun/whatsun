@@ -24,7 +24,7 @@ govulncheck: ## Check dependencies for vulnerabilities.
 	go tool govulncheck ./...
 
 .PHONY: lint
-lint: lint-gomod lint-golangci ## Run linters.
+lint: lint-gomod lint-golangci lint-validate ## Run linters.
 
 .PHONY: lint-gomod
 lint-gomod:
@@ -35,6 +35,10 @@ endif
 .PHONY: lint-golangci
 lint-golangci:
 	golangci-lint run --timeout=2m
+
+.PHONY: lint-validate
+lint-validate:
+	go run ./cmd/validate
 
 .PHONY: test
 # The release notes at https://tip.golang.org/doc/go1.25 state: "We encourage users of encoding/json to test their programs with GOEXPERIMENT=jsonv2 enabled".

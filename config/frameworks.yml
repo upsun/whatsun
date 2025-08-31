@@ -6,66 +6,66 @@ frameworks:
       then: grav
       with:
         version: fs.depVersion("php", "getgrav/grav")
-      group: [php, symfony]
+      groups: [php, symfony]
 
     bolt: # Bolt CMS. See: https://github.com/bolt/core
       when: fs.depExists("php", "bolt/core")
       then: bolt
       with:
         version: fs.depVersion("php", "bolt/core")
-      group: [php, symfony]
+      groups: [php, symfony]
 
     kunstmaan-cms: # Kunstmaan CMS. See: https://github.com/Kunstmaan/KunstmaanBundlesCMS
       when: fs.depExists("php", "kunstmaan/*")
       then: kunstmaan-cms
-      group: [php, symfony]
+      groups: [php, symfony]
 
     concrete-cms: # Concrete CMS. See: https://github.com/concretecms/concretecms
       when: fs.depExists("php", "concretecms/*")
       then: concrete-cms
-      group: [php, symfony]
+      groups: [php, symfony]
 
     silverstripe-cms: # Silverstripe CMS. See: https://github.com/silverstripe/silverstripe-cms
       when: fs.depExists("php", "silverstripe/cms")
       then: silverstripe-cms
       with:
         version: fs.depVersion("php", "bolt/common")
-      group: [php, symfony]
+      groups: [php, symfony]
 
     roadiz: # Roadiz CMS. See: https://github.com/roadiz
       when: fs.depExists("php", "roadiz/*")
       then: roadiz
       with:
         version: fs.depVersion("php", "roadiz/core-bundle")
-      group: [php, symfony]
+      groups: [php, symfony]
 
     contao: # Contao CMS. See: https://github.com/contao/contao
       when: fs.depExists("php", "contao/contao")
       then: contao
       with:
         version: fs.depVersion("php", "contao/contao")
-      group: [php, symfony]
+      groups: [php, symfony]
 
     picocms: # Pico CMS. See: https://github.com/picocms/Pico
       when: fs.depExists("php", "picocms/pico")
       then: picocms
       with:
         version: fs.depVersion("php", "picocms/pico")
-      group: [php, symfony]
+      groups: [php, symfony]
 
     uvdesk: # UVDesk Community Helpdesk. See: https://github.com/uvdesk/core-framework
       when: fs.depExists("php", "uvdesk/core-framework")
       then: uvdesk
       with:
         version: fs.depVersion("php", "uvdesk/core-framework")
-      group: [php, symfony]
+      groups: [php, symfony]
 
     craftcms: # Craft CMS. See: https://github.com/craftcms/cms
       when: fs.depExists("php", "craftcms/cms")
       then: craftcms
       with:
         version: fs.depVersion("php", "craftcms/cms")
-      group: [php, symfony]
+      groups: [php, symfony]
 
     neos: # Neos CMS. See: https://docs.neos.io/
       when: fs.depExists("php", "neos/neos")
@@ -79,42 +79,42 @@ frameworks:
       then: typo3
       with:
         version: fs.depVersion("php", "typo3/core")
-      group: [php, symfony]
+      groups: [php, symfony]
 
     joomla: # Joomla CMS. See: https://joomla.org
       when: fs.depExists("php", "joomla/application")
       then: joomla
       with:
         version: fs.depVersion("php", "joomla/application")
-      group: [php, symfony]
+      groups: [php, symfony]
 
     sulu: # Sulu CMS. See: https://sulu.io
       when: fs.depExists("php", "sulu/sulu")
       then: sulu
       with:
         version: fs.depVersion("php", "sulu/sulu")
-      group: [php, symfony]
+      groups: [php, symfony]
 
     pimcore: # Pimcore. See: https://pimcore.com/
       when: fs.depExists("php", "pimcore/pimcore")
       then: pimcore
       with:
         version: fs.depVersion("php", "pimcore/pimcore")
-      group: [php, symfony]
+      groups: [php, symfony]
 
     ibexa: # Ibexa DXP. See: https://www.ibexa.co/
       when: fs.depExists("php", "ibexa/core") || fs.depExists("php", "ezsystems/*")
       then: ibexa
       with:
         version: fs.depVersion("php", "ibexa/core")
-      group: [php, symfony]
+      groups: [php, symfony]
 
     mautic: # Mautic: Open Source Marketing Automation Software. See: https://mautic.org/
       when: fs.depExists("php", "mautic/mautic")
       then: mautic
       with:
         version: fs.depVersion("php", "mautic/mautic")
-      group: [php, symfony]
+      groups: [php, symfony]
 
     woocommerce: # WooCommerce (WordPress-based eCommerce framework). See: https://woocommerce.com/
       when: fs.isDir("wp-content/plugins/woocommerce") || fs.depExists("php", "woocommerce/*")
@@ -126,63 +126,63 @@ frameworks:
       then: sylius
       with:
         version: fs.depVersion("php", "sylius/sylius")
-      group: [php, symfony]
+      groups: [php, symfony]
 
     spryker: # Spryker: Digital Commerce Platform. See: https://spryker.com/
       when: fs.depExists("php", "spryker/*")
       then: sylius
       with:
         version: fs.depVersion("php", "spryker-feature/spryker-core")
-      group: [php, symfony]
+      groups: [php, symfony]
 
     thelia: # Thelia eCommerce framework. See: https://thelia.net
       when: fs.depExists("php", "thelia/thelia")
       then: thelia
       with:
         version: fs.depVersion("php", "thelia/thelia")
-      group: [php, symfony]
+      groups: [php, symfony]
 
     aimeos: # Aimeos eCommerce framework (based on Laravel). See: https://aimeos.org
       when: fs.depExists("php", "aimeos/aimeos-core")
       then: aimeos
       with:
         version: fs.depVersion("php", "aimeos/aimeos-core")
-      group: [php, laravel]
+      groups: [php, laravel]
 
     oro-commerce: # OroCommerce. See: https://github.com/oroinc/orocommerce
       when: fs.depExists("php", "oro/commerce")
       then: oro-commerce
       with:
         version: fs.depVersion("php", "oro/commerce")
-      group: [php, symfony]
+      groups: [php, symfony]
 
     shopware: # Shopware eCommerce platform. See: https://shopware.com
       when: fs.depExists("php", "shopware/core")
       then: shopware
       with:
         version: fs.depVersion("php", "shopware/core")
-      group: [php, symfony]
+      groups: [php, symfony]
 
     prestashop: # PrestaShop eCommerce platform. See: https://github.com/PrestaShop/PrestaShop
       when: fs.depExists("php", "prestashop/prestashop")
       then: prestashop
       with:
         version: fs.depVersion("php", "prestashop/prestashop")
-      group: [php, symfony]
+      groups: [php, symfony]
 
     akeneo: # Akeneo PIM. See: https://akeneo.com
       when: fs.depExists("php", "akeneo/*")
       then: akeneo
       with:
         version: fs.depVersion("php", "akeneo/pim-community-standard")
-      group: [php, symfony]
+      groups: [php, symfony]
 
     api-platform: # API Platform. See: https://github.com/api-platform
       when: fs.depExists("php", "api-platform/core")
       then: api-platform
       with:
         version: fs.depVersion("php", "api-platform/core")
-      group: [php, symfony]
+      groups: [php, symfony]
 
     yii2: # Yii 2. See: https://github.com/yiisoft/yii2
       when: fs.depExists("php", "yiisoft/yii2")
@@ -197,7 +197,7 @@ frameworks:
       then: drupal
       with:
         version: fs.depVersion("php", "drupal/core")
-      group: [php, symfony]
+      groups: [php, symfony]
       ignore: # Drupal modules and themes themselves require Drupal via Composer.
         - modules/
         - themes/
@@ -222,14 +222,14 @@ frameworks:
     symfony-project:
       when: fs.depExists("php", "symfony/*") && jq(fs.read("composer.json"), ".type") == "project"
       maybe: symfony
-      group: [php, symfony]
+      groups: [php, symfony]
 
     symfony-framework:
       when: fs.depExists("php", "symfony/framework-bundle")
       then: symfony
       with:
         version: fs.depVersion("php", "symfony/framework-bundle")
-      group: [php, symfony]
+      groups: [php, symfony]
       read_files: [compose.yaml]
 
     laravel-framework:
@@ -237,7 +237,7 @@ frameworks:
       then: laravel
       with:
         version: fs.depVersion("php", "laravel/framework")
-      group: [php, laravel]
+      groups: [php, laravel]
 
     cakephp:
       when: fs.depExists("php", "cakephp/cakephp")
@@ -400,7 +400,7 @@ frameworks:
     nue: # Nue. See: https://nuejs.org/
       when: fs.fileExists("site.yaml") && fs.fileContains("site.yaml", "https://json.schemastore.org/nuejs-site.json")
       then: nue
-      group: [js, static]
+      groups: [js, static]
 
     magento:
       when: fs.depExists("php", "magento/*") && jq(fs.read("composer.json"), ".type") == "project"
@@ -464,14 +464,14 @@ frameworks:
       then: django
       with:
         version: fs.depVersion("python", "django")
-      group: [python, django]
+      groups: [python, django]
 
     wagtail: # Wagtail CMS. See: https://wagtail.org
       when: fs.depExists("python", "wagtail")
       then: wagtail
       with:
         version: fs.depVersion("python", "wagtail")
-      group: [python, django]
+      groups: [python, django]
 
     rails:
       when: fs.depExists("ruby", "rails")
@@ -575,12 +575,12 @@ frameworks:
     hugo:
       when: fs.fileExists("hugo.toml") || fs.fileExists("hugo.yaml") || fs.fileExists("hugo.json") || fs.fileExists(".hugo_build.lock")
       then: hugo
-      group: [go, static]
+      groups: [go, static]
 
     redoc: # Redoc: Open source API documentation tool. See: https://redocly.com/docs/redoc
       when: fs.fileExists("redocly.yaml") || fs.fileExists(".redocly.yaml") || fs.fileExists("redoc-static.html")
       then: redoc
-      group: [js, static]
+      groups: [js, static]
 
     # Eleventy static site generator. See: https://www.11ty.dev/
     # The config file, which is optional, could be any of .eleventy.js, eleventy.config.js, eleventy.config.mjs or eleventy.config.cjs.
@@ -589,14 +589,14 @@ frameworks:
       then: eleventy
       with:
         version: fs.depVersion("js", "@11ty/eleventy")
-      group: [js, static]
+      groups: [js, static]
 
     docusaurus: # Docusaurus static site generator. See: https://github.com/facebook/docusaurus
       when: fs.glob("docusaurus.config.*s").size() > 0 || fs.depExists("js", "@docusaurus/core")
       then: docusaurus
       with:
         version: fs.depVersion("js", "@docusaurus/core")
-      group: [js, static]
+      groups: [js, static]
 
     # Meteor.js web framework (https://www.meteor.com/)
     meteor.js:
@@ -617,7 +617,7 @@ frameworks:
     play:
       when: fs.depExists("java", "com.typesafe.play:*")
       then: play
-      group: [java, scala]
+      groups: [java, scala]
 
     # Blazor WebAssembly (client-side Blazor)
     blazor-wasm:
@@ -625,7 +625,7 @@ frameworks:
       then: blazor-wasm
       with:
         version: fs.depVersion("dotnet", "Microsoft.AspNetCore.Components.WebAssembly")
-      group: [dotnet, blazor]
+      groups: [dotnet, blazor]
 
     # Blazor Server (server-side Blazor)
     blazor-server:
@@ -633,7 +633,7 @@ frameworks:
       then: blazor-server
       with:
         version: fs.depVersion("dotnet", "Microsoft.AspNetCore.Components.Server")
-      group: [dotnet, blazor]
+      groups: [dotnet, blazor]
 
     # Regular ASP.NET Core (non-Blazor web apps)
     aspnetcore:
@@ -642,4 +642,4 @@ frameworks:
       then: aspnetcore
       with:
         version: fs.depVersion("dotnet", "Microsoft.AspNetCore.App")
-      group: [dotnet]
+      groups: [dotnet]
