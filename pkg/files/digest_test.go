@@ -79,9 +79,6 @@ var digestTestCases = []digestTestCase{
 			"another-app/package.json":      &fstest.MapFile{Data: []byte("{}")},
 			"another-app/package-lock.json": &fstest.MapFile{Data: []byte("{}")},
 
-			// Detected without having a package manager.
-			"configured-app/.platform.app.yaml": &fstest.MapFile{Data: []byte("name: app")},
-
 			"rake/Rakefile": &fstest.MapFile{},
 
 			// Ambiguous: Bun, NPM, PNPM, or Yarn.
@@ -107,7 +104,6 @@ var digestTestCases = []digestTestCase{
 				"\n  another-app\n    package-lock.json\n    package.json" +
 				"\n  arg-ignored\n    composer.lock" +
 				"\n  composer.json\n  composer.lock" +
-				"\n  configured-app\n    .platform.app.yaml" +
 				"\n  deep\n    1\n      2\n        3\n          4\n            5\n              composer.json" +
 				"\n    a\n      b\n        c\n          d\n            e\n              ... (2 more)" +
 				"\n  eleventy\n    eleventy.config.ts" +
@@ -125,8 +121,6 @@ var digestTestCases = []digestTestCase{
 					With: map[string]any{}}},
 				"another-app": {{Result: "npm", Ruleset: "package_managers", Groups: []string{"js"},
 					With: map[string]any{}}},
-				"configured-app": {{Result: "platformsh-app", Ruleset: "build_tools", Groups: []string{"cloud"},
-					With: map[string]any{"name": "app"}}},
 				"deep/1/2/3/4/5": {{Result: "composer", Ruleset: "package_managers", Groups: []string{"php"},
 					With: map[string]any{}}},
 				"deep/a/b/c/d/e": {{Result: "npm", Ruleset: "package_managers", Groups: []string{"js"},
