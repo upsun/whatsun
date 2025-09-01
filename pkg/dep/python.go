@@ -177,6 +177,17 @@ func (m *pythonManager) parse() error {
 		}
 	}
 
+	// Parse Bazel dependencies if Bazel files are present
+	if HasBazelFiles(m.fsys, m.path) {
+		bazelParser, err := ParseBazelDependencies(m.fsys, m.path)
+		if err != nil {
+			return err
+		}
+		// Add Bazel Python dependencies to the dependencies list
+		pythonDeps := bazelParser.GetPythonDeps()
+		m.dependencies = append(m.dependencies, pythonDeps...)
+	}
+
 	return nil
 }
 

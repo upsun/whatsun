@@ -57,6 +57,16 @@ func (m *javaManager) parse() error {
 		return err
 	}
 	m.deps = append(m.deps, deps...)
+
+	// Parse Bazel dependencies if Bazel files are present
+	if HasBazelFiles(m.fsys, m.path) {
+		bazelParser, err := ParseBazelDependencies(m.fsys, m.path)
+		if err != nil {
+			return err
+		}
+		m.deps = append(m.deps, bazelParser.GetJavaDeps()...)
+	}
+
 	return nil
 }
 

@@ -136,6 +136,21 @@ func (m *jsManager) parse() error {
 		}
 	}
 
+	// Parse Bazel dependencies if Bazel files are present
+	if HasBazelFiles(m.fsys, m.path) {
+		bazelParser, err := ParseBazelDependencies(m.fsys, m.path)
+		if err != nil {
+			return err
+		}
+		// Merge Bazel JavaScript dependencies
+		for _, dep := range bazelParser.GetJSDeps() {
+			// Only add if not already present (Bazel dependencies are supplementary)
+			if _, exists := m.deps[dep.Name]; !exists {
+				m.deps[dep.Name] = dep
+			}
+		}
+	}
+
 	return nil
 }
 

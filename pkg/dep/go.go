@@ -14,8 +14,9 @@ type goManager struct {
 	fsys fs.FS
 	path string
 
-	initOnce sync.Once
-	file     *modfile.File
+	initOnce  sync.Once
+	file      *modfile.File
+	bazelDeps []Dependency
 }
 
 func newGoManager(fsys fs.FS, path string) Manager {
@@ -43,34 +44,69 @@ func (m *goManager) init() error {
 		return err
 	}
 	m.file = f
+
+	// Parse Bazel dependencies if Bazel files are present
+	if HasBazelFiles(m.fsys, m.path) {
+		bazelParser, err := ParseBazelDependencies(m.fsys, m.path)
+		if err != nil {
+			return err
+		}
+		m.bazelDeps = bazelParser.GetGoDeps()
+	}
+
 	return nil
 }
 
 func (m *goManager) Get(name string) (Dependency, bool) {
-	for _, v := range m.file.Require {
-		if v.Mod.Path == name && !v.Indirect {
-			return Dependency{
-				Name:     v.Mod.Path,
-				Version:  v.Mod.Version,
-				IsDirect: !v.Indirect,
-				ToolName: "go",
-			}, true
+	if m.file != nil {
+		// Check go.mod dependencies first
+		for _, v := range m.file.Require {
+			if v.Mod.Path == name && !v.Indirect {
+				return Dependency{
+					Name:     v.Mod.Path,
+					Version:  v.Mod.Version,
+					IsDirect: !v.Indirect,
+					ToolName: "go",
+				}, true
+			}
 		}
 	}
+
+	// Check Bazel dependencies
+	for _, dep := range m.bazelDeps {
+		if dep.Name == name {
+			return dep, true
+		}
+	}
+
 	return Dependency{}, false
 }
 
 func (m *goManager) Find(pattern string) []Dependency {
 	var deps []Dependency
-	for _, v := range m.file.Require {
-		if wildcard.Match(pattern, v.Mod.Path) {
-			deps = append(deps, Dependency{
-				Name:     v.Mod.Path,
-				Version:  v.Mod.Version,
-				IsDirect: !v.Indirect,
-				ToolName: "go",
-			})
+	seen := make(map[string]struct{})
+
+	// Add go.mod dependencies
+	if m.file != nil {
+		for _, v := range m.file.Require {
+			if !v.Indirect && wildcard.Match(pattern, v.Mod.Path) {
+				deps = append(deps, Dependency{
+					Name:     v.Mod.Path,
+					Version:  v.Mod.Version,
+					IsDirect: !v.Indirect,
+					ToolName: "go",
+				})
+				seen[v.Mod.Path] = struct{}{}
+			}
 		}
 	}
+
+	// Add Bazel dependencies (avoid duplicates)
+	for _, dep := range m.bazelDeps {
+		if _, exists := seen[dep.Name]; !exists && wildcard.Match(pattern, dep.Name) {
+			deps = append(deps, dep)
+		}
+	}
+
 	return deps
 }
