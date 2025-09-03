@@ -17,9 +17,9 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/upsun/whatsun/internal/fsgitignore"
-	"github.com/upsun/whatsun/internal/searchfs"
 	"github.com/upsun/whatsun/pkg/eval"
 	"github.com/upsun/whatsun/pkg/eval/celfuncs"
+	"github.com/upsun/whatsun/pkg/searchfs"
 )
 
 type AnalyzerConfig struct {

@@ -1,4 +1,4 @@
-// Package searchfs provides a filesystem implementation that calls ReadDir on every directory and caches the result.
+// Package searchfs provides a filesystem implementation that caches the listing of every directory accessed.
 // It aims to avoid unnecessary "stat" calls when looking for (or opening) many files in a tree.
 // The filenames provided must be already cleaned (via filepath.Clean).
 package searchfs
