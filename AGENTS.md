@@ -27,8 +27,9 @@ whatsun/
 │   └── warm_cache/        # Cache warming utility (used by the build)
 ├── pkg/                   # Public library packages
 │   ├── dep/               # Dependency detection
+│   ├── digest/            # Digest generation: tree, reports and file contents
 │   ├── eval/              # CEL expression evaluation
-│   ├── files/             # File operations and analysis
+│   ├── files/             # File operations
 │   └── rules/             # Rule matching and analysis
 ├── internal/              # Private packages
 ├── config/                # Rule definitions in CEL format (in YAML files)

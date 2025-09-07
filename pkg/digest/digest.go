@@ -1,4 +1,4 @@
-package files
+package digest
 
 import (
 	"context"
@@ -11,7 +11,7 @@ import (
 	"github.com/upsun/whatsun/pkg/rules"
 )
 
-type DigestConfig struct {
+type Config struct {
 	DisableGitIgnore bool     // Disable parsing .gitignore files.
 	IgnoreFiles      []string // Other "gitignore" file patterns to ignore.
 	ReadFiles        []string // Files to read in the project.
@@ -20,7 +20,7 @@ type DigestConfig struct {
 	ExprCache eval.Cache          // The expression cache.
 }
 
-func DefaultDigestConfig() (*DigestConfig, error) {
+func DefaultConfig() (*Config, error) {
 	rulesets, err := whatsun.LoadRulesets()
 	if err != nil {
 		return nil, err
@@ -29,7 +29,7 @@ func DefaultDigestConfig() (*DigestConfig, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &DigestConfig{
+	return &Config{
 		ReadFiles: defaultReadFiles,
 		Rulesets:  rulesets,
 		ExprCache: exprCache,
@@ -38,11 +38,11 @@ func DefaultDigestConfig() (*DigestConfig, error) {
 
 type Digester struct {
 	fsys     fs.FS
-	cnf      *DigestConfig
+	cnf      *Config
 	analyzer *rules.Analyzer
 }
 
-func NewDigester(fsys fs.FS, cnf *DigestConfig) (*Digester, error) {
+func NewDigester(fsys fs.FS, cnf *Config) (*Digester, error) {
 	analyzer, err := rules.NewAnalyzer(cnf.Rulesets, &rules.AnalyzerConfig{
 		CELExpressionCache: cnf.ExprCache,
 		DisableGitIgnore:   cnf.DisableGitIgnore,

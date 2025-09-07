@@ -7,7 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/upsun/whatsun/pkg/files"
+	"github.com/upsun/whatsun/pkg/digest"
 )
 
 func digestCmd() *cobra.Command {
@@ -40,13 +40,13 @@ func runDigest(ctx context.Context, path string, ignore []string, stdout, stderr
 		return err
 	}
 
-	digestCnf, err := files.DefaultDigestConfig()
+	digestCnf, err := digest.DefaultConfig()
 	if err != nil {
 		return err
 	}
 	digestCnf.DisableGitIgnore = disableGitIgnore
 	digestCnf.IgnoreFiles = ignore
-	digester, err := files.NewDigester(fsys, digestCnf)
+	digester, err := digest.NewDigester(fsys, digestCnf)
 	if err != nil {
 		return err
 	}

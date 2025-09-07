@@ -1,4 +1,4 @@
-package files_test
+package digest_test
 
 import (
 	"io/fs"
@@ -8,13 +8,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/upsun/whatsun/pkg/files"
+	"github.com/upsun/whatsun/pkg/digest"
 )
 
 type digestTestCase struct {
 	name        string
 	fsys        fs.FS
-	expected    *files.Digest
+	expected    *digest.Digest
 	expectError string
 }
 
@@ -26,9 +26,9 @@ var digestTestCases = []digestTestCase{
 			`composer.lock`: &fstest.MapFile{Data: []byte(
 				`{"packages": [{"name": "symfony/framework-bundle", "version": "7.2.3"}]}`)},
 		},
-		expected: &files.Digest{
+		expected: &digest.Digest{
 			Tree: ".\n  composer.json\n  composer.lock",
-			Reports: map[string][]files.Report{
+			Reports: map[string][]digest.Report{
 				".": {
 					{Result: "symfony", Ruleset: "frameworks", Groups: []string{"php", "symfony"}, With: map[string]any{
 						"version": "7.2.3",
@@ -38,7 +38,7 @@ var digestTestCases = []digestTestCase{
 					}},
 				},
 			},
-			SelectedFiles: []files.FileData{
+			SelectedFiles: []digest.FileData{
 				{Name: "composer.json", Content: `{"require": {"symfony/framework-bundle": "^7", "php": "^8.3"}}`, Size: 62},
 			},
 		},
@@ -99,7 +99,7 @@ var digestTestCases = []digestTestCase{
 			"deep/a/b/c/d/e/package.json":      &fstest.MapFile{Data: []byte("{}")},
 			"deep/a/b/c/d/e/package-lock.json": &fstest.MapFile{Data: []byte("{}")},
 		},
-		expected: &files.Digest{
+		expected: &digest.Digest{
 			Tree: ".\n  .gitignore\n  a\n    b\n  ambiguous\n    package.json" +
 				"\n  another-app\n    package-lock.json\n    package.json" +
 				"\n  arg-ignored\n    composer.lock" +
@@ -110,7 +110,7 @@ var digestTestCases = []digestTestCase{
 				"\n  meteor\n    .meteor\n      packages\n      versions\n    package-lock.json" +
 				"\n  rake\n    Rakefile" +
 				"\n  x\n    y\n      .gitignore",
-			Reports: map[string][]files.Report{
+			Reports: map[string][]digest.Report{
 				".": {
 					{Result: "symfony", Ruleset: "frameworks", Groups: []string{"php", "symfony"},
 						With: map[string]any{"version": "7.2.3"}},
@@ -134,7 +134,7 @@ var digestTestCases = []digestTestCase{
 				},
 				"rake": {{Result: "rake", Ruleset: "build_tools", Groups: []string{"ruby"}, With: map[string]any{}}},
 			},
-			SelectedFiles: []files.FileData{
+			SelectedFiles: []digest.FileData{
 				{Name: "ambiguous/package.json", Content: `{"dependencies":{"gatsby":"^5.14.1"}}`, Size: 37},
 				{Name: "another-app/package.json", Content: "{}", Size: 2},
 				{Name: "composer.json", Content: `{"require": {"symfony/framework-bundle": "^7", "php": "^8.3"}}`, Size: 62},
@@ -146,12 +146,12 @@ var digestTestCases = []digestTestCase{
 }
 
 func TestDigest_TestFS_ActualRules(t *testing.T) {
-	cnf, err := files.DefaultDigestConfig()
+	cnf, err := digest.DefaultConfig()
 	require.NoError(t, err)
 
 	for _, c := range digestTestCases {
 		t.Run(c.name, func(t *testing.T) {
-			digester, err := files.NewDigester(c.fsys, cnf)
+			digester, err := digest.NewDigester(c.fsys, cnf)
 			require.NoError(t, err)
 			digest, err := digester.GetDigest(t.Context())
 			if c.expectError != "" {
@@ -165,14 +165,14 @@ func TestDigest_TestFS_ActualRules(t *testing.T) {
 }
 
 func BenchmarkDigest(b *testing.B) {
-	cnf, err := files.DefaultDigestConfig()
+	cnf, err := digest.DefaultConfig()
 	require.NoError(b, err)
 
 	b.ReportAllocs()
 
 	for b.Loop() {
 		for _, c := range digestTestCases {
-			digester, err := files.NewDigester(c.fsys, cnf)
+			digester, err := digest.NewDigester(c.fsys, cnf)
 			require.NoError(b, err)
 			_, err = digester.GetDigest(b.Context())
 			if err != nil {

@@ -1,4 +1,4 @@
-package files_test
+package digest_test
 
 import (
 	"io/fs"
@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/upsun/whatsun/pkg/files"
+	"github.com/upsun/whatsun/pkg/digest"
 )
 
 // customFS wraps fstest.MapFS to allow simulating permission errors
@@ -154,7 +154,7 @@ func TestReadMultiple(t *testing.T) {
 		fsys      fs.FS
 		maxLength int
 		filenames []string
-		want      []files.FileData
+		want      []digest.FileData
 		wantErr   bool
 	}{
 		// Existing test cases...
@@ -163,7 +163,7 @@ func TestReadMultiple(t *testing.T) {
 			fsys:      testFS,
 			maxLength: 100,
 			filenames: []string{"file1.txt", "file2.txt"},
-			want: []files.FileData{
+			want: []digest.FileData{
 				{
 					Name:      "file1.txt",
 					Content:   file1Content,
@@ -186,7 +186,7 @@ func TestReadMultiple(t *testing.T) {
 			fsys:      testFS,
 			maxLength: 10,
 			filenames: []string{"file1.txt", "file2.txt"},
-			want: []files.FileData{
+			want: []digest.FileData{
 				{
 					Name:      "file1.txt",
 					Content:   file1Content[:10],
@@ -209,7 +209,7 @@ func TestReadMultiple(t *testing.T) {
 			fsys:      testFS,
 			maxLength: 100,
 			filenames: []string{"file1.txt", "nonexistent.txt", "file2.txt"},
-			want: []files.FileData{
+			want: []digest.FileData{
 				{
 					Name:      "file1.txt",
 					Content:   file1Content,
@@ -232,7 +232,7 @@ func TestReadMultiple(t *testing.T) {
 			fsys:      testFS,
 			maxLength: 100,
 			filenames: []string{"file1.txt", "no-permission.txt", "file2.txt"},
-			want: []files.FileData{
+			want: []digest.FileData{
 				{
 					Name:      "file1.txt",
 					Content:   file1Content,
@@ -255,7 +255,7 @@ func TestReadMultiple(t *testing.T) {
 			fsys:      testFS,
 			maxLength: 100,
 			filenames: []string{"file*.txt", "empty.txt", "file2.txt"},
-			want: []files.FileData{
+			want: []digest.FileData{
 				{
 					Name:      "empty.txt",
 					Content:   emptyContent,
@@ -285,7 +285,7 @@ func TestReadMultiple(t *testing.T) {
 			fsys:      testFS,
 			maxLength: 100,
 			filenames: []string{},
-			want:      []files.FileData{},
+			want:      []digest.FileData{},
 			wantErr:   false,
 		},
 
@@ -295,7 +295,7 @@ func TestReadMultiple(t *testing.T) {
 			fsys:      testFS,
 			maxLength: 100,
 			filenames: []string{"file1.txt", "secret.txt", "file2.txt"},
-			want: []files.FileData{
+			want: []digest.FileData{
 				{
 					Name:      "file1.txt",
 					Content:   file1Content,
@@ -318,7 +318,7 @@ func TestReadMultiple(t *testing.T) {
 			fsys:      testFS,
 			maxLength: 100,
 			filenames: []string{"file1.txt", "logs/app.log"},
-			want: []files.FileData{
+			want: []digest.FileData{
 				{
 					Name:      "file1.txt",
 					Content:   file1Content,
@@ -334,7 +334,7 @@ func TestReadMultiple(t *testing.T) {
 			fsys:      testFS,
 			maxLength: 100,
 			filenames: []string{"file1.txt", "config/settings.json"},
-			want: []files.FileData{
+			want: []digest.FileData{
 				{
 					Name:      "file1.txt",
 					Content:   file1Content,
@@ -350,7 +350,7 @@ func TestReadMultiple(t *testing.T) {
 			fsys:      testFS,
 			maxLength: 100,
 			filenames: []string{"secret.txt", "logs/app.log", "config/settings.json"},
-			want:      []files.FileData{},
+			want:      []digest.FileData{},
 			wantErr:   false,
 		},
 		{
@@ -358,7 +358,7 @@ func TestReadMultiple(t *testing.T) {
 			fsys:      fsWithWildcardIgnore,
 			maxLength: 100,
 			filenames: []string{"file1.txt", "test1.go", "test2.go", "file2.txt"},
-			want: []files.FileData{
+			want: []digest.FileData{
 				{
 					Name:      "file1.txt",
 					Content:   file1Content,
@@ -383,7 +383,7 @@ func TestReadMultiple(t *testing.T) {
 			fsys:      fsWithAIExclude,
 			maxLength: 100,
 			filenames: []string{"file1.txt", "private.txt", "file2.txt"},
-			want: []files.FileData{
+			want: []digest.FileData{
 				{
 					Name:      "file1.txt",
 					Content:   file1Content,
@@ -406,7 +406,7 @@ func TestReadMultiple(t *testing.T) {
 			fsys:      fsWithAIExclude,
 			maxLength: 100,
 			filenames: []string{"file1.txt", "data/sensitive.json"},
-			want: []files.FileData{
+			want: []digest.FileData{
 				{
 					Name:      "file1.txt",
 					Content:   file1Content,
@@ -422,7 +422,7 @@ func TestReadMultiple(t *testing.T) {
 			fsys:      fsWithBothIgnoreFiles,
 			maxLength: 100,
 			filenames: []string{"file1.txt", "doc1.md", "temp.txt", "file2.txt", "doc2.md"},
-			want: []files.FileData{
+			want: []digest.FileData{
 				{
 					Name:      "file1.txt",
 					Content:   file1Content,
@@ -445,7 +445,7 @@ func TestReadMultiple(t *testing.T) {
 			fsys:      fsWithBothIgnoreFiles,
 			maxLength: 100,
 			filenames: []string{"doc1.md", "temp.txt", "doc2.md"},
-			want:      []files.FileData{},
+			want:      []digest.FileData{},
 			wantErr:   false,
 		},
 
@@ -468,7 +468,7 @@ func TestReadMultiple(t *testing.T) {
 			},
 			maxLength: 100,
 			filenames: []string{"*.txt"},
-			want: []files.FileData{
+			want: []digest.FileData{
 				{
 					Name:      "another.txt",
 					Content:   "another regular file",
@@ -503,7 +503,7 @@ func TestReadMultiple(t *testing.T) {
 			},
 			maxLength: 100,
 			filenames: []string{"*"},
-			want: []files.FileData{
+			want: []digest.FileData{
 				{
 					Name:      "another.txt",
 					Content:   "another regular file",
@@ -543,7 +543,7 @@ func TestReadMultiple(t *testing.T) {
 			},
 			maxLength: 100,
 			filenames: []string{"*"},
-			want: []files.FileData{
+			want: []digest.FileData{
 				{
 					Name:      "empty.txt",
 					Content:   "",
@@ -565,7 +565,7 @@ func TestReadMultiple(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := files.ReadMultiple(tt.fsys, tt.maxLength, tt.filenames...)
+			got, err := digest.ReadMultiple(tt.fsys, tt.maxLength, tt.filenames...)
 			if tt.wantErr {
 				assert.Error(t, err)
 				return

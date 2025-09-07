@@ -8,7 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/upsun/whatsun/pkg/files"
+	"github.com/upsun/whatsun/pkg/digest"
 )
 
 func treeCmd() *cobra.Command {
@@ -41,10 +41,10 @@ func runTree(ctx context.Context, path string, ignore []string, stdout, stderr i
 		return err
 	}
 
-	cnf := files.MinimalTreeConfig
+	cnf := digest.MinimalTreeConfig
 	cnf.IgnoreDirs = ignore
 	cnf.DisableGitIgnore = disableGitIgnore
-	result, err := files.GetTree(fsys, cnf)
+	result, err := digest.GetTree(fsys, cnf)
 	if err != nil {
 		return err
 	}
