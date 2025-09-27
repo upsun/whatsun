@@ -55,9 +55,9 @@ func NewDigester(fsys fs.FS, cnf *Config) (*Digester, error) {
 }
 
 type Digest struct {
-	Tree          string              `json:"tree" yaml:"tree"`
-	Reports       map[string][]Report `json:"reports" yaml:"reports"` // Grouped by path
-	SelectedFiles []FileData          `json:"selected_files" yaml:"selected_files"`
+	Tree          string              `json:"tree"`
+	Reports       map[string][]Report `json:"reports"` // Grouped by path
+	SelectedFiles []FileData          `json:"selected_files"`
 }
 
 var defaultReadFiles = []string{
