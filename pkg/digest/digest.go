@@ -15,6 +15,7 @@ type Config struct {
 	DisableGitIgnore bool     // Disable parsing .gitignore files.
 	IgnoreFiles      []string // Other "gitignore" file patterns to ignore.
 	ReadFiles        []string // Files to read in the project.
+	MaxFileLength    int      // Truncate file contents beyond this length.
 
 	Rulesets  []rules.RulesetSpec // Rules to run in each directory.
 	ExprCache eval.Cache          // The expression cache.
@@ -30,9 +31,10 @@ func DefaultConfig() (*Config, error) {
 		return nil, err
 	}
 	return &Config{
-		ReadFiles: defaultReadFiles,
-		Rulesets:  rulesets,
-		ExprCache: exprCache,
+		ReadFiles:     defaultReadFiles,
+		MaxFileLength: 2048,
+		Rulesets:      rulesets,
+		ExprCache:     exprCache,
 	}, nil
 }
 
@@ -86,7 +88,7 @@ func (d *Digester) GetDigest(_ context.Context) (*Digest, error) {
 	readFiles = append(readFiles, d.cnf.ReadFiles...)
 	readFiles = append(readFiles, customReadFiles(reports)...)
 
-	fileList, err := ReadMultiple(d.fsys, 2048, readFiles...)
+	fileList, err := ReadMultiple(d.fsys, d.cnf.MaxFileLength, readFiles...)
 	if err != nil {
 		return nil, err
 	}
