@@ -64,6 +64,9 @@ type Digest struct {
 
 var defaultReadFiles = []string{
 	"docker-compose.yml",
+	"docker-compose.yaml",
+	"compose.yml",
+	"compose.yaml",
 	"Dockerfile",
 	"Makefile",
 	"README",
