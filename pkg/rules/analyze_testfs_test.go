@@ -87,6 +87,10 @@ var testFs = fstest.MapFS{
 	"blazor-app/BlazorApp.csproj":   &fstest.MapFile{Data: blazorCsproj},
 	"blazor-app/packages.lock.json": &fstest.MapFile{Data: blazorLock},
 
+	// Jekyll project.
+	"jekyll-site/Gemfile":      &fstest.MapFile{Data: []byte(`gem "jekyll", "~> 4.3"`)},
+	"jekyll-site/Gemfile.lock": &fstest.MapFile{Data: []byte(`    jekyll (4.3.2)`)},
+
 	// Additional directories to increase time taken.
 	"deep/1/2/3/4/5/composer.json":     &fstest.MapFile{Data: []byte("{}")},
 	"deep/a/b/c/d/e/package.json":      &fstest.MapFile{Data: []byte("{}")},
@@ -132,6 +136,8 @@ func TestAnalyze_TestFS_ActualRules(t *testing.T) {
 			With: map[string]rules.ReportValue{"version": {Value: "8.0.0"}}, Groups: []string{"blazor", "dotnet"}},
 		{Ruleset: "frameworks", Path: "eleventy", Result: "eleventy", Rules: []string{"eleventy"},
 			With: map[string]rules.ReportValue{"version": {Value: ""}}, Groups: []string{"js", "static"}},
+		{Ruleset: "frameworks", Path: "jekyll-site", Result: "jekyll", Rules: []string{"jekyll"},
+			With: map[string]rules.ReportValue{"version": {Value: "4.3.2"}}, Groups: []string{"ruby", "static"}},
 		{Ruleset: "frameworks", Path: "meteor", Result: "meteor.js", Rules: []string{"meteor.js"},
 			With: map[string]rules.ReportValue{"version": {Value: "1.5.1"}}, Groups: []string{"js"}},
 		{Ruleset: "frameworks", Path: "python", Result: "django", Rules: []string{"django"},
@@ -165,6 +171,8 @@ func TestAnalyze_TestFS_ActualRules(t *testing.T) {
 		{Ruleset: "package_managers", Path: "deep/a/b/c/d/e", Result: "npm",
 			ReadFiles: []string{"package.json"},
 			Rules:     []string{"npm-lockfile"}, Groups: []string{"js"}},
+		{Ruleset: "package_managers", Path: "jekyll-site", Result: "bundler",
+			Rules: []string{"bundler"}, Groups: []string{"ruby"}},
 		{Ruleset: "package_managers", Path: "meteor", Result: "meteor",
 			Rules: []string{"meteor"}, Groups: []string{"js"}},
 		{Ruleset: "package_managers", Path: "meteor", Result: "npm",
