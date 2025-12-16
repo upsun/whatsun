@@ -486,7 +486,7 @@ frameworks:
       then: jekyll
       with:
         version: fs.depVersion("ruby", "jekyll")
-      group: ruby
+      groups: [ruby, static]
 
     sinatra:
       when: fs.depExists("ruby", "sinatra")
