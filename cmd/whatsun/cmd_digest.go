@@ -6,12 +6,14 @@ import (
 	"io"
 
 	"github.com/spf13/cobra"
+	"gopkg.in/yaml.v3"
 
 	"github.com/upsun/whatsun/pkg/digest"
 )
 
 func digestCmd() *cobra.Command {
 	var ignore []string
+	var useYAML bool
 	var cmd = &cobra.Command{
 		Use:   "digest [path]",
 		Short: "Output a digest of the repository including the file tree, reports, and the contents of selected files",
@@ -26,15 +28,17 @@ func digestCmd() *cobra.Command {
 			if len(args) > 0 {
 				path = args[0]
 			}
-			return runDigest(cmd.Context(), path, ignore, cmd.OutOrStdout(), cmd.ErrOrStderr())
+			return runDigest(cmd.Context(), path, ignore, useYAML, cmd.OutOrStdout(), cmd.ErrOrStderr())
 		},
 	}
 	cmd.Flags().StringSliceVar(&ignore, "ignore", []string{},
 		"Paths (or patterns) to ignore, adding to defaults.")
+	cmd.Flags().BoolVar(&useYAML, "yaml", false,
+		"Output in YAML format instead of JSON.")
 	return cmd
 }
 
-func runDigest(ctx context.Context, path string, ignore []string, stdout, stderr io.Writer) error {
+func runDigest(ctx context.Context, path string, ignore []string, useYAML bool, stdout, stderr io.Writer) error {
 	fsys, disableGitIgnore, err := setupFileSystem(ctx, path, stderr)
 	if err != nil {
 		return err
@@ -50,9 +54,12 @@ func runDigest(ctx context.Context, path string, ignore []string, stdout, stderr
 	if err != nil {
 		return err
 	}
-	digest, err := digester.GetDigest(ctx)
+	d, err := digester.GetDigest(ctx)
 	if err != nil {
 		return err
 	}
-	return json.NewEncoder(stdout).Encode(digest)
+	if useYAML {
+		return yaml.NewEncoder(stdout).Encode(d)
+	}
+	return json.NewEncoder(stdout).Encode(d)
 }
