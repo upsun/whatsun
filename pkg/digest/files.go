@@ -18,11 +18,11 @@ import (
 
 // FileData wraps file data to pass to a template.
 type FileData struct {
-	Name      string
-	Content   string
-	Truncated bool
-	Cleaned   bool
-	Size      int64
+	Name      string `json:"name"`
+	Content   string `json:"content"`
+	Truncated bool   `json:"truncated,omitempty"`
+	Cleaned   bool   `json:"cleaned,omitempty"`
+	Size      int64  `json:"size,omitempty"`
 }
 
 // Clean removes comments and redacts secrets in a list of files.
