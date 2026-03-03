@@ -41,7 +41,7 @@ lint-validate:
 	go run ./cmd/validate
 
 .PHONY: test
-# See https://go.dev/doc/go1.26#jsonv2 - json/v2 remains experimental behind GOEXPERIMENT=jsonv2.
+# json/v2 remains experimental behind GOEXPERIMENT=jsonv2; see https://go.dev/doc/go1.25#json_v2
 test: ## Run unit tests.
 	GOEXPERIMENT=jsonv2 go test -race -count=1 ./...
 
