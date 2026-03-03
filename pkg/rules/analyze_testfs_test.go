@@ -91,6 +91,17 @@ var testFs = fstest.MapFS{
 	"jekyll-site/Gemfile":      &fstest.MapFile{Data: []byte(`gem "jekyll", "~> 4.3"`)},
 	"jekyll-site/Gemfile.lock": &fstest.MapFile{Data: []byte(`    jekyll (4.3.2)`)},
 
+	// Heroku app with app.json containing buildpacks.
+	"heroku-app/Procfile": &fstest.MapFile{Data: []byte("web: gunicorn myapp:app")},
+	"heroku-app/app.json": &fstest.MapFile{Data: []byte(`{"name": "myapp", "buildpacks": [{"url": "heroku/python"}]}`)},
+
+	// Heroku Docker-based app with heroku.yml.
+	"heroku-docker/heroku.yml": &fstest.MapFile{Data: []byte("build:\n  docker:\n    web: Dockerfile")},
+	"heroku-docker/Procfile":   &fstest.MapFile{Data: []byte("web: ./start.sh")},
+
+	// Upsun app.
+	"upsun-app/.upsun/config.yaml": &fstest.MapFile{Data: []byte("applications:\n  myapp:\n    type: 'php:8.3'")},
+
 	// Additional directories to increase time taken.
 	"deep/1/2/3/4/5/composer.json":     &fstest.MapFile{Data: []byte("{}")},
 	"deep/a/b/c/d/e/package.json":      &fstest.MapFile{Data: []byte("{}")},
@@ -180,6 +191,25 @@ func TestAnalyze_TestFS_ActualRules(t *testing.T) {
 			Rules:     []string{"npm-lockfile"}, Groups: []string{"js"}},
 		{Ruleset: "package_managers", Path: "python", Result: "uv",
 			Rules: []string{"uv"}, Groups: []string{"python"}},
+
+		// Platform results.
+		{Ruleset: "platforms", Path: "configured-app", Result: "platformsh",
+			ReadFiles: []string{
+				".platform.app.yaml", ".platform.app.yml",
+				".platform/applications.yaml", ".platform/applications.yml",
+				".platform/routes.yaml", ".platform/routes.yml",
+				".platform/services.yaml", ".platform/services.yml",
+			},
+			Rules: []string{"platformsh"}, Groups: []string{"cloud"}},
+		{Ruleset: "platforms", Path: "heroku-app", Result: "heroku",
+			ReadFiles: []string{".python-version", "Procfile", "app.json", "heroku.yml", "runtime.txt"},
+			Rules:     []string{"heroku-app-json"}, Groups: []string{"cloud"}},
+		{Ruleset: "platforms", Path: "heroku-docker", Result: "heroku",
+			ReadFiles: []string{".python-version", "Procfile", "app.json", "heroku.yml", "runtime.txt"},
+			Rules:     []string{"heroku-yml"}, Groups: []string{"cloud"}},
+		{Ruleset: "platforms", Path: "upsun-app", Result: "upsun",
+			ReadFiles: []string{".upsun/config.yaml", ".upsun/config.yml"},
+			Rules:     []string{"upsun"}, Groups: []string{"cloud"}},
 	}, reports)
 }
 

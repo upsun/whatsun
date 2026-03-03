@@ -1,0 +1,56 @@
+platforms:
+  rules:
+    # Heroku: heroku.yml is 100% unique to Heroku (Docker-based deploys).
+    heroku-yml:
+      when: fs.fileExists("heroku.yml")
+      then: heroku
+      group: cloud
+      read_files: [Procfile, app.json, heroku.yml, runtime.txt, .python-version]
+
+    # Heroku: app.json with Heroku-specific keys (buildpacks, addons).
+    heroku-app-json:
+      when: >-
+        fs.fileExists("app.json")
+        && (fs.fileContains("app.json", '"buildpacks"')
+        || fs.fileContains("app.json", '"addons"'))
+      then: heroku
+      group: cloud
+      read_files: [Procfile, app.json, heroku.yml, runtime.txt, .python-version]
+
+    # Heroku: Procfile alone is ambiguous (Dokku, Railway, Foreman).
+    # maybe results are filtered from digest/CLI output.
+    heroku-procfile:
+      when: fs.fileExists("Procfile")
+      maybe: heroku
+      group: cloud
+      read_files: [Procfile, app.json, heroku.yml, runtime.txt, .python-version]
+
+    # Platform.sh: per-app config or unified config.
+    platformsh:
+      when: >-
+        fs.fileExists(".platform.app.yaml")
+        || fs.fileExists(".platform.app.yml")
+        || fs.fileExists(".platform/applications.yaml")
+        || fs.fileExists(".platform/applications.yml")
+      then: platformsh
+      group: cloud
+      read_files:
+        - .platform.app.yaml
+        - .platform.app.yml
+        - .platform/applications.yaml
+        - .platform/applications.yml
+        - .platform/services.yaml
+        - .platform/services.yml
+        - .platform/routes.yaml
+        - .platform/routes.yml
+
+    # Upsun: config in .upsun/ directory.
+    upsun:
+      when: >-
+        fs.glob(".upsun/*.yaml").size() > 0
+        || fs.glob(".upsun/*.yml").size() > 0
+      then: upsun
+      group: cloud
+      read_files:
+        - .upsun/config.yaml
+        - .upsun/config.yml

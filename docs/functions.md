@@ -64,8 +64,8 @@ Query YAML bytes (e.g. file contents) using YQ (same syntax as JQ).
 
 ### `@in`
 
-* `@in(A, list(A))` -> `bool`
-* `@in(A, map(A, B))` -> `bool`
+* `@in(<A>, list(<A>))` -> `bool`
+* `@in(<A>, map(<A>, <B>))` -> `bool`
 
 ### `@not_strictly_false`
 
@@ -73,14 +73,14 @@ Query YAML bytes (e.g. file contents) using YQ (same syntax as JQ).
 
 ### `@sortByAssociatedKeys`
 
-* `<list(T)>.@sortByAssociatedKeys(list(int))` -> `list(T)`
-* `<list(T)>.@sortByAssociatedKeys(list(uint))` -> `list(T)`
-* `<list(T)>.@sortByAssociatedKeys(list(double))` -> `list(T)`
-* `<list(T)>.@sortByAssociatedKeys(list(bool))` -> `list(T)`
-* `<list(T)>.@sortByAssociatedKeys(list(google.protobuf.Duration))` -> `list(T)`
-* `<list(T)>.@sortByAssociatedKeys(list(google.protobuf.Timestamp))` -> `list(T)`
-* `<list(T)>.@sortByAssociatedKeys(list(string))` -> `list(T)`
-* `<list(T)>.@sortByAssociatedKeys(list(bytes))` -> `list(T)`
+* `<list(<T>)>.@sortByAssociatedKeys(list(int))` -> `list(<T>)`
+* `<list(<T>)>.@sortByAssociatedKeys(list(uint))` -> `list(<T>)`
+* `<list(<T>)>.@sortByAssociatedKeys(list(double))` -> `list(<T>)`
+* `<list(<T>)>.@sortByAssociatedKeys(list(bool))` -> `list(<T>)`
+* `<list(<T>)>.@sortByAssociatedKeys(list(google.protobuf.Duration))` -> `list(<T>)`
+* `<list(<T>)>.@sortByAssociatedKeys(list(google.protobuf.Timestamp))` -> `list(<T>)`
+* `<list(<T>)>.@sortByAssociatedKeys(list(string))` -> `list(<T>)`
+* `<list(<T>)>.@sortByAssociatedKeys(list(bytes))` -> `list(<T>)`
 
 ### `bool`
 
@@ -102,7 +102,7 @@ Query YAML bytes (e.g. file contents) using YQ (same syntax as JQ).
 
 ### `distinct`
 
-* `<list(T)>.distinct()` -> `list(T)`
+* `<list(<T>)>.distinct()` -> `list(<T>)`
 
 ### `double`
 
@@ -119,7 +119,7 @@ Query YAML bytes (e.g. file contents) using YQ (same syntax as JQ).
 
 ### `dyn`
 
-* `dyn(A)` -> `dyn`
+* `dyn(<A>)` -> `dyn`
 
 ### `endsWith`
 
@@ -127,7 +127,7 @@ Query YAML bytes (e.g. file contents) using YQ (same syntax as JQ).
 
 ### `flatten`
 
-* `<list(list(T))>.flatten()` -> `list(T)`
+* `<list(list(<T>))>.flatten()` -> `list(<T>)`
 * `<list(dyn)>.flatten(int)` -> `list(dyn)`
 
 ### `format`
@@ -190,8 +190,8 @@ Query YAML bytes (e.g. file contents) using YQ (same syntax as JQ).
 
 ### `in`
 
-* `in(A, list(A))` -> `bool`
-* `in(A, map(A, B))` -> `bool`
+* `in(<A>, list(<A>))` -> `bool`
+* `in(<A>, map(<A>, <B>))` -> `bool`
 
 ### `indexOf`
 
@@ -237,23 +237,23 @@ Query YAML bytes (e.g. file contents) using YQ (same syntax as JQ).
 
 ### `reverse`
 
-* `<list(T)>.reverse()` -> `list(T)`
+* `<list(<T>)>.reverse()` -> `list(<T>)`
 * `<string>.reverse()` -> `string`
 
 ### `size`
 
 * `size(bytes)` -> `int`
 * `<bytes>.size()` -> `int`
-* `size(list(A))` -> `int`
-* `<list(A)>.size()` -> `int`
-* `size(map(A, B))` -> `int`
-* `<map(A, B)>.size()` -> `int`
+* `size(list(<A>))` -> `int`
+* `<list(<A>)>.size()` -> `int`
+* `size(map(<A>, <B>))` -> `int`
+* `<map(<A>, <B>)>.size()` -> `int`
 * `size(string)` -> `int`
 * `<string>.size()` -> `int`
 
 ### `slice`
 
-* `<list(T)>.slice(int, int)` -> `list(T)`
+* `<list(<T>)>.slice(int, int)` -> `list(<T>)`
 
 ### `sort`
 
@@ -307,7 +307,7 @@ Query YAML bytes (e.g. file contents) using YQ (same syntax as JQ).
 
 ### `type`
 
-* `type(A)` -> `type(A)`
+* `type(<A>)` -> `type(<A>)`
 
 ### `uint`
 
@@ -333,7 +333,7 @@ Query YAML bytes (e.g. file contents) using YQ (same syntax as JQ).
 
 ### `!=`
 
-* `A` `!=` `A` -> `bool`
+* `<A>` `!=` `<A>` -> `bool`
 
 ### `%`
 
@@ -358,7 +358,7 @@ Query YAML bytes (e.g. file contents) using YQ (same syntax as JQ).
 * `google.protobuf.Duration` `+` `google.protobuf.Timestamp` -> `google.protobuf.Timestamp`
 * `google.protobuf.Timestamp` `+` `google.protobuf.Duration` -> `google.protobuf.Timestamp`
 * `int` `+` `int` -> `int`
-* `list(A)` `+` `list(A)` -> `list(A)`
+* `list(<A>)` `+` `list(<A>)` -> `list(<A>)`
 * `string` `+` `string` -> `string`
 * `uint` `+` `uint` -> `uint`
 
@@ -413,7 +413,7 @@ Query YAML bytes (e.g. file contents) using YQ (same syntax as JQ).
 
 ### `==`
 
-* `A` `==` `A` -> `bool`
+* `<A>` `==` `<A>` -> `bool`
 
 ### `>=`
 
@@ -451,12 +451,12 @@ Query YAML bytes (e.g. file contents) using YQ (same syntax as JQ).
 
 ### `? :`
 
-* `bool` `?` `A` `:` `A` -> `A`
+* `bool` `?` `<A>` `:` `<A>` -> `<A>`
 
 ### `[ ]`
 
-* `list(A)` `[` `int` `]` -> `A`
-* `map(A, B)` `[` `A` `]` -> `B`
+* `list(<A>)` `[` `int` `]` -> `<A>`
+* `map(<A>, <B>)` `[` `<A>` `]` -> `<B>`
 
 ### `not strictly false`
 
@@ -464,8 +464,8 @@ Query YAML bytes (e.g. file contents) using YQ (same syntax as JQ).
 
 ### `in`
 
-* `A` `in` `list(A)` -> `bool`
-* `A` `in` `map(A, B)` -> `bool`
+* `<A>` `in` `list(<A>)` -> `bool`
+* `<A>` `in` `map(<A>, <B>)` -> `bool`
 
 ### `||`
 
