@@ -9,6 +9,7 @@ linters:
     - ineffassign
     - lll
     - misspell
+    - modernize
     - nolintlint
     - staticcheck
     - unused
