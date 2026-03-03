@@ -13,6 +13,7 @@ func main() {
 		configDir = os.Args[1]
 	}
 
+	//nolint:gosec // G705: CLI stderr output
 	fmt.Fprintf(os.Stderr, "Validating rules configuration in %s directory...\n", configDir)
 
 	_, err := rules.LoadFromYAMLDir(os.DirFS("."), configDir)

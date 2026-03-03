@@ -82,7 +82,6 @@ func (a *Analyzer) Analyze(ctx context.Context, fsys fs.FS, root string) ([]Repo
 		dirGroup.SetLimit(numWorkers)
 		defer close(reportsChan)
 		for path := range dirChan {
-			path := path
 			dirGroup.Go(func() error {
 				select {
 				case <-ctx.Done():

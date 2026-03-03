@@ -53,7 +53,7 @@ func validateYAMLAgainstSchema(yamlData []byte) error {
 
 type YAMLListOrString []string
 
-func (l *YAMLListOrString) UnmarshalYAML(unmarshal func(interface{}) error) error {
+func (l *YAMLListOrString) UnmarshalYAML(unmarshal func(any) error) error {
 	var s []string
 	if err := unmarshal(&s); err != nil {
 		var str string

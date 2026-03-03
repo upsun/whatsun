@@ -22,7 +22,7 @@ func TestReplaceSecrets(t *testing.T) {
 			input:    "API_KEY=abcd1234efgh5678",
 			expected: "API_KEY=[REDACTED]",
 		},
-		{
+		{ //nolint:gosec // G101: fake credentials used for testing secret redaction
 			name: "Redact AWS Secret Key in context",
 			input: `# AWS Configuration
 aws_access_key_id = AKIACKN7JHWLFFLRIAYK
@@ -42,7 +42,7 @@ echo "Token set"`,
 export SLACK_TOKEN=[REDACTED]
 echo "Token set"`,
 		},
-		{
+		{ //nolint:gosec // G101: fake credentials used for testing secret redaction
 			name: "Redact GitHub personal access token in script",
 			input: `# Deploy script
 curl -H "Authorization: token ghp_thei5ieveewohneiw1Si0luo0boo5wei2eiM" https://api.github.com/user/repos`,
