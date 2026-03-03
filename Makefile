@@ -1,4 +1,4 @@
-GOLANGCI_LINT_VERSION := v2.4.0
+GOLANGCI_LINT_VERSION := v2.10.1
 BUILD_FLAGS := -trimpath -ldflags='-s'
 
 .PHONY: help
@@ -41,7 +41,7 @@ lint-validate:
 	go run ./cmd/validate
 
 .PHONY: test
-# The release notes at https://tip.golang.org/doc/go1.25 state: "We encourage users of encoding/json to test their programs with GOEXPERIMENT=jsonv2 enabled".
+# See https://go.dev/doc/go1.26#jsonv2 - json/v2 remains experimental behind GOEXPERIMENT=jsonv2.
 test: ## Run unit tests.
 	GOEXPERIMENT=jsonv2 go test -race -count=1 ./...
 

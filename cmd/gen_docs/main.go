@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 
@@ -30,11 +31,11 @@ func main() {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-	fmt.Fprintln(os.Stderr, "Documentation generated and saved to:", os.Args[1])
+	fmt.Fprintln(os.Stderr, "Documentation generated and saved to:", os.Args[1]) //nolint:gosec // G705: CLI stderr output
 }
 
 func writeFile(path string, fn func(io.Writer) error) error {
-	f, err := os.Create(path)
+	f, err := os.Create(filepath.Clean(path)) //nolint:gosec // G703: path is from CLI args
 	if err != nil {
 		return err
 	}
@@ -84,13 +85,13 @@ func GenerateDocs(w io.Writer, env *cel.Env) error {
 		b := strings.Builder{}
 
 		if isOperator {
-			b.WriteString(fmt.Sprintf("\n### `%s`\n", strings.Trim(strings.ReplaceAll(name, "_", " "), "_ ")))
+			fmt.Fprintf(&b, "\n### `%s`\n", strings.Trim(strings.ReplaceAll(name, "_", " "), "_ "))
 		} else {
-			b.WriteString(fmt.Sprintf("\n### `%s`\n", name))
+			fmt.Fprintf(&b, "\n### `%s`\n", name)
 			if funcDoc, ok := docs.GetFunction(name); ok && funcDoc.Comment != "" {
-				b.WriteString(fmt.Sprintf("%s.\n", strings.TrimRight(funcDoc.Comment, ".")))
+				fmt.Fprintf(&b, "%s.\n", strings.TrimRight(funcDoc.Comment, "."))
 				if funcDoc.Description != "" {
-					b.WriteString(fmt.Sprintf("\n%s\n", funcDoc.Description))
+					fmt.Fprintf(&b, "\n%s\n", funcDoc.Description)
 				}
 			}
 		}
@@ -116,21 +117,21 @@ func GenerateDocs(w io.Writer, env *cel.Env) error {
 
 			switch {
 			case overload.IsMemberFunction():
-				b.WriteString(fmt.Sprintf(
+				fmt.Fprintf(&b,
 					"* `<%s>.%s(%s)` -> `%s`\n",
 					argTypesStr[0],
 					name,
 					strings.Join(argTypesStr[1:], ", "),
 					overload.ResultType(),
-				))
+				)
 			case isOperator:
 				descr := f.Name()
 				for _, argTypeStr := range argTypesStr {
 					descr = strings.Replace(descr, "_", "` `"+argTypeStr+"` `", 1)
 				}
-				b.WriteString(fmt.Sprintf("* `%s` -> `%s`\n", strings.Trim(descr, " `"), overload.ResultType()))
+				fmt.Fprintf(&b, "* `%s` -> `%s`\n", strings.Trim(descr, " `"), overload.ResultType())
 			default:
-				b.WriteString(fmt.Sprintf("* `%s(%s)` -> `%s`\n", f.Name(), strings.Join(argTypesStr, ", "), overload.ResultType()))
+				fmt.Fprintf(&b, "* `%s(%s)` -> `%s`\n", f.Name(), strings.Join(argTypesStr, ", "), overload.ResultType())
 			}
 
 			if funcDoc, ok := docs.GetFunction(name); ok {
@@ -145,9 +146,9 @@ func GenerateDocs(w io.Writer, env *cel.Env) error {
 					if hasAnyComment {
 						for _, arg := range funcDoc.Args {
 							if arg.Comment != "" {
-								b.WriteString(fmt.Sprintf("    - `%s`: %s\n", arg.Name, arg.Comment))
+								fmt.Fprintf(&b, "    - `%s`: %s\n", arg.Name, arg.Comment)
 							} else {
-								b.WriteString(fmt.Sprintf("    - `%s`\n", arg.Name))
+								fmt.Fprintf(&b, "    - `%s`\n", arg.Name)
 							}
 						}
 					}

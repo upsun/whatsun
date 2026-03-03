@@ -341,8 +341,8 @@ func parseMeteorDeps(fsys fs.FS, path string) (map[string]Dependency, error) {
 
 	meteorDeps := map[string]Dependency{}
 	if meteorPackagesExists {
-		lines := strings.Split(string(meteorPackages), "\n")
-		for _, line := range lines {
+		lines := strings.SplitSeq(string(meteorPackages), "\n")
+		for line := range lines {
 			line = strings.TrimSpace(line)
 			if line == "" || strings.HasPrefix(line, "#") {
 				continue
@@ -355,8 +355,8 @@ func parseMeteorDeps(fsys fs.FS, path string) (map[string]Dependency, error) {
 		}
 	}
 	if meteorVersionsExists {
-		lines := strings.Split(string(meteorVersions), "\n")
-		for _, line := range lines {
+		lines := strings.SplitSeq(string(meteorVersions), "\n")
+		for line := range lines {
 			line = strings.TrimSpace(line)
 			if line == "" || strings.HasPrefix(line, "#") {
 				continue

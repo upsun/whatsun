@@ -19,7 +19,7 @@ func main() {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-	fmt.Fprintln(os.Stderr, "Cache saved to:", os.Args[1])
+	fmt.Fprintln(os.Stderr, "Cache saved to:", os.Args[1]) //nolint:gosec // G705: CLI stderr output
 }
 
 func warmCache(filename string) error {

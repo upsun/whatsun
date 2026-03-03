@@ -13,7 +13,7 @@ Whatsun is configured via rules defined in YAML in the `config/` directory, whic
 ## Code Standards
 
 ### Go Version and Idioms
-- **REQUIRED**: Use Go 1.24+ idioms
+- **REQUIRED**: Use Go 1.26+ idioms
 - Use `any` instead of `interface{}`
 - Follow standard Go conventions for naming, packaging, and code organization
 - Use generics where appropriate

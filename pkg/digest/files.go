@@ -152,10 +152,8 @@ func isTextContent(data []byte) bool {
 	}
 
 	// Check for null bytes, which are common in binary files
-	for _, b := range data {
-		if b == 0 {
-			return false
-		}
+	if slices.Contains(data, 0) {
+		return false
 	}
 
 	// Check if the content is valid UTF-8

@@ -90,7 +90,7 @@ func genDirs(from, to int) []string {
 		if n > from {
 			builder.WriteString("/")
 		}
-		builder.WriteString(fmt.Sprintf("%d", n))
+		fmt.Fprintf(&builder, "%d", n)
 		paths[i] = builder.String()
 		i++
 	}
