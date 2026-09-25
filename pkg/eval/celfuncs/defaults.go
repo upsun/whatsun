@@ -2,13 +2,17 @@
 package celfuncs
 
 import (
+	"reflect"
+
 	"github.com/google/cel-go/cel"
 	"github.com/google/cel-go/ext"
+
+	"github.com/upsun/whatsun/internal/fsdir"
 )
 
 // DefaultEnvOptions returns default options for creating a Common Expression Language (CEL) environment.
 func DefaultEnvOptions() []cel.EnvOption {
-	return append(CustomEnvOptions(nil), ext.Lists(), ext.Strings(), ext.NativeTypes())
+	return append(CustomEnvOptions(nil), ext.Lists(), ext.Strings(), ext.NativeTypes(reflect.TypeFor[fsdir.FSDir]()))
 }
 
 // CustomEnvOptions returns the customized CEL options.
