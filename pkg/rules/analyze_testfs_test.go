@@ -91,6 +91,18 @@ var testFs = fstest.MapFS{
 	"jekyll-site/Gemfile":      &fstest.MapFile{Data: []byte(`gem "jekyll", "~> 4.3"`)},
 	"jekyll-site/Gemfile.lock": &fstest.MapFile{Data: []byte(`    jekyll (4.3.2)`)},
 
+	// Spring Boot with Bazel (without a pom.xml or build.gradle).
+	"spring-bazel/MODULE.bazel": &fstest.MapFile{Data: []byte(`
+maven = use_extension("@rules_jvm_external//:extensions.bzl", "maven")
+maven.install(artifacts = ["org.springframework.boot:spring-boot-starter-web:3.2.1"])
+`)},
+	"spring-bazel/app/BUILD.bazel": &fstest.MapFile{Data: []byte(`
+java_binary(
+    name = "app",
+    srcs = glob(["src/main/java/**/*.java"]),
+    deps = ["@maven//:org_springframework_boot_spring_boot_starter_web"],
+)`)},
+
 	// Additional directories to increase time taken.
 	"deep/1/2/3/4/5/composer.json":     &fstest.MapFile{Data: []byte("{}")},
 	"deep/a/b/c/d/e/package.json":      &fstest.MapFile{Data: []byte("{}")},
@@ -125,6 +137,7 @@ func TestAnalyze_TestFS_ActualRules(t *testing.T) {
 	assert.EqualValues(t, []rules.Report{
 		// Build tool results.
 		{Ruleset: "build_tools", Path: "rake", Result: "rake", Rules: []string{"rake"}, Groups: []string{"ruby"}},
+		{Ruleset: "build_tools", Path: "spring-bazel", Result: "bazel", Rules: []string{"bazel"}},
 
 		// Framework results.
 		{Ruleset: "frameworks", Path: ".", Result: "symfony", Rules: []string{"symfony-framework"},
@@ -142,6 +155,10 @@ func TestAnalyze_TestFS_ActualRules(t *testing.T) {
 			With: map[string]rules.ReportValue{"version": {Value: "1.5.1"}}, Groups: []string{"js"}},
 		{Ruleset: "frameworks", Path: "python", Result: "django", Rules: []string{"django"},
 			With: map[string]rules.ReportValue{"version": {Value: "5.2.3"}}, Groups: []string{"django", "python"}},
+		{Ruleset: "frameworks", Path: "spring-bazel", Result: "spring-boot", Rules: []string{"spring-boot"},
+			With: map[string]rules.ReportValue{"version": {Value: ""}}, Groups: []string{"java"}},
+		{Ruleset: "frameworks", Path: "spring-bazel/app", Result: "spring-boot", Rules: []string{"spring-boot"},
+			With: map[string]rules.ReportValue{"version": {Value: ""}}, Groups: []string{"java"}},
 
 		// Package manager results.
 		{Ruleset: "package_managers", Path: ".", Result: "composer", Rules: []string{"composer"}, Groups: []string{"php"},
