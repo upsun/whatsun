@@ -49,26 +49,32 @@ func starlarkCalls(src string) []starlarkCall {
 
 // splitStarlarkArgs splits a call's arguments by top-level commas.
 func splitStarlarkArgs(args string) []string {
+	return splitStarlarkTopLevel(args, ',')
+}
+
+// splitStarlarkTopLevel splits an expression by a separator that is not
+// nested in brackets or strings.
+func splitStarlarkTopLevel(expr string, sep byte) []string {
 	var parts []string
 	start, depth := 0, 0
-	for i := 0; i < len(args); {
-		switch c := args[i]; c {
+	for i := 0; i < len(expr); {
+		switch c := expr[i]; c {
 		case '"', '\'':
-			i = skipStarlarkString(args, i)
+			i = skipStarlarkString(expr, i)
 			continue
 		case '(', '[', '{':
 			depth++
 		case ')', ']', '}':
 			depth--
-		case ',':
+		case sep:
 			if depth == 0 {
-				parts = append(parts, strings.TrimSpace(args[start:i]))
+				parts = append(parts, strings.TrimSpace(expr[start:i]))
 				start = i + 1
 			}
 		}
 		i++
 	}
-	if last := strings.TrimSpace(args[start:]); last != "" {
+	if last := strings.TrimSpace(expr[start:]); last != "" {
 		parts = append(parts, last)
 	}
 	return parts
@@ -90,7 +96,8 @@ func starlarkKwarg(args []string, key string) string {
 }
 
 // starlarkAssignment returns the value expression assigned to a top-level
-// variable in src, e.g. the list in "ARTIFACTS = [...]".
+// variable in src, e.g. the list in "ARTIFACTS = [...]" or the whole of
+// "ARTIFACTS = BASE + [...]".
 func starlarkAssignment(src, name string) string {
 	for i := 0; i < len(src); {
 		c := src[i]
@@ -101,17 +108,35 @@ func starlarkAssignment(src, name string) string {
 		if strings.HasPrefix(src[i:], name) && (i == 0 || src[i-1] == '\n') {
 			rest := strings.TrimLeft(src[i+len(name):], " \t")
 			if value, ok := strings.CutPrefix(rest, "="); ok && !strings.HasPrefix(value, "=") {
-				value = strings.TrimLeft(value, " \t")
-				if value != "" && strings.ContainsRune("([{", rune(value[0])) {
-					return value[:min(matchStarlarkBracket(value, 0)+1, len(value))]
-				}
-				line, _, _ := strings.Cut(value, "\n")
-				return strings.TrimSpace(line)
+				return strings.TrimSpace(value[:starlarkLineEnd(value)])
 			}
 		}
 		i++
 	}
 	return ""
+}
+
+// starlarkLineEnd returns the index of the first newline in src that is not
+// nested in brackets or strings, or the length of src.
+func starlarkLineEnd(src string) int {
+	depth := 0
+	for i := 0; i < len(src); {
+		switch src[i] {
+		case '"', '\'':
+			i = skipStarlarkString(src, i)
+			continue
+		case '(', '[', '{':
+			depth++
+		case ')', ']', '}':
+			depth--
+		case '\n':
+			if depth <= 0 {
+				return i
+			}
+		}
+		i++
+	}
+	return len(src)
 }
 
 // starlarkStrings returns the values of all string literals in src.

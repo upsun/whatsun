@@ -113,13 +113,21 @@ go_library(
 load("@rules_jvm_external//:defs.bzl", "maven_install")
 load("@bazel_gazelle//:deps.bzl", "go_repository")
 
-ARTIFACTS = [
+BASE = [
     "io.quarkus:quarkus-rest:3.8.0",
 ]
 
+ARTIFACTS = BASE + [
+    "com.google.guava:guava:33.0.0-jre",
+]
+
+# Cyclic references are ignored.
+CYCLE_A = CYCLE_B
+CYCLE_B = CYCLE_A
+
 maven_install(
     name = "deps",
-    artifacts = ARTIFACTS,
+    artifacts = ARTIFACTS + ["junit:junit:4.13.2"] + CYCLE_A,
 )
 
 go_repository(
@@ -172,6 +180,14 @@ func TestBazel_Java(t *testing.T) {
 		{Vendor: "junit", Name: "junit:junit", Constraint: "4.13.2", Version: "4.13.2", IsDirect: true, ToolName: "bazel"},
 	}, m.Find("*"))
 	assert.Len(t, m.Find("org.springframework.boot:*"), 1)
+
+	// Artifact lists built by concatenation.
+	legacyRoot := getBazelTestManager(t, dep.ManagerTypeJava, "legacy")
+	var names []string
+	for _, d := range legacyRoot.Find("*") {
+		names = append(names, d.Name)
+	}
+	assert.Equal(t, []string{"io.quarkus:quarkus-rest", "com.google.guava:guava", "junit:junit"}, names)
 
 	legacy := getBazelTestManager(t, dep.ManagerTypeJava, "legacy/svc")
 	assert.Equal(t, []dep.Dependency{

@@ -46,6 +46,22 @@ func TestStarlarkUnterminated(t *testing.T) {
 	}
 }
 
+func TestStarlarkAssignment(t *testing.T) {
+	src := `
+A = ["a", "b"]
+AB = A + [
+    "c",  # Comment
+] + B
+C = "x"
+`
+	assert.Equal(t, `["a", "b"]`, starlarkAssignment(src, "A"))
+	assert.Equal(t, "A + [\n    \"c\",  # Comment\n] + B", starlarkAssignment(src, "AB"))
+	assert.Equal(t, `"x"`, starlarkAssignment(src, "C"))
+	assert.Empty(t, starlarkAssignment(src, "D"))
+	assert.Equal(t, []string{"A", "[\n    \"c\",  # Comment\n]", "B"},
+		splitStarlarkTopLevel(starlarkAssignment(src, "AB"), '+'))
+}
+
 func TestSplitBazelLabel(t *testing.T) {
 	cases := []struct{ label, repo, pkg, target string }{
 		{"@maven//:com_google_guava_guava", "maven", "", "com_google_guava_guava"},

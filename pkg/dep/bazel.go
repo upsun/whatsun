@@ -228,14 +228,30 @@ func (ws *bazelWorkspace) parseFile(src string) {
 }
 
 // addMavenArtifacts adds artifacts from a maven_install "artifacts" expression.
-// The expression may be a list, or the name of a variable defined in src.
+// The expression may be a list, the name of a variable defined in src, or a
+// concatenation of those (e.g. "BASE + [...]").
 func (ws *bazelWorkspace) addMavenArtifacts(src, expr string) {
-	if isStarlarkIdent(expr) {
-		expr = starlarkAssignment(src, expr)
-	}
-	if !strings.HasPrefix(expr, "[") {
+	ws.addMavenArtifactsDepth(src, expr, 0)
+}
+
+func (ws *bazelWorkspace) addMavenArtifactsDepth(src, expr string, depth int) {
+	// Limit the depth of variable references, e.g. in case of cycles.
+	const maxDepth = 5
+	if depth > maxDepth {
 		return
 	}
+	for _, term := range splitStarlarkTopLevel(expr, '+') {
+		switch {
+		case isStarlarkIdent(term):
+			ws.addMavenArtifactsDepth(src, starlarkAssignment(src, term), depth+1)
+		case strings.HasPrefix(term, "["):
+			ws.addMavenArtifactList(term)
+		}
+	}
+}
+
+// addMavenArtifactList adds artifacts from a list literal.
+func (ws *bazelWorkspace) addMavenArtifactList(expr string) {
 	for _, elem := range splitStarlarkArgs(expr[1:matchStarlarkBracket(expr, 0)]) {
 		if calls := starlarkCalls(elem); len(calls) == 1 && calls[0].name == "maven.artifact" {
 			args := splitStarlarkArgs(calls[0].args)
