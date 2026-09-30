@@ -246,6 +246,8 @@ func (ws *bazelWorkspace) addMavenArtifactsDepth(src, expr string, depth int) {
 			ws.addMavenArtifactsDepth(src, starlarkAssignment(src, term), depth+1)
 		case strings.HasPrefix(term, "["):
 			ws.addMavenArtifactList(term)
+		case strings.HasPrefix(term, "(") && matchStarlarkBracket(term, 0) == len(term)-1:
+			ws.addMavenArtifactsDepth(src, term[1:len(term)-1], depth+1)
 		}
 	}
 }

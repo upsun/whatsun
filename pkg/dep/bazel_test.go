@@ -117,9 +117,10 @@ BASE = [
     "io.quarkus:quarkus-rest:3.8.0",
 ]
 
-ARTIFACTS = BASE + [
-    "com.google.guava:guava:33.0.0-jre",
-]
+ARTIFACTS = (
+    BASE
+    + ["com.google.guava:guava:33.0.0-jre"]
+)
 
 # Cyclic references are ignored.
 CYCLE_A = CYCLE_B
@@ -127,7 +128,7 @@ CYCLE_B = CYCLE_A
 
 maven_install(
     name = "deps",
-    artifacts = ARTIFACTS + ["junit:junit:4.13.2"] + CYCLE_A,
+    artifacts = (ARTIFACTS + ["junit:junit:4.13.2"]) + CYCLE_A,
 )
 
 go_repository(
