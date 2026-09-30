@@ -118,15 +118,29 @@ func (b bazelDeps) add(managerType string, d Dependency) {
 // It returns an empty string if none exist.
 func readFirst(fsys fs.FS, dir string, names []string) (string, error) {
 	for _, name := range names {
-		b, err := fs.ReadFile(fsys, path.Join(dir, name))
-		if err == nil {
-			return string(b), nil
-		}
-		if !errors.Is(err, fs.ErrNotExist) {
+		p := path.Join(dir, name)
+		ok, err := isFile(fsys, p)
+		if err != nil {
 			return "", err
+		}
+		if ok {
+			b, err := fs.ReadFile(fsys, p)
+			return string(b), err
 		}
 	}
 	return "", nil
+}
+
+// isFile checks whether a regular file exists (and not e.g. a directory
+// named "BUILD").
+func isFile(fsys fs.FS, name string) (bool, error) {
+	fi, err := fs.Stat(fsys, name)
+	if errors.Is(err, fs.ErrNotExist) {
+		return false, nil
+	} else if err != nil {
+		return false, err
+	}
+	return !fi.IsDir(), nil
 }
 
 // findBazelRoot looks for the workspace root in dir and, optionally, its parents.
@@ -135,12 +149,12 @@ func findBazelRoot(fsys fs.FS, dir string, parents bool) (string, error) {
 	dir = path.Clean(dir)
 	for {
 		for _, name := range bazelWorkspaceFiles {
-			_, err := fs.Stat(fsys, path.Join(dir, name))
-			if err == nil {
-				return dir, nil
-			}
-			if !errors.Is(err, fs.ErrNotExist) {
+			ok, err := isFile(fsys, path.Join(dir, name))
+			if err != nil {
 				return "", err
+			}
+			if ok {
+				return dir, nil
 			}
 		}
 		if !parents || dir == "." || dir == "/" {
@@ -162,23 +176,21 @@ func parseBazelWorkspace(fsys fs.FS, root string) (*bazelWorkspace, error) {
 	}
 
 	for _, name := range bazelWorkspaceFiles {
-		b, err := fs.ReadFile(fsys, path.Join(root, name))
-		if errors.Is(err, fs.ErrNotExist) {
-			continue
-		} else if err != nil {
+		src, err := readFirst(fsys, root, []string{name})
+		if err != nil {
 			return nil, err
 		}
-		ws.parseFile(stripStarlarkComments(string(b)))
+		ws.parseFile(stripStarlarkComments(src))
 	}
 
 	// Go dependencies are usually managed via go.mod (e.g. with Gazelle's
 	// go_deps.from_file), and referenced by their Gazelle repository names.
-	b, err := fs.ReadFile(fsys, path.Join(root, "go.mod"))
-	if err != nil && !errors.Is(err, fs.ErrNotExist) {
+	goMod, err := readFirst(fsys, root, []string{"go.mod"})
+	if err != nil {
 		return nil, err
 	}
-	if len(b) > 0 {
-		if f, err := modfile.Parse("go.mod", b, nil); err == nil {
+	if goMod != "" {
+		if f, err := modfile.Parse("go.mod", []byte(goMod), nil); err == nil {
 			for _, r := range f.Require {
 				ws.addGoRepo(Dependency{Name: r.Mod.Path, Version: r.Mod.Version, IsDirect: !r.Indirect})
 			}
@@ -221,18 +233,26 @@ func (ws *bazelWorkspace) addMavenArtifacts(src, expr string) {
 	if isStarlarkIdent(expr) {
 		expr = starlarkAssignment(src, expr)
 	}
-	for _, c := range starlarkCalls(expr) {
-		if c.name == "maven.artifact" {
-			args := splitStarlarkArgs(c.args)
+	if !strings.HasPrefix(expr, "[") {
+		return
+	}
+	for _, elem := range splitStarlarkArgs(expr[1:matchStarlarkBracket(expr, 0)]) {
+		if calls := starlarkCalls(elem); len(calls) == 1 && calls[0].name == "maven.artifact" {
+			args := splitStarlarkArgs(calls[0].args)
 			group, artifact, version := firstString(starlarkKwarg(args, "group")),
 				firstString(starlarkKwarg(args, "artifact")), firstString(starlarkKwarg(args, "version"))
 			if group == "" && len(args) >= 3 {
 				group, artifact, version = firstString(args[0]), firstString(args[1]), firstString(args[2])
 			}
 			ws.addMavenArtifact(group, artifact, version)
+			continue
 		}
-	}
-	for _, coord := range starlarkStrings(expr) {
+		// Only plain string elements are coordinates: strings nested
+		// elsewhere (e.g. exclusions) are not.
+		if elem == "" || elem[0] != '"' && elem[0] != '\'' {
+			continue
+		}
+		coord := firstString(elem)
 		// Coordinates: group:artifact[:packaging[:classifier]]:version
 		parts := strings.Split(coord, ":")
 		if len(parts) < 2 || strings.ContainsAny(coord, "/@ ") {
@@ -462,8 +482,13 @@ func appendBazelDeps(deps []Dependency, fsys fs.FS, dir, managerType string) ([]
 	if err != nil {
 		return nil, err
 	}
+	normalize := strings.ToLower
+	if managerType == ManagerTypePython {
+		normalize = normalizePythonName
+	}
 	for _, d := range bd[managerType] {
-		if !slices.ContainsFunc(deps, func(e Dependency) bool { return strings.EqualFold(e.Name, d.Name) }) {
+		name := normalize(d.Name)
+		if !slices.ContainsFunc(deps, func(e Dependency) bool { return normalize(e.Name) == name }) {
 			deps = append(deps, d)
 		}
 	}

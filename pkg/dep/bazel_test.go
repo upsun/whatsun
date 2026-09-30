@@ -23,6 +23,8 @@ maven.install(
         "org.springframework.boot:spring-boot-starter-web:3.2.1",
         "com.google.guava:guava:33.0.0-jre",  # A comment with "quotes"
         # "org.example:commented-out:1.0",
+        maven.artifact(group = "org.slf4j", artifact = "slf4j-api", version = "2.0.9",
+                       exclusions = ["com.google.code.gson:gson"]),
     ],
     repositories = ["https://repo1.maven.org/maven2"],
 )
@@ -41,6 +43,9 @@ require (
 	golang.org/x/net v0.20.0 // indirect
 )
 `)},
+
+	// A BUILD file at the module root, referencing a module that is indirect in go.mod.
+	"BUILD.bazel": &fstest.MapFile{Data: []byte(`go_library(name = "root", deps = ["@org_golang_x_net//http2"])`)},
 
 	"java/BUILD.bazel": &fstest.MapFile{Data: []byte(`
 load("@rules_java//java:defs.bzl", "java_library")
@@ -128,7 +133,13 @@ java_binary(name = "svc", main_class = "Main", deps = ["@deps//:io_quarkus_quark
 go_binary(name = "tool", deps = ["@com_github_go_chi_chi_v5//:chi"])
 `)},
 
+	"python/requirements.txt": &fstest.MapFile{Data: []byte("Flask_Cors==4.0.0\n")},
+
 	"not-bazel/README.md": &fstest.MapFile{Data: []byte("# Hello")},
+
+	// Directories that happen to be named like Bazel files.
+	"dirs-named-bazel/BUILD/README.md":     &fstest.MapFile{Data: []byte("# Hello")},
+	"dirs-named-bazel/WORKSPACE/README.md": &fstest.MapFile{Data: []byte("# Hello")},
 }
 
 func getBazelTestManager(t *testing.T, managerType, path string) dep.Manager {
@@ -146,8 +157,10 @@ func TestBazel_Java(t *testing.T) {
 			Constraint: "3.2.1", Version: "3.2.1", IsDirect: true, ToolName: "bazel"},
 		{Vendor: "com.google.guava", Name: "com.google.guava:guava",
 			Constraint: "33.0.0-jre", Version: "33.0.0-jre", IsDirect: true, ToolName: "bazel"},
+		{Vendor: "org.slf4j", Name: "org.slf4j:slf4j-api",
+			Constraint: "2.0.9", Version: "2.0.9", IsDirect: true, ToolName: "bazel"},
 		{Vendor: "junit", Name: "junit:junit", Constraint: "4.13.2", Version: "4.13.2", IsDirect: true, ToolName: "bazel"},
-	}, root.Find("*"))
+	}, root.Find("*"), "exclusions are not dependencies")
 
 	m := getBazelTestManager(t, dep.ManagerTypeJava, "java")
 	assert.ElementsMatch(t, []dep.Dependency{
@@ -169,11 +182,15 @@ func TestBazel_Java(t *testing.T) {
 
 func TestBazel_Python(t *testing.T) {
 	m := getBazelTestManager(t, dep.ManagerTypePython, "python")
-	assert.ElementsMatch(t, []dep.Dependency{
-		{Name: "django", IsDirect: true, ToolName: "bazel"},
-		{Name: "flask-cors", IsDirect: true, ToolName: "bazel"},
-		{Name: "requests", IsDirect: true, ToolName: "bazel"},
-	}, m.Find("*"))
+	var names []string
+	for _, d := range m.Find("*") {
+		names = append(names, d.Name)
+	}
+	// "@pypi//Flask_Cors" is not duplicated, as it is in requirements.txt.
+	assert.ElementsMatch(t, []string{"Flask_Cors", "django", "requests"}, names)
+	d, ok := m.Get("requests")
+	assert.True(t, ok)
+	assert.Equal(t, dep.Dependency{Name: "requests", IsDirect: true, ToolName: "bazel"}, d)
 }
 
 func TestBazel_JS(t *testing.T) {
@@ -194,9 +211,14 @@ func TestBazel_Go(t *testing.T) {
 		{Name: "golang.org/x/net", Version: "v0.20.0", IsDirect: true, ToolName: "bazel"},
 	}, m.Find("*"))
 
-	// Dependencies from the go.mod file itself are not duplicated.
+	// Dependencies from the go.mod file itself are not duplicated, and the
+	// BUILD file's reference makes an indirect one direct.
 	root := getBazelTestManager(t, dep.ManagerTypeGo, ".")
-	assert.Len(t, root.Find("*"), 2)
+	assert.ElementsMatch(t, []dep.Dependency{
+		{Name: "github.com/gorilla/mux", Version: "v1.8.1", IsDirect: true, ToolName: "go"},
+		{Name: "golang.org/x/net", Version: "v0.20.0", IsDirect: true, ToolName: "bazel"},
+	}, root.Find("*"))
+	assert.True(t, hasDep(root, "golang.org/x/net"))
 
 	legacy := getBazelTestManager(t, dep.ManagerTypeGo, "legacy/svc")
 	d, ok := legacy.Get("github.com/go-chi/chi/v5")
@@ -205,8 +227,15 @@ func TestBazel_Go(t *testing.T) {
 }
 
 func TestBazel_NotBazel(t *testing.T) {
-	for _, managerType := range []string{dep.ManagerTypeJava, dep.ManagerTypePython, dep.ManagerTypeGo} {
-		m := getBazelTestManager(t, managerType, "not-bazel")
-		assert.Empty(t, m.Find("*"), managerType)
+	for _, dir := range []string{"not-bazel", "dirs-named-bazel"} {
+		for _, managerType := range []string{dep.ManagerTypeJava, dep.ManagerTypePython, dep.ManagerTypeGo} {
+			m := getBazelTestManager(t, managerType, dir)
+			assert.Empty(t, m.Find("*"), managerType)
+		}
 	}
+}
+
+func hasDep(m dep.Manager, name string) bool {
+	_, ok := m.Get(name)
+	return ok
 }
