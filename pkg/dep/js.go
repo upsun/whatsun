@@ -52,11 +52,7 @@ func (m *jsManager) Get(name string) (Dependency, bool) {
 }
 
 func (m *jsManager) vendorName(name string) string {
-	if strings.HasPrefix(name, "@") && strings.Contains(name, "/") {
-		parts := strings.SplitN(name, "/", 2)
-		return strings.TrimPrefix(parts[0], "@")
-	}
-	return ""
+	return jsVendor(name)
 }
 
 func (m *jsManager) parse() error {
@@ -133,6 +129,17 @@ func (m *jsManager) parse() error {
 			if err := parseBunLockDeps(m.fsys, m.path, m.deps, m.vendorName, m.toolName); err != nil {
 				return err
 			}
+		}
+	}
+
+	// Add Bazel dependencies, if not already found.
+	bazelDeps, err := parseBazelDeps(m.fsys, m.path)
+	if err != nil {
+		return err
+	}
+	for _, dep := range bazelDeps[ManagerTypeJavaScript] {
+		if _, ok := m.deps[dep.Name]; !ok {
+			m.deps[dep.Name] = dep
 		}
 	}
 

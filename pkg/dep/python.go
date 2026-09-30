@@ -177,7 +177,9 @@ func (m *pythonManager) parse() error {
 		}
 	}
 
-	return nil
+	var err error
+	m.dependencies, err = appendBazelDeps(m.dependencies, m.fsys, m.path, ManagerTypePython)
+	return err
 }
 
 func (m *pythonManager) Find(pattern string) []Dependency {
