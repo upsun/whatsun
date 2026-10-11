@@ -264,3 +264,29 @@ func isStarlarkIdent(s string) bool {
 	}
 	return true
 }
+
+// starlarkTerms splits an expression into the terms of a concatenation,
+// replacing variables with their values (as assigned in src), and removing
+// parentheses. E.g. with "A = [1]", "(A + [2])" becomes "[1]" and "[2]".
+func starlarkTerms(src, expr string) []string {
+	return appendStarlarkTerms(nil, src, expr, 0)
+}
+
+func appendStarlarkTerms(terms []string, src, expr string, depth int) []string {
+	// Limit the depth of variable references, e.g. in case of cycles.
+	const maxDepth = 5
+	if depth > maxDepth {
+		return terms
+	}
+	for _, term := range splitStarlarkTopLevel(expr, '+') {
+		switch {
+		case isStarlarkIdent(term):
+			terms = appendStarlarkTerms(terms, src, starlarkAssignment(src, term), depth+1)
+		case strings.HasPrefix(term, "(") && matchStarlarkBracket(term, 0) == len(term)-1:
+			terms = appendStarlarkTerms(terms, src, term[1:len(term)-1], depth+1)
+		default:
+			terms = append(terms, term)
+		}
+	}
+	return terms
+}

@@ -4,7 +4,6 @@ import (
 	"errors"
 	"io/fs"
 	"path/filepath"
-	"slices"
 	"sync"
 
 	"github.com/IGLOU-EU/go-wildcard/v2"
@@ -46,20 +45,16 @@ func (m *goManager) init() error {
 	}
 	m.file = f
 
-	// Add Bazel dependencies not already direct in go.mod. Those that are
-	// indirect in go.mod are replaced (see Find), as the BUILD file references
-	// them directly.
-	var direct []Dependency
+	// Add modules declared in Bazel files and not in go.mod.
+	var required []Dependency
 	for _, v := range f.Require {
-		if !v.Indirect {
-			direct = append(direct, Dependency{Name: v.Mod.Path})
-		}
+		required = append(required, Dependency{Name: v.Mod.Path})
 	}
-	withBazel, err := appendBazelDeps(direct, m.fsys, m.path, ManagerTypeGo)
+	withBazel, err := appendBazelDeps(required, m.fsys, m.path, ManagerTypeGo)
 	if err != nil {
 		return err
 	}
-	m.bazelDeps = withBazel[len(direct):]
+	m.bazelDeps = withBazel[len(required):]
 	return nil
 }
 
@@ -85,9 +80,6 @@ func (m *goManager) Get(name string) (Dependency, bool) {
 func (m *goManager) Find(pattern string) []Dependency {
 	var deps []Dependency
 	for _, v := range m.file.Require {
-		if v.Indirect && slices.ContainsFunc(m.bazelDeps, func(d Dependency) bool { return d.Name == v.Mod.Path }) {
-			continue
-		}
 		if wildcard.Match(pattern, v.Mod.Path) {
 			deps = append(deps, Dependency{
 				Name:     v.Mod.Path,

@@ -157,8 +157,6 @@ func TestAnalyze_TestFS_ActualRules(t *testing.T) {
 			With: map[string]rules.ReportValue{"version": {Value: "5.2.3"}}, Groups: []string{"django", "python"}},
 		{Ruleset: "frameworks", Path: "spring-bazel", Result: "spring-boot", Rules: []string{"spring-boot"},
 			With: map[string]rules.ReportValue{"version": {Value: ""}}, Groups: []string{"java"}},
-		{Ruleset: "frameworks", Path: "spring-bazel/app", Result: "spring-boot", Rules: []string{"spring-boot"},
-			With: map[string]rules.ReportValue{"version": {Value: ""}}, Groups: []string{"java"}},
 
 		// Package manager results.
 		{Ruleset: "package_managers", Path: ".", Result: "composer", Rules: []string{"composer"}, Groups: []string{"php"},

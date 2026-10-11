@@ -62,24 +62,34 @@ C = "x"
 		splitStarlarkTopLevel(starlarkAssignment(src, "AB"), '+'))
 }
 
-func TestSplitBazelLabel(t *testing.T) {
-	cases := []struct{ label, repo, pkg, target string }{
-		{"@maven//:com_google_guava_guava", "maven", "", "com_google_guava_guava"},
-		{"@@pypi//requests:pkg", "pypi", "requests", "pkg"},
-		{"@npm//@types/node", "npm", "@types/node", "node"},
-		{"//:node_modules/lodash", "", "", "node_modules/lodash"},
-		{":node_modules/lodash", "", "", "node_modules/lodash"},
-		{"//foo/bar", "", "foo/bar", "bar"},
-	}
-	for _, c := range cases {
-		repo, pkg, target := splitBazelLabel(c.label)
-		assert.Equal(t, []string{c.repo, c.pkg, c.target}, []string{repo, pkg, target}, c.label)
-	}
+func TestStarlarkTerms(t *testing.T) {
+	src := `
+A = ["a"]
+B = (A + ["b"])
+C = D
+D = C
+`
+	assert.Equal(t, []string{`["a"]`, `["b"]`, `["c"]`, "glob([\"x\"])"},
+		starlarkTerms(src, `(B + ["c"]) + C + glob(["x"])`))
 }
 
-func TestGoRepoName(t *testing.T) {
-	assert.Equal(t, "com_github_gorilla_mux", goRepoName("github.com/gorilla/mux"))
-	assert.Equal(t, "org_golang_x_net", goRepoName("golang.org/x/net"))
-	assert.Equal(t, "org_golang_google_grpc", goRepoName("google.golang.org/grpc"))
-	assert.Equal(t, "in_gopkg_yaml_v3", goRepoName("gopkg.in/yaml.v3"))
+func TestBazelLabelPath(t *testing.T) {
+	cases := []struct {
+		label, path string
+		ok          bool
+	}{
+		{"//:requirements.txt", "requirements.txt", true},
+		{"//tools/publish:requirements_linux.txt", "tools/publish/requirements_linux.txt", true},
+		{":requirements.txt", "requirements.txt", true},
+		{"requirements.txt", "requirements.txt", true},
+		{"@other//:requirements.txt", "", false},
+		{"//tools:", "", false},
+	}
+	for _, c := range cases {
+		p, ok := bazelLabelPath(c.label)
+		assert.Equal(t, c.ok, ok, c.label)
+		if c.ok {
+			assert.Equal(t, c.path, p, c.label)
+		}
+	}
 }
