@@ -57,7 +57,8 @@ func (m *javaManager) parse() error {
 		return err
 	}
 	m.deps = append(m.deps, deps...)
-	return nil
+	m.deps, err = appendBazelDeps(m.deps, m.fsys, m.path, ManagerTypeJava)
+	return err
 }
 
 func (m *javaManager) Find(pattern string) []Dependency {

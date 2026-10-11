@@ -14,8 +14,9 @@ type goManager struct {
 	fsys fs.FS
 	path string
 
-	initOnce sync.Once
-	file     *modfile.File
+	initOnce  sync.Once
+	file      *modfile.File
+	bazelDeps []Dependency
 }
 
 func newGoManager(fsys fs.FS, path string) Manager {
@@ -43,6 +44,17 @@ func (m *goManager) init() error {
 		return err
 	}
 	m.file = f
+
+	// Add modules declared in Bazel files and not in go.mod.
+	var required []Dependency
+	for _, v := range f.Require {
+		required = append(required, Dependency{Name: v.Mod.Path})
+	}
+	withBazel, err := appendBazelDeps(required, m.fsys, m.path, ManagerTypeGo)
+	if err != nil {
+		return err
+	}
+	m.bazelDeps = withBazel[len(required):]
 	return nil
 }
 
@@ -55,6 +67,11 @@ func (m *goManager) Get(name string) (Dependency, bool) {
 				IsDirect: !v.Indirect,
 				ToolName: "go",
 			}, true
+		}
+	}
+	for _, dep := range m.bazelDeps {
+		if dep.Name == name {
+			return dep, true
 		}
 	}
 	return Dependency{}, false
@@ -70,6 +87,11 @@ func (m *goManager) Find(pattern string) []Dependency {
 				IsDirect: !v.Indirect,
 				ToolName: "go",
 			})
+		}
+	}
+	for _, dep := range m.bazelDeps {
+		if wildcard.Match(pattern, dep.Name) {
+			deps = append(deps, dep)
 		}
 	}
 	return deps

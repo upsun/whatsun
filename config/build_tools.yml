@@ -1,5 +1,11 @@
 build_tools:
   rules:
+    bazel:
+      when: >
+        fs.fileExists("MODULE.bazel") || fs.fileExists("WORKSPACE.bazel") || fs.fileExists("WORKSPACE")
+        || fs.fileExists(".bazelversion")
+      then: bazel
+
     deno:
       when: fs.fileExists("deno.json") || fs.fileExists("deno.lock")
       then: deno

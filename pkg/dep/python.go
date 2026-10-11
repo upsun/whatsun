@@ -177,7 +177,9 @@ func (m *pythonManager) parse() error {
 		}
 	}
 
-	return nil
+	var err error
+	m.dependencies, err = appendBazelDeps(m.dependencies, m.fsys, m.path, ManagerTypePython)
+	return err
 }
 
 func (m *pythonManager) Find(pattern string) []Dependency {
@@ -208,9 +210,11 @@ func parseRequirementsTXT(r io.Reader, toolName string) ([]Dependency, error) {
 
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
-		if line == "" || strings.HasPrefix(line, "#") {
+		// Skip comments and options (e.g. "-r other.txt", or "--hash=..." in lock files).
+		if line == "" || strings.HasPrefix(line, "#") || strings.HasPrefix(line, "-") {
 			continue
 		}
+		line = strings.TrimSpace(strings.TrimSuffix(line, "\\"))
 
 		matches := pipPattern.FindStringSubmatch(line)
 		if len(matches) > 1 {
