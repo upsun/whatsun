@@ -41,7 +41,7 @@ func TestStarlarkUnterminated(t *testing.T) {
 	for _, src := range []string{`java_library(deps = ["a"`, `X = [`, `"abc`, `'''`, `f(`, `a\`} {
 		_ = starlarkCalls(src)
 		_ = starlarkStrings(src)
-		_ = starlarkAssignment(src, "X")
+		_ = starlarkAssignments(src, "X")
 		_ = splitStarlarkArgs(src)
 	}
 }
@@ -53,13 +53,16 @@ AB = A + [
     "c",  # Comment
 ] + B
 C = "x"
+A += ["d"]
+E == 1
 `
-	assert.Equal(t, `["a", "b"]`, starlarkAssignment(src, "A"))
-	assert.Equal(t, "A + [\n    \"c\",  # Comment\n] + B", starlarkAssignment(src, "AB"))
-	assert.Equal(t, `"x"`, starlarkAssignment(src, "C"))
-	assert.Empty(t, starlarkAssignment(src, "D"))
+	assert.Equal(t, []string{`["a", "b"]`, `["d"]`}, starlarkAssignments(src, "A"))
+	assert.Equal(t, []string{"A + [\n    \"c\",  # Comment\n] + B"}, starlarkAssignments(src, "AB"))
+	assert.Equal(t, []string{`"x"`}, starlarkAssignments(src, "C"))
+	assert.Empty(t, starlarkAssignments(src, "D"))
+	assert.Empty(t, starlarkAssignments(src, "E"), "comparison, not assignment")
 	assert.Equal(t, []string{"A", "[\n    \"c\",  # Comment\n]", "B"},
-		splitStarlarkTopLevel(starlarkAssignment(src, "AB"), '+'))
+		splitStarlarkTopLevel(starlarkAssignments(src, "AB")[0], '+'))
 }
 
 func TestStarlarkTerms(t *testing.T) {
@@ -68,9 +71,18 @@ A = ["a"]
 B = (A + ["b"])
 C = D
 D = C
+A += ["a2"]
+B = B + ["b2"]
 `
-	assert.Equal(t, []string{`["a"]`, `["b"]`, `["c"]`, "glob([\"x\"])"},
+	assert.Equal(t, []string{`["a"]`, `["a2"]`, `["b"]`, `["b2"]`, `["c"]`, "glob([\"x\"])"},
 		starlarkTerms(src, `(B + ["c"]) + C + glob(["x"])`))
+}
+
+func TestBazelRequirementsLabels(t *testing.T) {
+	assert.Equal(t, []string{"//:requirements.txt"}, bazelRequirementsLabels(`"//:requirements.txt"`))
+	// Only the keys of a dict are labels, not the platform values.
+	assert.Equal(t, []string{"//:req_linux.txt", "//:req_osx.txt"},
+		bazelRequirementsLabels(`{"//:req_linux.txt": "linux_*", "//:req_osx.txt": "../osx_*",}`))
 }
 
 func TestBazelLabelPath(t *testing.T) {

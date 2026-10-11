@@ -120,13 +120,21 @@ func (b bazelDeps) addMavenArtifacts(src, expr string) {
 				continue
 			}
 			coord := firstString(elem)
-			// Coordinates: group:artifact[:packaging[:classifier]]:version
+			if strings.ContainsAny(coord, "/ ") {
+				continue
+			}
+			// Coordinates are either group:artifact[:packaging[:classifier]]:version,
+			// or group:artifact:version[:classifier]@packaging.
+			coord, _, gradleStyle := strings.Cut(coord, "@")
 			parts := strings.Split(coord, ":")
-			if len(parts) < 2 || strings.ContainsAny(coord, "/@ ") {
+			if len(parts) < 2 {
 				continue
 			}
 			var version string
-			if len(parts) >= 3 {
+			switch {
+			case gradleStyle && len(parts) >= 3:
+				version = parts[2]
+			case !gradleStyle && len(parts) >= 3:
 				version = parts[len(parts)-1]
 			}
 			b.addMavenArtifact(parts[0], parts[1], version)
@@ -171,7 +179,7 @@ var bazelRequirementsAttrs = []string{
 // a pip.parse (or similar) call.
 func (b bazelDeps) addPythonRequirements(fsys fs.FS, root string, args []string) error {
 	for _, attr := range bazelRequirementsAttrs {
-		for _, label := range starlarkStrings(starlarkKwarg(args, attr)) {
+		for _, label := range bazelRequirementsLabels(starlarkKwarg(args, attr)) {
 			file, ok := bazelLabelPath(label)
 			if !ok {
 				continue
@@ -190,6 +198,21 @@ func (b bazelDeps) addPythonRequirements(fsys fs.FS, root string, args []string)
 		}
 	}
 	return nil
+}
+
+// bazelRequirementsLabels returns the labels in a requirements attribute: a
+// string, or a dict whose keys are labels (e.g. requirements_by_platform).
+func bazelRequirementsLabels(expr string) []string {
+	if !strings.HasPrefix(expr, "{") {
+		return starlarkStrings(expr)
+	}
+	var labels []string
+	for _, entry := range splitStarlarkArgs(expr[1:matchStarlarkBracket(expr, 0)]) {
+		if key := firstString(entry); key != "" {
+			labels = append(labels, key)
+		}
+	}
+	return labels
 }
 
 // bazelLabelPath converts a label for a file in the main repository (e.g.

@@ -1,6 +1,7 @@
 package dep
 
 import (
+	"slices"
 	"strings"
 )
 
@@ -95,10 +96,11 @@ func starlarkKwarg(args []string, key string) string {
 	return ""
 }
 
-// starlarkAssignment returns the value expression assigned to a top-level
-// variable in src, e.g. the list in "ARTIFACTS = [...]" or the whole of
-// "ARTIFACTS = BASE + [...]".
-func starlarkAssignment(src, name string) string {
+// starlarkAssignments returns the value expressions assigned to a top-level
+// variable in src, by "=" or "+=", in order. E.g. for "A = [1]" and
+// "A += B + [2]", it returns "[1]" and "B + [2]".
+func starlarkAssignments(src, name string) []string {
+	var values []string
 	for i := 0; i < len(src); {
 		c := src[i]
 		if c == '"' || c == '\'' {
@@ -107,13 +109,14 @@ func starlarkAssignment(src, name string) string {
 		}
 		if strings.HasPrefix(src[i:], name) && (i == 0 || src[i-1] == '\n') {
 			rest := strings.TrimLeft(src[i+len(name):], " \t")
+			rest = strings.TrimPrefix(rest, "+")
 			if value, ok := strings.CutPrefix(rest, "="); ok && !strings.HasPrefix(value, "=") {
-				return strings.TrimSpace(value[:starlarkLineEnd(value)])
+				values = append(values, strings.TrimSpace(value[:starlarkLineEnd(value)]))
 			}
 		}
 		i++
 	}
-	return ""
+	return values
 }
 
 // starlarkLineEnd returns the index of the first newline in src that is not
@@ -268,22 +271,31 @@ func isStarlarkIdent(s string) bool {
 // starlarkTerms splits an expression into the terms of a concatenation,
 // replacing variables with their values (as assigned in src), and removing
 // parentheses. E.g. with "A = [1]", "(A + [2])" becomes "[1]" and "[2]".
+//
+// A variable's value is taken to be everything ever assigned or appended to
+// it (see starlarkAssignments), as the code is not evaluated.
 func starlarkTerms(src, expr string) []string {
-	return appendStarlarkTerms(nil, src, expr, 0)
+	return appendStarlarkTerms(nil, src, expr, nil)
 }
 
-func appendStarlarkTerms(terms []string, src, expr string, depth int) []string {
-	// Limit the depth of variable references, e.g. in case of cycles.
+func appendStarlarkTerms(terms []string, src, expr string, visiting []string) []string {
+	// Limit the depth of variable references.
 	const maxDepth = 5
-	if depth > maxDepth {
+	if len(visiting) > maxDepth {
 		return terms
 	}
 	for _, term := range splitStarlarkTopLevel(expr, '+') {
 		switch {
 		case isStarlarkIdent(term):
-			terms = appendStarlarkTerms(terms, src, starlarkAssignment(src, term), depth+1)
+			// Skip self-references (e.g. "A = A + [...]") and cycles.
+			if slices.Contains(visiting, term) {
+				continue
+			}
+			for _, value := range starlarkAssignments(src, term) {
+				terms = appendStarlarkTerms(terms, src, value, append(slices.Clone(visiting), term))
+			}
 		case strings.HasPrefix(term, "(") && matchStarlarkBracket(term, 0) == len(term)-1:
-			terms = appendStarlarkTerms(terms, src, term[1:len(term)-1], depth+1)
+			terms = appendStarlarkTerms(terms, src, term[1:len(term)-1], visiting)
 		default:
 			terms = append(terms, term)
 		}

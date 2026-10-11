@@ -24,6 +24,8 @@ maven.install(
         "com.google.guava:guava:33.0.0-jre",  # A comment with "quotes"
         # "org.example:commented-out:1.0",
         "io.grpc:grpc-netty",  # Versionless (e.g. managed by a BOM).
+        "io.netty:netty-transport-native-epoll:jar:linux-x86_64:4.1.100",
+        "com.example:native-lib:1.0:linux@so",
         maven.artifact(group = "org.slf4j", artifact = "slf4j-api", version = "2.0.9",
                        exclusions = ["com.google.code.gson:gson"]),
     ],
@@ -90,13 +92,18 @@ ARTIFACTS = (
     + ["com.google.guava:guava:33.0.0-jre"]
 )
 
+ARTIFACTS += ["org.slf4j:slf4j-api:2.0.9"]
+
+MORE = ["org.yaml:snakeyaml:2.2"]
+MORE = MORE + ["io.micronaut:micronaut-core:4.0.0"]
+
 # Cyclic references are ignored.
 CYCLE_A = CYCLE_B
 CYCLE_B = CYCLE_A
 
 maven_install(
     name = "deps",
-    artifacts = (ARTIFACTS + ["junit:junit:4.13.2"]) + CYCLE_A,
+    artifacts = (ARTIFACTS + ["junit:junit:4.13.2"]) + MORE + CYCLE_A,
 )
 
 go_repository(
@@ -140,14 +147,21 @@ func TestBazel_Java(t *testing.T) {
 		{Vendor: "com.google.guava", Name: "com.google.guava:guava",
 			Constraint: "33.0.0-jre", Version: "33.0.0-jre", IsDirect: true, ToolName: "bazel"},
 		{Vendor: "io.grpc", Name: "io.grpc:grpc-netty", IsDirect: true, ToolName: "bazel"},
+		{Vendor: "io.netty", Name: "io.netty:netty-transport-native-epoll",
+			Constraint: "4.1.100", Version: "4.1.100", IsDirect: true, ToolName: "bazel"},
+		{Vendor: "com.example", Name: "com.example:native-lib",
+			Constraint: "1.0", Version: "1.0", IsDirect: true, ToolName: "bazel"},
 		{Vendor: "org.slf4j", Name: "org.slf4j:slf4j-api",
 			Constraint: "2.0.9", Version: "2.0.9", IsDirect: true, ToolName: "bazel"},
 		{Vendor: "junit", Name: "junit:junit", Constraint: "4.13.2", Version: "4.13.2", IsDirect: true, ToolName: "bazel"},
 	}, root.Find("*"), "exclusions are not dependencies")
 
-	// Artifact lists built from variables, concatenation and parentheses.
+	// Artifact lists built from variables, concatenation, parentheses and "+=".
 	legacy := getBazelTestManager(t, dep.ManagerTypeJava, "legacy")
-	assert.Equal(t, []string{"io.quarkus:quarkus-rest", "com.google.guava:guava", "junit:junit"}, depNames(legacy))
+	assert.Equal(t, []string{
+		"io.quarkus:quarkus-rest", "com.google.guava:guava", "org.slf4j:slf4j-api", "junit:junit",
+		"org.yaml:snakeyaml", "io.micronaut:micronaut-core",
+	}, depNames(legacy))
 }
 
 func TestBazel_Python(t *testing.T) {
